@@ -1,0 +1,102 @@
+task_id: "TASK-E001-005"
+title: "移位地址生成器 shift_addr_gen RTL 实现"
+status: "done"
+agent: "rtl_implementer"
+assigned_to: ""
+created_date: "2026-06-04"
+
+objective: >
+  实现 shift_addr_gen 模块，根据移位配置（方向/步长/缠绕模式）
+  计算从帧缓冲读出的地址，实现 2D shift 的核心数据重排逻辑。
+
+target_validation_level: "L1a"
+integration_scope: "module"
+
+validation_status:
+  L0: "pass"
+  L1a: "pass"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-001"
+  - "TASK-E001-002"
+
+scope:
+  allowed_edit_paths:
+    - "rtl/shift_addr_gen.sv"
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+    - "rtl/ctrl_fsm.sv"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+
+acceptance:
+  - "正确实现 4 方向移位地址计算（NONE/UP/DOWN/LEFT/RIGHT）"
+  - "支持缠绕模式（wrap_en=1）和补零模式（wrap_en=0）"
+  - "补零模式下超出边界的地址置为特殊值或产生 zero_fill 标志"
+  - "与寄存器配置（cfg_dir/cfg_step/cfg_wrap_en）正确联动"
+  - "仅当 shift_en=1 时产出有效地址"
+
+required_outputs:
+  - "rtl/shift_addr_gen.sv"
+
+handoff:
+  next_task: ""
+  handoff_file: ".awp/handoffs/HO-E001-005-001.md"
+
+risk_level: "medium"
+
+notes: >
+  ## 接口定义
+
+  ### 参数
+  - MAX_ROWS (default 64)
+  - MAX_COLS (default 64)
+
+  ### 控制输入
+  - cfg_dir[2:0], cfg_step[4:0], cfg_wrap_en (来自 regs_top)
+  - shift_en (来自 ctrl_fsm)
+  - img_rows[9:0], img_cols[9:0] (来自 regs_top)
+
+  ### 输出到 frame_buf_mgr
+  - read_addr[11:0]
+  - zero_fill (补零模式下超出边界时为 1)
+
+  ## 地址计算逻辑（来自 architecture.md 3.6 节）
+
+  设 base_addr = row * IMG_COLS + col（按光栅顺序输出）
+
+  | Mode | dir | Read Address |
+  |------|-----|--------------|
+  | NONE | 000 | base_addr |
+  | UP   | 001 | ((row + step) % IMG_ROWS) * IMG_COLS + col |
+  | DOWN | 010 | ((row - step + IMG_ROWS) % IMG_ROWS) * IMG_COLS + col |
+  | LEFT | 011 | row * IMG_COLS + ((col + step) % IMG_COLS) |
+  | RIGHT| 100 | row * IMG_COLS + ((col - step + IMG_COLS) % IMG_COLS) |
+
+  当 wrap_en=0 时：
+  - UP: row + step >= IMG_ROWS → zero_fill=1
+  - DOWN: row - step < 0 → zero_fill=1
+  - LEFT: col + step >= IMG_COLS → zero_fill=1
+  - RIGHT: col - step < 0 → zero_fill=1
+
+  ## 设计要点
+  - 需要内部 row_cnt/col_cnt 计数器跟踪输出位置（0 到 IMG_ROWS*IMG_COLS-1）
+  - 每次 shift_en=1 时计数器递增
+  - 读地址由组合逻辑生成（基于当前 row_cnt/col_cnt 和配置参数）
+  - 无需流水线（简单设计），乘法/取模由综合工具优化
+  - 非法 dir 值（101-111）按 NONE 处理
