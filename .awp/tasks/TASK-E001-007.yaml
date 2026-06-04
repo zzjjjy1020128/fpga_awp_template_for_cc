@@ -1,0 +1,95 @@
+task_id: "TASK-E001-007"
+title: "帧缓冲控制器 frame_buf_mgr RTL 实现"
+status: "done"
+agent: "rtl_implementer"
+assigned_to: ""
+created_date: "2026-06-04"
+
+objective: >
+  实现 frame_buf_mgr 模块，例化双端口 BRAM 并通过端口 A（写）/ 端口 B（读）
+  管理帧缓冲数据的写入和读出。
+
+target_validation_level: "L1a"
+integration_scope: "module"
+
+validation_status:
+  L0: "pass"
+  L1a: "pass"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-001"
+  - "TASK-E001-004"
+  - "TASK-E001-006"
+
+scope:
+  allowed_edit_paths:
+    - "rtl/frame_buf_mgr.sv"
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+    - "rtl/ctrl_fsm.sv"
+    - "rtl/axis_input.sv"
+    - "rtl/shift_addr_gen.sv"
+    - "rtl/axis_output.sv"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+    - "rtl/axis_input.sv"
+    - "rtl/axis_output.sv"
+    - "rtl/shift_addr_gen.sv"
+
+acceptance:
+  - "实例化双端口 BRAM（端口 A 写，端口 B 读），位宽 DATA_WIDTH，深度 MAX_ROWS*MAX_COLS"
+  - "端口 A 接收 axis_input 的 write_addr/write_data/write_en"
+  - "端口 B 接收 shift_addr_gen 的 read_addr，输出 read_data 给 axis_output"
+  - "支持同时读写（双端口独立操作，地址冲突时 read-before-write 或 write-first 均可）"
+  - "BRAM 使用 inferred 方式（reg array），由综合工具自动映射到 BRAM 原语"
+
+required_outputs:
+  - "rtl/frame_buf_mgr.sv"
+
+handoff:
+  next_task: ""
+  handoff_file: ".awp/handoffs/HO-E001-007-001.md"
+
+risk_level: "low"
+
+notes: >
+  ## 接口定义
+
+  ### 参数
+  - DATA_WIDTH (default 8)
+  - MAX_ROWS (default 64)
+  - MAX_COLS (default 64)
+  - ADDR_WIDTH = $clog2(MAX_ROWS * MAX_COLS) (default 12)
+
+  ### 端口 A（写端口，连接 axis_input）
+  - write_clk (clk)
+  - write_addr[ADDR_WIDTH-1:0]
+  - write_data[DATA_WIDTH-1:0]
+  - write_en
+
+  ### 端口 B（读端口，连接 shift_addr_gen + axis_output）
+  - read_clk (clk)
+  - read_addr[ADDR_WIDTH-1:0]
+  - read_data[DATA_WIDTH-1:0]（组合逻辑输出或寄存器输出均可）
+
+  ## 设计要点
+  - 使用 SystemVerilog reg array 推断 BRAM：`reg [DATA_WIDTH-1:0] bram [0:DEPTH-1]`
+  - 双端口：两个 always_ff 块分别处理 A 端口写和 B 端口读
+  - 读端口可用组合逻辑（`assign read_data = bram[read_addr]`）或寄存器输出
+  - 同时读写同一地址时，行为由综合工具决定（通常 read-first），不做额外处理
+  - 不需要读写冲突保护逻辑
