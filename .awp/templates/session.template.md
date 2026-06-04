@@ -1,13 +1,16 @@
 # Session 记录
 
-> 文件命名：`.awp/sessions/SESS-{exp}-{task_seq}-OR-{seq}.md`（Session 角色固定为 OR=orchestrator）
+> 文件命名：`.awp/sessions/SESS-{exp}-OR-{seq}.md`（Session 角色固定为 OR=orchestrator）
 
 ## Session Goal
 `<本次 session 的目标，一句话>`
 
-## Assigned Task
-- Task ID：`<TASK-E001-001>`
-- Agent：`<agent name>`（本 session 中 spawn 的子智能体）
+## Tasks Worked
+`<本 session 中处理的所有 task，一个 session 可包含多个 task>`
+
+| Task ID | Agent | 状态变化 | 产出 |
+|---------|-------|---------|------|
+| `<TASK-E001-001>` | `<agent>` | `ready → done` | `<文件列表>` |
 
 ## Files Read
 - `<文件路径>`

@@ -17,9 +17,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
    - Issues Found：发现的问题和影响
    - Gate Check：勾选目标验证级别，确认前一级别已通过
    - Validation Status：`make validate-awp` 的结果
-3. 重命名为正式文件名 `SESS-{exp}-{task_seq}-OR-{seq}.md`
+3. 重命名为正式文件名 `SESS-{exp}-OR-{seq}.md`
    - {exp} 从 task_id 提取，如 TASK-E001-001 → E001
-   - {task_seq} 从 task_id 提取，如 TASK-E001-001 → 001
    - {seq} 为当前 exp 下 session 序号，检查已有 session 文件确定
 
 ## Step 2: 更新 Task 状态
@@ -35,19 +34,12 @@ python scripts/validate_awp.py
 
 ## Step 4: Git 提交
 
-1. 使用 `git add` 暂存所有本 session 产生的文件（不含 SKELETON-* 和 .gitignore 排除项）
-2. 按 `.gitmessage` 模板编写提交信息：
-
-   ```
-   <type>(<scope>): <本 session 的核心工作简述>
-
-   Task: <task_id>
-   Session: <session_id>
-   Validation: <当前通过的验证级别>
-   ```
-
-3. 执行 `git commit`。Pre-commit hook 会自动运行 validate-awp。
-4. 如果 session 包含多个独立 task，考虑为每个 task 单独提交。
+1. 对每个状态变为 `done` 的 task，做一次单独提交：
+   - `git add` 该 task 的产出文件
+   - 按 `.gitmessage` 模板编写提交信息（Task/Session/Validation trailer）
+   - `git commit`（pre-commit hook 自动 validate-awp）
+2. 所有 task 提交后，检查是否有未提交改动（如 registry、task_board 更新），如有则做最后一次补充提交。
+3. 同一 task 的多个产出文件合并为一次提交。
 
 ## Step 5: 门禁检查
 

@@ -16,7 +16,7 @@ next_session_role: "orchestrator"
 - **Handoff ID**：`HO-E001-001-001`
 - **Session ID**：`SESS-E001-001-OR-001`
 - **Date**：`<YYYY-MM-DD>`
-- **原因**：`<用户停止 / 上下文满 / 阶段完成 / compact>`
+- **原因**：`<用户停止 / 上下文满 / compact>`（注：所有 task 已完成时不创建 handoff，直接做 session 记录和复盘）
 
 ## 已完成
 

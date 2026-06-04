@@ -23,10 +23,9 @@
 
 ### Session 记录（强制）
 1. 每次 session 开始后，在 `.awp/sessions/` 中定位 SessionStart hook 自动生成的骨架文件（`SKELETON-*.md`）。
-2. **必须在 session 结束前按骨架结构填写完整内容**，并重命名为正式文件名 `SESS-{exp}-{task_seq}-OR-{seq}.md`（格式见 `.awp/registry/namespaces.yaml`）。
-3. Session 固定使用 `OR`（orchestrator 的缩写），因为每个 session 的角色始终是 orchestrator。
-4. Session 记录中必须包含 `make validate-awp` 的运行结果和 Gate Check 状态。
-5. 未完成 session 记录的 task 不得进入 handoff。
+2. **必须在 session 结束前按骨架结构填写完整内容**，并重命名为正式文件名 `SESS-{exp}-OR-{seq}.md`（格式见 `.awp/registry/namespaces.yaml`）。
+3. Session 记录中必须包含 `make validate-awp` 的运行结果和 Gate Check 状态。
+4. 未完成 session 记录的 task 不得进入 handoff。
 
 ### Handoff（session 边界机制）
 
@@ -92,6 +91,15 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 
 你是 **orchestrator**（主 session），相当于 CTO。技术工作应委托给子智能体，你负责任务拆分、进度跟踪和合规归档。
 
+### Session 恢复协议（B1）
+
+**每次新 session 启动时**，在执行任何其他工作之前，必须先检查：
+
+1. `.awp/handoffs/` 中是否存在未读的 handoff 文件（按日期排序，取最新的）
+2. 若存在 handoff：读取其内容，恢复上一 session 的上下文（已完成/未完成 task、关键文件、已知问题），从"下一步行动"开始继续
+3. 若不存在 handoff：检查 `.awp/task_board.md` 确认当前项目状态
+4. 向用户汇报恢复结果："检测到上次未完成的 session，已从 HO-xxx 恢复上下文"或"这是新项目的首次 session"
+
 ### Spawn 决策规则（G1）
 
 收到用户需求时，按以下优先级判断是否需要 spawn 子智能体：
@@ -100,15 +108,18 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 2. **已有 task yaml 且 agent 字段非空** → spawn 对应 agent
 3. **需求属于以下技术工作** → 创建 task yaml（填入对应 agent），然后 spawn：
 
-| 需求类别 | agent |
-|---------|------|
-| RTL 设计/修改 | `rtl_implementer` |
-| 代码审查 | `rtl_reviewer` |
-| 仿真/测试 | `tb_verifier` |
-| Vivado 工程/综合/实现 | `vivado_integrator` |
-| 上板验证 | `hardware_validator` |
-| 架构设计/验证规划 | `planner` |
-| 流程检查/复盘 | `process_owner` |
+| 需求类别 | agent | 备注 |
+|---------|------|------|
+| 启动新 FPGA 项目 | `planner` | 先创建 `project_charter.md` 定义范围/约束/验证目标，再创建 architecture |
+| 架构设计/验证规划 | `planner` | |
+| RTL 设计/修改 | `rtl_implementer` | |
+| RTL 完成后的代码审查 | `rtl_reviewer` | rtl_implementer 完成后自动触发 |
+| 仿真/测试 | `tb_verifier` | |
+| XDC 约束编写 | `vivado_integrator` | |
+| 约束完成后的审查 | `rtl_reviewer` | vivado_integrator 产出 XDC 后自动触发 |
+| Vivado 工程/综合/实现 | `vivado_integrator` | |
+| 上板验证 | `hardware_validator` | |
+| 流程检查/复盘 | `process_owner` | 所有 task 完成后自动触发 |
 
 4. **需求是以下管理工作** → orchestrator 自己处理，不 spawn：
    - 任务拆分、task_board 更新、进度汇报
@@ -154,7 +165,7 @@ Handoff 文件由 orchestrator 在 session 结束前创建。
 
 1. **首次失败** → spawn 同一 agent 子智能体修复，传递失败原因
 2. **第二次失败** → spawn 同一 agent 子智能体修复，传递失败原因 + 强调关键点
-3. **第三次失败** → **停止**，创建 `ISS-{exp}-{seq}` issue 记录（写入 `.awp/runs/` 或 session log），向用户报告并等待指示
+3. **第三次失败** → **停止**，创建 `ISS-{exp}-{seq}` issue 文件（`.awp/runs/ISS-{exp}-{seq}.md`），参照 `.awp/templates/failure_analysis.template.md` 填写现象/根因/影响/建议修复，向用户报告并等待指示
 4. **Gate violation**（如 L1 未通过但尝试 L2）→ 硬阻断，已创建的后续 task 设为 blocked
 
 ### Task 粒度决策规则（G5）
@@ -168,8 +179,32 @@ Handoff 文件由 orchestrator 在 session 结束前创建。
 
 ### Issue 记录决策规则（G6）
 
-- **必须创建 issue 记录**：阻塞 task 进度、需要跨 agent 协调、验证失败升级到第三次
+- **必须创建 ISS 文件**：阻塞 task 进度、需要跨 agent 协调、验证失败升级到第三次。参照 `.awp/templates/failure_analysis.template.md` 填写。
 - **仅在 session log 中记录即可**：发现即修复的 typo、单行 fix、同 session 内闭环的小问题
+
+### Task 状态转换规则（G7）
+
+| 转换 | 触发条件 | 执行者 |
+|------|---------|--------|
+| `ready` → `in_progress` | orchestrator spawn 子智能体开始执行 | orchestrator |
+| `in_progress` → `review` | 子智能体返回产出，需要 review（按 G3 规则） | orchestrator |
+| `in_progress` → `blocked` | 依赖的 task 未完成、Gate violation、等待用户决策 | orchestrator |
+| `blocked` → `in_progress` | 阻塞解除 | orchestrator |
+| `review` → `done` | review 通过 + 验收条件全满足 + required_outputs 完整 + validation_status 达到 target_level | orchestrator |
+| `review` → `in_progress` | review 不通过，需要修改 | orchestrator |
+| `in_progress` → `done` | 不需要 review 的 task（按 G3 可选 review），验收条件满足即可 | orchestrator |
+
+**done 的三条件**（必须同时满足）：
+1. `acceptance` 全部通过
+2. `required_outputs` 全部存在且内容完整
+3. `validation_status` 达到 `target_validation_level`
+
+### 项目完成触发（G8）
+
+当 task_board 中所有 task 状态均为 `done` 时：
+1. 创建 `process_owner` 任务（agent: `process_owner`），spawn 子智能体编写 `docs/retrospective.md`
+2. 完成最终 session 记录和 handoff（如跨 session）
+3. 向用户汇报项目总结（验证结果表、资源/时序数据、经验沉淀）
 
 ### 合规分层
 

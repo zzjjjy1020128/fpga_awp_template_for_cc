@@ -10,6 +10,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 如果用户没有指定 EXP ID，检查 `.awp/registry/id_registry.yaml` 中已有的 EXP 条目。若尚无 EXP，先创建 EXP 条目（格式见 `.awp/registry/namespaces.yaml`）并注册。
 
+**若本 EXP 下尚无任何 task**（新项目启动），在创建第一个 task 前，先确认是否已存在 `project_charter.md`（参照 `.awp/templates/project_charter.template.md`）。若没有，建议用户先用 planner agent 创建项目章程，定义范围、约束和验证目标。
+
 ## Step 2: 确定 Task ID
 
 1. 检查 `.awp/registry/id_registry.yaml` 中已有的 TASK 条目

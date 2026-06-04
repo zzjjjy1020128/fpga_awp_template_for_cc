@@ -20,9 +20,9 @@ namespaces:
 
   SESSION:
     prefix: "SESS"
-    format: "SESS-{exp}-{task_seq:03d}-OR-{seq:03d}"
-    example: "SESS-E001-001-OR-001"
-    description: "一次 agent session 记录。Session 角色固定为 OR（orchestrator），不随 task 的 agent 变化。"
+    format: "SESS-{exp}-OR-{seq:03d}"
+    example: "SESS-E001-OR-001"
+    description: "一次 agent session 记录。Session 角色固定为 OR（orchestrator），一个 session 可包含多个 task。"
     location: ".awp/sessions/"
     lifecycle: "完成后保留直到项目结束"
 

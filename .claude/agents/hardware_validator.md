@@ -28,7 +28,7 @@ maxTurns: 50
 ## 输出要求
 
 - `board/` 下的验证记录
-- `.awp/runs/RUN-{exp}-BOARD-{seq}.md`
+- `.awp/runs/RUN-{exp}-BOARD-{seq}.md`（参照 `.awp/templates/board_validation.template.md` 填写硬件设置、测试激励、ILA/VIO 证据）
 - ILA/VIO 信号描述
 
 ## 语言规范

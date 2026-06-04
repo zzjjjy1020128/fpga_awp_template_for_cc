@@ -22,7 +22,7 @@ FPGA-AWP 的 ID 注册和命名空间管理。
 |------|------|
 | EXP | `EXP001` |
 | TASK | `TASK-E001-001` |
-| SESSION | `SESS-E001-001-OR-001` |
+| SESSION | `SESS-E001-OR-001` |
 | HANDOFF | `HO-E001-001-001` |
 | REVIEW | `REV-E001-001-RTL-001` |
 | RUN | `RUN-E001-SIM-001` |

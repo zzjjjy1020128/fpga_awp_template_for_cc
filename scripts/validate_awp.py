@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parent.parent
 NAMESPACE_PATTERNS = {
     "EXP": re.compile(r"^EXP\d{3}$"),
     "TASK": re.compile(r"^TASK-[A-Z]\d{3}-\d{3}$"),
-    "SESSION": re.compile(r"^SESS-[A-Z]\d{3}-\d{3}-OR-\d{3}$"),
+    "SESSION": re.compile(r"^SESS-[A-Z]\d{3}-OR-\d{3}$"),
     "HANDOFF": re.compile(r"^HO-[A-Z]\d{3}-\d{3}-\d{3}$"),
     "REVIEW": re.compile(r"^REV-[A-Z]\d{3}-\d{3}-[A-Z]+-\d{3}$"),
     "RUN": re.compile(r"^RUN-[A-Z]\d{3}-[A-Z]+-\d{3}$"),

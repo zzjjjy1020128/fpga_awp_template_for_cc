@@ -19,9 +19,12 @@ def main():
         print("[session_skeleton] WARNING: Could not parse hook input", file=sys.stderr)
         return 0
 
-    session_id = data.get("session_id", "unknown")
+    session_id = data.get("session_id", "")
+    if not session_id:
+        session_id = f"nosid-{date.today().isoformat()}"
+        print("[session_skeleton] WARNING: No session_id in hook input, using fallback", file=sys.stderr)
     today = date.today().isoformat()
-    skeleton_name = f"SKELETON-{today}-{session_id[:8]}.md"
+    skeleton_name = f"SKELETON-{today}-{session_id[:12]}.md"
     skeleton_path = SESSIONS_DIR / skeleton_name
 
     # 如果已存在则跳过
@@ -36,9 +39,12 @@ def main():
 ## Session Goal
 `<本次 session 的目标，一句话>`
 
-## Assigned Task
-- Task ID：`<TASK-E001-001>`
-- Agent：`<agent name>`（本 session 中 spawn 的子智能体）
+## Tasks Worked
+`<本 session 中处理的所有 task>`
+
+| Task ID | Agent | 状态变化 | 产出 |
+|---------|-------|---------|------|
+| `<TASK-E001-001>` | `<agent>` | `ready → done` | `<文件列表>` |
 
 ## Files Read
 - `<文件路径>`

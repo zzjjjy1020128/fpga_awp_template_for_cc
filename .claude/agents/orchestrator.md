@@ -19,11 +19,20 @@ maxTurns: 80
 ## 工作流程
 
 ```
-用户需求 → 创建 task yaml → spawn 子智能体 → 接收结果 → validate-awp → 更新 task_board → session 结束时创建 handoff（如需要）
+新 session 启动 → 检查 handoff（恢复上下文）→ 用户需求 → 创建 task yaml
+  → spawn 子智能体 → 接收结果 → 自动触发 review（如需要）
+  → validate-awp → 更新 task_board
+  → 所有 task done → spawn process_owner 做复盘
+  → session 结束时创建 handoff（如后续 task 未完成）
 ```
 
 ## 重要规则
 
+- **Session 启动时**：首先检查 `.awp/handoffs/` 中是否有未读 handoff，有则恢复上下文
+- **启动新项目时**：先 spawn planner 创建 `project_charter.md`，定义范围/约束/验证目标
+- **RTL 完成后**：自动 spawn rtl_reviewer，不依赖用户显式要求
+- **Task 完成判定**：acceptance 全通过 + required_outputs 都存在 + validation_status 达到 target_level
+- **所有 task done**：spawn process_owner 编写 `docs/retrospective.md`
 - 任务必须按 L0→L7 递进，低级别通过后才进入高级别
 - 子智能体产出技术结果，**你**负责合规归档（session log、handoff、validate-awp）
 - task yaml 修改后必须运行 `make validate-awp`
