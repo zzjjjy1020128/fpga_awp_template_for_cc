@@ -53,10 +53,26 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
    ```
 
    type: `feat | fix | refactor | docs | chore | test`
-   scope: `rtl | tb | constraints | vivado | docs | awp | board | scripts | registry`
+   scope: `awp | conf | session | rtl | tb | constraints | vivado | board | docs`
 
-4. **分支规范**：v0.1 阶段在 `master`/`main` 工作。多实验时使用 `exp/{exp_id}` 分支。
-5. **不提交**：`.gitignore` 排除的 Vivado/仿真产物、Python 缓存、`SKELETON-*` 临时文件。
+4. **scope 分类与 cherry-pick**：scope 分为两层，用于区分"模板改进"和"项目内容"：
+
+   | 层级 | scope | 覆盖 | cherry-pick？ |
+   |------|-------|------|:---:|
+   | **模板** | `awp` | `.awp/templates/`、`.awp/schemas/`、`.awp/registry/namespaces.yaml`、`.awp/registry/README.md`、`.awp/orchestration_guide.md`、`.awp/execution_modes.md`、`.awp/workspace_manifest.json` | 是 |
+   | | `conf` | `CLAUDE.md`、`README.md`、`Makefile`、`requirements.txt`、`.gitmessage`、`.gitignore`、`.claude/`、`scripts/` | 是 |
+   | **项目** | `rtl` | `rtl/` | 否 |
+   | | `tb` | `tb/` `sim/` | 否 |
+   | | `constraints` | `constraints/` | 否 |
+   | | `vivado` | `vivado/` | 否 |
+   | | `board` | `board/` `.awp/runs/` | 否 |
+   | | `docs` | `docs/` | 否 |
+   | | `session` | `.awp/tasks/`、`.awp/sessions/`、`.awp/handoffs/`、`.awp/reviews/`、`.awp/task_board.md`、`.awp/decisions.md`、`.awp/registry/id_registry.yaml`、`.awp/registry/relations.yaml` | 否 |
+
+   cherry-pick 工作流：在 exp 分支上发现模板缺陷时，用 `awp` 或 `conf` scope 提交，之后 `git cherry-pick` 回 master。这不是强制流程——也可以直接在 master 上修复后 rebase exp 分支。
+
+5. **分支规范**：`master` 保持为干净模板。实际项目在 `exp/{exp_id}` 分支上进行。模板改进从 exp 分支 cherry-pick 回 master。
+6. **不提交**：`.gitignore` 排除的 Vivado/仿真产物、Python 缓存、`SKELETON-*` 临时文件。
 
 ### Review
 关键设计（RTL、testbench、约束、上板方案）必须经过 review。Review 记录放入 `.awp/reviews/`，格式参考 `.awp/templates/review.template.md`。Review 文件必须包含 YAML frontmatter（task_id, reviewer, result, date）。

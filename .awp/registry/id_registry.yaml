@@ -6,15 +6,4 @@
 #        status: <active|closed|archived>
 #        created: <YYYY-MM-DD>
 
-ids:
-  - id: "EXP001"
-    type: "EXP"
-    title: "FPGA-AWP v0.1 模板初始化"
-    status: "active"
-    created: "2026-06-04"
-
-  - id: "DEC-AWP-0001"
-    type: "DECISION"
-    title: "以仓库文件为事实来源（非聊天历史）"
-    status: "active"
-    created: "2026-06-04"
+ids: []
