@@ -1,0 +1,100 @@
+task_id: "TASK-E001-006"
+title: "AXI-Stream 输出接口 axis_output RTL 实现"
+status: "done"
+agent: "rtl_implementer"
+assigned_to: ""
+created_date: "2026-06-04"
+
+objective: >
+  实现 axis_output 模块，负责从帧缓冲读取数据并通过 AXI4-Stream Master 接口输出，
+  生成 tuser/tlast 边带信号，输出完成后发出 shift_done 脉冲。
+
+target_validation_level: "L1a"
+integration_scope: "module"
+
+validation_status:
+  L0: "pass"
+  L1a: "pass"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-001"
+  - "TASK-E001-003"
+  - "TASK-E001-005"
+
+scope:
+  allowed_edit_paths:
+    - "rtl/axis_output.sv"
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+    - "rtl/ctrl_fsm.sv"
+    - "rtl/axis_input.sv"
+    - "rtl/shift_addr_gen.sv"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+    - "rtl/shift_addr_gen.sv"
+
+acceptance:
+  - "实现 AXI4-Stream Master 握手协议（tvalid/tready）"
+  - "正确生成 m_axis_tuser（首个输出元素）和 m_axis_tlast（每行最后一个元素）"
+  - "内部 row_cnt/col_cnt 跟踪输出位置"
+  - "从 frame_buf_mgr 接收 read_data 并驱动 m_axis_tdata"
+  - "检测 zero_fill 信号，zero_fill=1 时 m_axis_tdata 强制输出 0"
+  - "输出完成后发出 shift_done 脉冲（1 周期）"
+  - "仅当 shift_en=1 时输出有效数据"
+
+required_outputs:
+  - "rtl/axis_output.sv"
+
+handoff:
+  next_task: ""
+  handoff_file: ".awp/handoffs/HO-E001-006-001.md"
+
+risk_level: "low"
+
+notes: >
+  ## 接口定义
+
+  ### 参数
+  - DATA_WIDTH (default 8)
+  - MAX_ROWS (default 64)
+  - MAX_COLS (default 64)
+
+  ### AXI-Stream Master 端口
+  - m_axis_tdata[DATA_WIDTH-1:0], m_axis_tvalid, m_axis_tready
+  - m_axis_tlast (行结束), m_axis_tuser (帧起始)
+
+  ### 控制接口
+  - shift_en (来自 ctrl_fsm)
+  - img_rows[9:0], img_cols[9:0] (来自 regs_top)
+
+  ### 来自 frame_buf_mgr
+  - read_data[DATA_WIDTH-1:0] (BRAM 读数据)
+  - zero_fill (来自 shift_addr_gen, 补零模式越界标志)
+
+  ### 输出
+  - read_addr[11:0] → frame_buf_mgr → shift_addr_gen (本模块不直接输出 read_addr，由 shift_addr_gen 提供)
+  - shift_done → ctrl_fsm
+
+  ## 设计要点
+  - shift_en=0 时 tvalid=0（不输出）
+  - 内部 row_cnt/col_cnt 计数器，从 0 开始，光栅扫描
+  - tuser=1 在第一个输出元素（row_cnt=0, col_cnt=0）
+  - tlast=1 在每行最后一个元素（col_cnt == img_cols-1）
+  - zero_fill=1 时 m_axis_tdata = 0
+  - 最后一拍输出后发出 shift_done 脉冲（1 周期）
+  - 下游 tready=0 时暂停（计数器不变，等待背压释放）
