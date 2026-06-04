@@ -1,0 +1,87 @@
+# FPGA-AWP ID 命名空间定义
+# 定义每种 ID 类型的格式、前缀和生命周期规则
+
+namespaces:
+  EXP:
+    prefix: "EXP"
+    format: "EXP{seq:03d}"
+    example: "EXP001"
+    description: "一个实验项目或验证阶段"
+    location: ".awp/tasks/"
+    lifecycle: "创建后永久保留"
+
+  TASK:
+    prefix: "TASK"
+    format: "TASK-{exp}-{seq:03d}"
+    example: "TASK-E001-001"
+    description: "一个可执行任务"
+    location: ".awp/tasks/"
+    lifecycle: "完成后保留直到项目结束"
+
+  SESSION:
+    prefix: "SESS"
+    format: "SESS-{exp}-{task_seq:03d}-OR-{seq:03d}"
+    example: "SESS-E001-001-OR-001"
+    description: "一次 agent session 记录。Session 角色固定为 OR（orchestrator），不随 task 的 agent 变化。"
+    location: ".awp/sessions/"
+    lifecycle: "完成后保留直到项目结束"
+
+  HANDOFF:
+    prefix: "HO"
+    format: "HO-{exp}-{task_seq:03d}-{seq:03d}"
+    example: "HO-E001-001-001"
+    description: "一次角色交接记录"
+    location: ".awp/handoffs/"
+    lifecycle: "完成后保留直到项目结束"
+
+  REVIEW:
+    prefix: "REV"
+    format: "REV-{exp}-{task_seq:03d}-{type}-{seq:03d}"
+    example: "REV-E001-001-RTL-001"
+    description: "一次 review 记录"
+    location: ".awp/reviews/"
+    lifecycle: "完成后保留直到项目结束"
+
+  RUN:
+    prefix: "RUN"
+    format: "RUN-{exp}-{run_type}-{seq:03d}"
+    example: "RUN-E001-SIM-001"
+    description: "一次仿真/综合/实现/上板运行"
+    location: ".awp/runs/"
+    lifecycle: "完成后保留直到项目结束"
+    run_types:
+      - "SIM"     # 仿真
+      - "SYNTH"   # 综合
+      - "IMPL"    # 实现
+      - "BIT"     # bitstream 生成
+      - "BOARD"   # 上板验证
+
+  DECISION:
+    prefix: "DEC"
+    format: "DEC-{project}-{seq:04d}"
+    example: "DEC-AWP-0001"
+    description: "一条架构/流程/设计决策"
+    location: ".awp/decisions.md 或 .awp/decisions/"
+    lifecycle: "永久保留"
+
+  ISSUE:
+    prefix: "ISS"
+    format: "ISS-{exp}-{seq:03d}"
+    example: "ISS-E001-001"
+    description: "一个问题/缺陷/风险追踪"
+    location: ".awp/issues/ 或 .awp/runs/"
+    lifecycle: "关闭后保留"
+
+  ARTIFACT:
+    prefix: "ART"
+    format: "ART-{exp}-{type}-{seq:03d}"
+    example: "ART-E001-BIT-001"
+    description: "一个关键产物（bitstream、report、ILA capture 等）"
+    location: "board/ 或 vivado/"
+    lifecycle: "保留直到项目结束"
+    artifact_types:
+      - "BIT"     # bitstream
+      - "RPT"     # report (timing, utilization)
+      - "ILA"     # ILA capture
+      - "XDC"     # constraint file
+      - "TCL"     # Tcl script

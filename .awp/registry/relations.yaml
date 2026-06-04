@@ -1,0 +1,7 @@
+# FPGA-AWP 对象关系图
+# 记录关键对象之间的引用关系。
+# 格式：- from: <源ID>
+#        to: <目标ID>
+#        type: <关系类型>
+
+relations: []

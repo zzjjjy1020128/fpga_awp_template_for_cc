@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": ".awp/schemas/task.schema.json",
+  "title": "Task Contract Schema",
+  "description": "FPGA-AWP 任务合同的基本结构校验",
+  "type": "object",
+  "required": ["task_id", "title", "status", "agent", "objective", "target_validation_level", "validation_status", "created_date", "scope", "acceptance", "required_outputs"],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "任务唯一标识",
+      "pattern": "^TASK-[A-Z]\\d{3}-\\d{3}$"
+    },
+    "title": {
+      "type": "string",
+      "description": "任务标题"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ready", "in_progress", "blocked", "review", "done"]
+    },
+    "agent": {
+      "type": "string",
+      "description": "执行本 task 的子智能体名称（对应 .claude/agents/{name}.md）",
+      "enum": ["planner", "rtl_implementer", "rtl_reviewer", "tb_verifier", "vivado_integrator", "hardware_validator", "process_owner"]
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "agent 标识"
+    },
+    "created_date": {
+      "type": "string",
+      "description": "创建日期",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "objective": {
+      "type": "string",
+      "description": "任务目标描述"
+    },
+    "target_validation_level": {
+      "type": "string",
+      "enum": ["L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7"],
+      "description": "本任务最终验证级别"
+    },
+    "validation_status": {
+      "type": "object",
+      "required": ["L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7"],
+      "properties": {
+        "L0": { "type": "string", "enum": ["pending", "pass", "fail", "skip"] },
+        "L1": { "type": "string", "enum": ["pending", "pass", "fail", "skip"] },
+        "L2": { "type": "string", "enum": ["pending", "pass", "fail", "skip"] },
+        "L3": { "type": "string", "enum": ["pending", "pass", "fail", "skip"] },
+        "L4": { "type": "string", "enum": ["pending", "pass", "fail", "skip"] },
+        "L5": { "type": "string", "enum": ["pending", "pass", "fail", "skip"] },
+        "L6": { "type": "string", "enum": ["pending", "pass", "fail", "skip"] },
+        "L7": { "type": "string", "enum": ["pending", "pass", "fail", "skip"] }
+      }
+    },
+    "depends_on": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "scope": {
+      "type": "object",
+      "required": ["allowed_edit_paths", "forbidden_edit_paths"],
+      "properties": {
+        "allowed_edit_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "forbidden_edit_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "must_read": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "acceptance": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "required_outputs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "handoff": {
+      "type": "object",
+      "properties": {
+        "next_task": { "type": "string" },
+        "handoff_file": { "type": "string" }
+      }
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

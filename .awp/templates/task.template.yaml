@@ -1,0 +1,57 @@
+# 任务合同模板
+# 复制此文件并填入具体内容，文件名格式：TASK-{exp}-{seq}.yaml
+# 使用前运行 make validate-awp 校验
+
+task_id: "<TASK-E001-001>"
+title: "<任务标题>"
+status: "ready"           # ready | in_progress | blocked | review | done
+agent: "rtl_implementer"  # agent name: planner | rtl_implementer | rtl_reviewer | tb_verifier | vivado_integrator | hardware_validator | process_owner
+assigned_to: ""           # agent 标识
+created_date: "<YYYY-MM-DD>"
+
+objective: >
+  <用一两句话描述任务目标>
+
+target_validation_level: "L1"  # L0-L7，本任务最终要验证到哪个级别
+
+validation_status:
+  L0: "pending"           # pending | pass | fail | skip
+  L1: "pending"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on: []             # 依赖的 task_id 列表，如 ["TASK-E001-001"]
+
+scope:
+  allowed_edit_paths:
+    - "<允许修改的文件或目录>"
+  forbidden_edit_paths:
+    - "<禁止修改的文件或目录>"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+
+context:
+  must_read:
+    - "<必须阅读的文件，用于理解背景>"
+
+acceptance:
+  - "<验收条件 1>"
+  - "<验收条件 2>"
+
+required_outputs:
+  - "<必须产出的文件 1>"
+  - "<必须产出的文件 2>"
+
+handoff:
+  next_task: "<后续 task_id>"         # session 结束时下一个待执行的 task
+  handoff_file: ".awp/handoffs/HO-<EXP>-<TASK>-<SEQ>.md"
+
+risk_level: "low"         # low | medium | high
+
+notes: >
+  <补充说明>

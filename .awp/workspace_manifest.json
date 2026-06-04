@@ -1,0 +1,75 @@
+{
+  "project": {
+    "name": "fpga_awp_template",
+    "description": "FPGA Agent Workspace Protocol v0.1 模板仓库",
+    "domain": "fpga",
+    "template_version": "0.1.0",
+    "status": "template"
+  },
+  "target_use_cases": [
+    "RTL design and verification",
+    "Vivado project integration",
+    "AXI / AXI-Lite / AXI-Stream data path development",
+    "DMA-based data movement",
+    "ILA / VIO board debugging",
+    "PS-side validation",
+    "Board-level smoke test",
+    "Timing closure and resource optimization"
+  ],
+  "expected_toolchain": {
+    "simulation": "xsim or ModelSim or Verilator",
+    "synthesis": "Vivado",
+    "implementation": "Vivado",
+    "bitstream": "Vivado",
+    "debug": "ILA / VIO",
+    "scripting": "Tcl / Python"
+  },
+  "directories": {
+    "rtl": "RTL 设计源码（Verilog / SystemVerilog）",
+    "tb": "Testbench 文件",
+    "sim": "仿真脚本和仿真输出",
+    "vivado": "Vivado 工程相关文件（.xpr, .tcl 等）",
+    "constraints": "XDC 约束文件",
+    "board": "上板验证记录和脚本",
+    "scripts": "通用工具脚本",
+    "docs": "项目文档",
+    ".awp": "AWP 协议文件 —— 任务、session、handoff、review、run、schema、template",
+    ".claude": "Claude Code 本地配置 —— agents、skills、hooks、settings"
+  },
+  "protected_paths": [
+    ".awp/workspace_manifest.json",
+    ".awp/schemas/",
+    ".awp/templates/",
+    ".git/",
+    "CLAUDE.md"
+  ],
+  "default_agent_policy": {
+    "language": "zh",
+    "code_identifiers": "en",
+    "protocol_names": "en",
+    "record_all_sessions": true,
+    "require_handoff": true,
+    "require_review_for_rtl": true,
+    "require_board_validation_for_bitstream": true
+  },
+  "validation_levels": {
+    "L0": "static review — 代码审查、lint、CDC 审查",
+    "L1": "simulation — 仿真验证",
+    "L2": "synthesis — 综合",
+    "L3": "implementation and timing — 实现与时序收敛",
+    "L4": "bitstream generation — 比特流生成",
+    "L5": "board smoke test — 板上冒烟测试（上电、JTAG 检测、基本 I/O）",
+    "L6": "board data correctness test — 板上数据正确性测试",
+    "L7": "performance / resource retrospective — 性能与资源复盘"
+  },
+  "language_policy": {
+    "communication": "zh",
+    "filenames": "en",
+    "directories": "en",
+    "rtl_identifiers": "en",
+    "json_yaml_keys": "en",
+    "commands": "en",
+    "protocol_names": "en",
+    "code_comments": "zh_or_en"
+  }
+}

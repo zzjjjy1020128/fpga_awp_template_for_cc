@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": ".awp/schemas/workspace_manifest.schema.json",
+  "title": "Workspace Manifest Schema",
+  "description": "FPGA-AWP workspace manifest 的基本结构校验",
+  "type": "object",
+  "required": ["project", "directories", "protected_paths", "validation_levels", "default_agent_policy"],
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["name", "domain", "template_version"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "domain": { "type": "string" },
+        "template_version": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "domain": {
+      "type": "string",
+      "description": "项目领域"
+    },
+    "template_version": {
+      "type": "string",
+      "description": "模板版本号"
+    },
+    "directories": {
+      "type": "object",
+      "description": "目录定义映射"
+    },
+    "protected_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "validation_levels": {
+      "type": "object",
+      "required": ["L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7"],
+      "properties": {
+        "L0": { "type": "string" },
+        "L1": { "type": "string" },
+        "L2": { "type": "string" },
+        "L3": { "type": "string" },
+        "L4": { "type": "string" },
+        "L5": { "type": "string" },
+        "L6": { "type": "string" },
+        "L7": { "type": "string" }
+      }
+    },
+    "default_agent_policy": {
+      "type": "object",
+      "required": ["language", "record_all_sessions", "require_handoff"],
+      "properties": {
+        "language": { "type": "string" },
+        "code_identifiers": { "type": "string" },
+        "protocol_names": { "type": "string" },
+        "record_all_sessions": { "type": "boolean" },
+        "require_handoff": { "type": "boolean", "description": "是否要求 session 结束时创建 handoff（当后续 task 未完成时）" },
+        "require_review_for_rtl": { "type": "boolean" },
+        "require_board_validation_for_bitstream": { "type": "boolean" }
+      }
+    }
+  }
+}

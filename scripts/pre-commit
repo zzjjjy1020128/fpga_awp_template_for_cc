@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# FPGA-AWP pre-commit hook —— 提交前自动运行 validate-awp
+# 由 scripts/install_pre_commit.py 安装到 .git/hooks/pre-commit
+
+set -e
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+VALIDATOR="$ROOT/scripts/validate_awp.py"
+
+echo "[pre-commit] Running FPGA-AWP validation..."
+
+if python "$VALIDATOR"; then
+    echo "[pre-commit] Validation passed."
+    exit 0
+else
+    echo ""
+    echo "[pre-commit] COMMIT BLOCKED: validate-awp failed."
+    echo "  Fix the errors above and try again."
+    echo "  Run 'python scripts/validate_awp.py' to see details."
+    exit 1
+fi

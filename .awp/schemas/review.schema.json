@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": ".awp/schemas/review.schema.json",
+  "title": "Review Record Schema",
+  "description": "FPGA-AWP review 记录的基本结构校验",
+  "type": "object",
+  "required": ["task_id", "reviewer", "result", "findings", "commands_run", "limitations", "next_actions"],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "关联的任务 ID"
+    },
+    "reviewer": {
+      "type": "string",
+      "description": "审查者角色"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["pass", "pass_with_notes", "fail"]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "description", "suggestion"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["high", "medium", "low"] },
+          "description": { "type": "string" },
+          "suggestion": { "type": "string" }
+        }
+      }
+    },
+    "commands_run": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "limitations": {
+      "type": "string",
+      "description": "审查范围限制说明"
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

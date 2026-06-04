@@ -1,0 +1,57 @@
+# Vivado 工程产物
+*.jou
+*.log
+*.str
+*.backup.jou
+*.backup.log
+*.debug*
+.Xil/
+
+# Vivado 工程目录
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.gen/
+*.runs/
+
+# Vivado 输出文件
+*.bit
+*.bin
+*.mcs
+*.prm
+*.dcp
+*.dcp_*
+*.edif
+*.edn
+*.ngc
+*.ngd
+*.ncd
+*.pcf
+*.xml
+
+# 仿真产物
+*.wdb
+*.wcfg
+xsim.dir/
+*.vcd
+*.vpd
+*.fsdb
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Session 临时骨架（正式文件 SESS-* 需要提交）
+SKELETON-*
+
+# 临时文件
+*.tmp
+*.swp
+*.swo
+*~

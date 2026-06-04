@@ -1,0 +1,19 @@
+{
+  "note": "Project-local Claude settings. Do not store secrets here.",
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/session_skeleton.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
