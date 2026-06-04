@@ -1,0 +1,62 @@
+task_id: "TASK-E001-001"
+title: "AXI-Lite 2D Shift 模块架构规划"
+status: "done"
+agent: "planner"
+assigned_to: ""
+created_date: "2026-06-04"
+
+objective: >
+  为一个 AXI-Lite 控制的 2D shift 模块完成架构设计和验证规划。
+  明确模块划分、AXI-Lite 寄存器映射、2D shift 数据通路、时钟域和复位策略。
+
+target_validation_level: "L0"
+integration_scope: "module"
+
+validation_status:
+  L0: "pass"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on: []
+
+scope:
+  allowed_edit_paths:
+    - "docs/architecture.md"
+    - "docs/verification_plan.md"
+    - "docs/project_charter.md"
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+
+context:
+  must_read:
+    - "CLAUDE.md"
+
+acceptance:
+  - "docs/project_charter.md 已创建，明确项目范围、约束和验证目标"
+  - "docs/architecture.md 已创建，包含模块划分表、AXI-Lite 寄存器映射、数据通路框图、时钟域规划"
+  - "docs/verification_plan.md 已创建，包含验证策略和测试用例列表"
+  - "所有文档内容具体可执行，无模糊描述"
+
+required_outputs:
+  - "docs/project_charter.md"
+  - "docs/architecture.md"
+  - "docs/verification_plan.md"
+
+handoff:
+  next_task: ""
+  handoff_file: ".awp/handoffs/HO-E001-001-001.md"
+
+risk_level: "low"
+
+notes: >
+  2D shift 模块的核心功能：接收 AXI-Lite 配置（shift 方向、步长、数据宽度等），
+  对输入数据执行 2 维移位操作。具体应用场景由 planner 在 charter 中明确。
