@@ -4,6 +4,48 @@
 
 ---
 
+## 环境准备（首次使用必须）
+
+本项目的 `make` 命令和 hook 依赖 **Python 3.8+** 和一个第三方库 **PyYAML**。首次使用前请完成以下步骤：
+
+### 1. 确认 Python 可用
+
+```powershell
+# PowerShell / CMD
+python --version
+# 如果显示 "python: command not found"，试试 python3 --version
+```
+
+若未安装，从 https://www.python.org/downloads/ 下载安装（勾选 "Add Python to PATH"）。
+
+### 2. 安装依赖
+
+```bash
+pip install -r requirements.txt
+# 或者
+python -m pip install -r requirements.txt
+```
+
+### 3. 验证环境
+
+```bash
+make verify-env        # 自动检查 Python / pip / PyYAML
+```
+
+如果系统没有 `make`（Windows 原生 PowerShell），可以直接用 Python 替代所有命令：
+
+| make 命令 | 直接 Python 替代 | 作用 |
+|-----------|-----------------|------|
+| `make verify-env` | `python scripts/validate_awp.py --help` | 如果运行成功说明环境 OK |
+| `make status` | `python scripts/validate_awp.py --dashboard` | 项目全局仪表盘 |
+| `make validate-awp` | `python scripts/validate_awp.py` | 工作空间完整性校验 |
+| `make task-board` | `python scripts/validate_awp.py --gen-task-board` | 生成任务看板 |
+| `make dirs` | 手动创建 `rtl/tb/sim/vivado/constraints/board/scripts` 目录 | 确保目录结构 |
+
+> **对 Windows 用户的建议**：安装 Git for Windows 时会附带 Git Bash，它支持 `make` 命令。或者直接用 `python scripts/validate_awp.py --dashboard` 替代 `make status`。
+
+---
+
 ## 快速开始
 
 **你只需要做一件事：告诉 orchestrator 你想做什么。**
@@ -58,6 +100,17 @@
 **建议**：每次打开项目先运行 `make status` 了解当前全局状态，再决定下一步做什么。
 
 ## 可用命令/技能
+
+**make 命令（终端中运行，也可用直接 Python 命令替代，见上方"环境准备"）：**
+
+| 命令 | 什么时候用 | 会发生什么 |
+|------|-----------|----------|
+| `make verify-env` | 首次使用 | 检查 Python、pip、PyYAML 是否就绪 |
+| `make status` | 每次打开项目 | 显示项目全局仪表盘（任务/验证/session/问题/下一步） |
+| `make validate-awp` | 修改了 task/review 后 | 校验格式、ID 规范、跨引用完整性 |
+| `make task-board` | task 状态变更后 | 根据 YAML 自动重新生成 `task_board.md` |
+
+**对话命令（在 Claude Code 中输入）：**
 
 | 命令 | 什么时候用 | 会发生什么 |
 |------|-----------|----------|

@@ -17,9 +17,10 @@
 ## 必须遵守的工作流
 
 ### 校验纪律
-1. 创建或修改 `.awp/tasks/*.yaml` 后必须运行 `make validate-awp`，校验结果记录到 session 中。
-2. 创建或修改 `.awp/reviews/*.md` 后必须运行 `make validate-awp`。
+1. 创建或修改 `.awp/tasks/*.yaml` 后必须运行校验（`make validate-awp` 或 `python scripts/validate_awp.py`），校验结果记录到 session 中。
+2. 创建或修改 `.awp/reviews/*.md` 后必须运行校验（`make validate-awp` 或 `python scripts/validate_awp.py`）。
 3. validate-awp 退出码必须为 0，否则阻塞 handoff。
+4. 若系统没有 `make`，直接使用 `python scripts/validate_awp.py` 替代所有 `make` 目标，参数完全一致。
 
 ### Session 记录（强制）
 1. 每次 session 开始后，在 `.awp/sessions/` 中定位 SessionStart hook 自动生成的骨架文件（`SKELETON-*.md`）。
@@ -90,6 +91,14 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 ## Orchestrator 调度规则（子智能体机制）
 
 你是 **orchestrator**（主 session），相当于 CTO。技术工作应委托给子智能体，你负责任务拆分、进度跟踪和合规归档。
+
+### 环境初始化（B0）
+
+**每次新 session 启动时**，在恢复上下文之前，先确保基础工具链可用：
+
+1. 运行 `python -c "import yaml"` 检查 PyYAML 是否安装
+2. 如果 import 失败：运行 `pip install -r requirements.txt`（或 `python -m pip install -r requirements.txt`）
+3. 如果系统没有 `make` 命令，直接使用 Python 替代运行所有校验和仪表盘命令
 
 ### Session 恢复协议（B1）
 
