@@ -11,7 +11,8 @@
 | planner | `planner` | Sub-agent | 架构与验证计划 |
 | rtl_implementer | `rtl_implementer` | Sub-agent | RTL 设计实现 |
 | rtl_reviewer | `rtl_reviewer` | Sub-agent | RTL 审查（只读 RTL） |
-| tb_verifier | `tb_verifier` | Sub-agent | Testbench 与仿真 |
+| tb_verifier | `tb_verifier` | Sub-agent | 模块级 Testbench 与仿真（L1a） |
+| integration_verifier | `integration_verifier` | Sub-agent | 集成仿真验证（L1b/L1c），跨模块时序与多帧测试 |
 | vivado_integrator | `vivado_integrator` | Sub-agent | Vivado 工程与约束 |
 | hardware_validator | `hardware_validator` | Sub-agent | 上板验证与 ILA/VIO |
 | process_owner | `process_owner` | Sub-agent | 流程监督与复盘 |
@@ -49,8 +50,12 @@
 
 planner → 产出 architecture.md + verification_plan.md
 rtl_implementer → 产出 RTL（orchestrator 传入 architecture.md 作为 context）
-rtl_reviewer → 产出 review report
-tb_verifier → 产出 testbench + 仿真报告
+rtl_reviewer → 产出 review report（L0）
+tb_verifier → 产出模块级 testbench + 仿真报告（L1a）
+  ↓ 每 3-4 个模块后：
+integration_verifier → 产出数据通路闭环仿真报告（L1b）
+  ↓ 全部模块完成后：
+integration_verifier → 产出全系统集成仿真报告（L1c）
 vivado_integrator → 产出 bitstream + 时序报告
 hardware_validator → 产出上板验证记录
 process_owner → 产出 retrospective
@@ -66,6 +71,7 @@ Handoff 仅在 session 结束时创建。
 | rtl_implementer | planner（需 architecture.md） |
 | rtl_reviewer | rtl_implementer（需 RTL 文件） |
 | tb_verifier | rtl_implementer（需 RTL 文件） |
+| integration_verifier | tb_verifier + rtl_implementer（需已验证的子模块 RTL） |
 | vivado_integrator | rtl_implementer（需 RTL 文件列表） |
 | hardware_validator | vivado_integrator（需 bitstream） |
 | process_owner | 所有前序角色 |

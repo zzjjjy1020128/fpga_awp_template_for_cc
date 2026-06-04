@@ -12,11 +12,14 @@ created_date: "<YYYY-MM-DD>"
 objective: >
   <用一两句话描述任务目标>
 
-target_validation_level: "L1"  # L0-L7，本任务最终要验证到哪个级别
+target_validation_level: "L1a"  # L0 / L1a / L1b / L1c / L2-L7，本任务最终要验证到哪个级别
+integration_scope: "module"  # module（单模块）| datapath（数据通路闭环）| system（全系统集成）
 
 validation_status:
   L0: "pending"           # pending | pass | fail | skip
-  L1: "pending"
+  L1a: "pending"          # 模块级单元仿真
+  L1b: "pending"          # 数据通路闭环仿真
+  L1c: "pending"          # 全系统集成仿真
   L2: "pending"
   L3: "pending"
   L4: "pending"

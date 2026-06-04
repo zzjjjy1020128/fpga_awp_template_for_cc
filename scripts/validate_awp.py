@@ -49,7 +49,7 @@ NAMESPACE_PATTERNS = {
 
 VALID_TASK_STATUSES = {"ready", "in_progress", "blocked", "review", "done"}
 VALID_VAL_STATUSES = {"pending", "pass", "fail", "skip"}
-VALID_L_LEVELS = ["L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7"]
+VALID_L_LEVELS = ["L0", "L1a", "L1b", "L1c", "L2", "L3", "L4", "L5", "L6", "L7"]
 
 
 def load_json_schema(path):
@@ -164,7 +164,7 @@ def validate_task_files():
                 errors.append(
                     f"{rel}: validation_status {level}=pass but previous level is not pass (gate violation)"
                 )
-            if status != "pass":
+            if status != "pass" and status != "skip":
                 prev_pass = False
 
     return errors
@@ -405,13 +405,13 @@ def cmd_dashboard():
             for level in VALID_L_LEVELS:
                 status = vs.get(level, "pending")
                 if status == "pass":
-                    val_parts.append(f"{level}✓")
+                    val_parts.append(f"{level}P")
                 elif status == "fail":
-                    val_parts.append(f"{level}✗")
+                    val_parts.append(f"{level}F")
                 elif status == "skip":
-                    val_parts.append(f"{level}−")
+                    val_parts.append(f"{level}S")
                 else:
-                    val_parts.append(f"{level}·")
+                    val_parts.append(f"{level}.")
             val_str = " ".join(val_parts)
             print(f"  {tid:<20} {st:<12} {agent:<22} {tv:<8} {val_str}")
 

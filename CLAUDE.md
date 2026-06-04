@@ -95,12 +95,14 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 
 ## FPGA 特定验证期望
 
-验证分 8 个级别，按严格程度递增：
+验证分 L0-L7 共 10 个级别（L1 拆分为 L1a/L1b/L1c 三个子级别），按严格程度递增：
 
 | 级别 | 含义 |
 |------|------|
 | L0 | 静态审查（代码审查、lint、CDC 审查） |
-| L1 | 仿真验证 |
+| L1a | 模块级单元仿真（单模块，单帧/单事务） |
+| L1b | 数据通路闭环仿真（≥2 个数据通路模块串联，含跨帧测试） |
+| L1c | 全系统集成仿真（完整系统，所有接口，多帧/多事务） |
 | L2 | 综合 |
 | L3 | 实现与时序 |
 | L4 | 比特流生成 |
@@ -109,6 +111,8 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 | L7 | 性能/资源复盘 |
 
 任务必须明确目标验证级别，且低级别通过后才进入高级别。
+**L1a → L1b → L1c 必须顺序通过**，不可跳过 L1b 直接进入 L1c。
+数据通路闭环（L1b）应在 3-4 个数据通路模块完成后立即进行。
 
 ## 中文回答规范
 
@@ -152,7 +156,9 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 | 架构设计/验证规划 | `planner` | |
 | RTL 设计/修改 | `rtl_implementer` | |
 | RTL 完成后的代码审查 | `rtl_reviewer` | rtl_implementer 完成后自动触发 |
-| 仿真/测试 | `tb_verifier` | |
+| 模块级仿真/测试 | `tb_verifier` | 单模块 L1a 验证 |
+| 数据通路闭环仿真 | `integration_verifier` | L1b 验证，≥2 个数据通路模块串联，含跨帧测试 |
+| 全系统集成仿真 | `integration_verifier` | L1c 验证，全系统 + 多帧/多事务 |
 | XDC 约束编写 | `vivado_integrator` | |
 | 约束完成后的审查 | `rtl_reviewer` | vivado_integrator 产出 XDC 后自动触发 |
 | Vivado 工程/综合/实现 | `vivado_integrator` | |
@@ -193,8 +199,9 @@ Handoff 文件由 orchestrator 在 session 结束前创建。
 | **所有 RTL 文件**（`rtl/*.v` / `rtl/*.sv`） | **必须** | rtl_reviewer |
 | **所有 XDC 约束** | **必须** | rtl_reviewer 或 vivado_integrator |
 | **architecture.md / verification_plan.md** | **必须** | rtl_reviewer 或 planner（交叉审查） |
-| Testbench（定向测试） | 可选 | orchestrator 判断 |
+| Testbench（模块级定向测试） | 可选 | orchestrator 判断 |
 | Testbench（UVM/复杂随机测试） | **必须** | tb_verifier（交叉审查） |
+| 集成 Testbench（L1b/L1c 的 tb） | **必须** | rtl_reviewer 或 integration_verifier（交叉审查） |
 | Tcl 脚本、board 脚本 | 可选 | orchestrator 判断 |
 
 ### 验证失败升级规则（G4）
@@ -202,9 +209,14 @@ Handoff 文件由 orchestrator 在 session 结束前创建。
 子智能体返回 fail 或 validate-awp 不通过时：
 
 1. **首次失败** → spawn 同一 agent 子智能体修复，传递失败原因
-2. **第二次失败** → spawn 同一 agent 子智能体修复，传递失败原因 + 强调关键点
+2. **第二次失败** → **切换 agent 类型联合调查**：
+   - `tb_verifier` 失败 → spawn **rtl_implementer** 诊断 DUT（允许阅读 RTL 源码，必要时可修改）
+   - `integration_verifier` 失败 → spawn **rtl_implementer** 联合调查（integration_verifier 已有 RTL 诊断权限，rtl_implementer 侧重修复）
+   - `rtl_implementer` 失败 → spawn **rtl_reviewer** 做深度审查
+   - 其他 agent 失败 → spawn 同一 agent + 对应审查 agent 联合调查
+   - **关键**：仿真失败可能是 DUT bug 而非 TB bug，不要在 TB 层面反复修补
 3. **第三次失败** → **停止**，创建 `ISS-{exp}-{seq}` issue 文件（`.awp/runs/ISS-{exp}-{seq}.md`），参照 `.awp/templates/failure_analysis.template.md` 填写现象/根因/影响/建议修复，向用户报告并等待指示
-4. **Gate violation**（如 L1 未通过但尝试 L2）→ 硬阻断，已创建的后续 task 设为 blocked
+4. **Gate violation**（如 L1a 未通过但尝试 L1b）→ 硬阻断，已创建的后续 task 设为 blocked
 
 ### Task 粒度决策规则（G5）
 
@@ -214,6 +226,7 @@ Handoff 文件由 orchestrator 在 session 结束前创建。
 - **拆分**：模块包含 ≥3 个独立子组件（各自有独立接口）→ 每个子组件一个 task
 - **合并**：多个 trivially simple 模块（如仅连线、简单 mux）→ 合并为一个 task
 - **上限**：单个 task 的 `required_outputs` 不超过 5 个文件
+- **集成验证**：每 3-4 个数据通路模块完成后，**必须创建独立的集成验证 task**（agent: `integration_verifier`，`integration_scope: datapath`，target: `L1b`），验证跨模块时序和跨帧状态持久性后再继续后续模块。全系统集成验证 task（agent: `integration_verifier`，`integration_scope: system`，target: `L1c`）在所有模块完成后创建。
 
 ### Issue 记录决策规则（G6）
 
@@ -260,7 +273,7 @@ Handoff 文件由 orchestrator 在 session 结束前创建。
 
 角色定义和系统提示词在 `.claude/agents/{agent_name}.md`。编排策略见 `.awp/orchestration_guide.md`。
 
-可用的 agent name：`planner`、`rtl_implementer`、`rtl_reviewer`、`tb_verifier`、`vivado_integrator`、`hardware_validator`、`process_owner`
+可用的 agent name：`planner`、`rtl_implementer`、`rtl_reviewer`、`tb_verifier`、`integration_verifier`、`vivado_integrator`、`hardware_validator`、`process_owner`
 
 ## 关键路径
 

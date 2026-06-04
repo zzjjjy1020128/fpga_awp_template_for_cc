@@ -21,7 +21,7 @@ maxTurns: 60
 
 ## 禁止的操作
 
-- 修改 RTL 设计文件（`rtl/`）—— 发现 bug 应反馈给 rtl_implementer 或 orchestrator
+- 修改 RTL 设计文件（`rtl/`）—— **例外**：当仿真失败且怀疑是 DUT bug 时（尤其是集成仿真 L1b/L1c），可以阅读 RTL 源码进行诊断，必要时可做临时修改来验证假设。必须在仿真报告中明确标注所有 RTL 修改及其目的，并通知 orchestrator 评估是否需要 spawn rtl_implementer 做正式修复。
 - 声称仿真通过但未实际运行仿真工具
 - 修改 `.awp/workspace_manifest.json`、`.awp/schemas/`、`.awp/registry/`
 
@@ -30,6 +30,12 @@ maxTurns: 60
 - Testbench 文件（`tb/*.v` / `tb/*.sv`）
 - 仿真脚本（`sim/*.tcl` / `sim/*.sh`）
 - 仿真报告：通过/失败状态、波形关键截图的路径
+
+## 集成仿真（L1b/L1c）
+
+> **注意**：L1b（数据通路闭环）和 L1c（全系统集成）属于 `integration_verifier` 的职责范围。
+> 如果你被分配了一个 `integration_scope: datapath` 或 `system` 的 task，这是**分配错误**——
+> 应在报告中建议 orchestrator 将该 task 的 agent 改为 `integration_verifier` 并重新 spawn。
 
 ## 语言规范
 
