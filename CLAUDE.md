@@ -73,6 +73,19 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 
 5. **分支规范**：`master` 保持为干净模板。实际项目在 `exp/{exp_id}` 分支上进行。模板改进从 exp 分支 cherry-pick 回 master。
 6. **不提交**：`.gitignore` 排除的 Vivado/仿真产物、Python 缓存、`SKELETON-*` 临时文件。
+7. **scope 速查**：提交时按变更内容选择 scope，不确定时查第 4 条的覆盖表：
+
+   | 变更内容 | scope |
+   |---------|-------|
+   | RTL 模块 | `rtl` |
+   | Testbench / 仿真脚本 | `tb` |
+   | XDC 约束 | `constraints` |
+   | Vivado 工程 / Tcl | `vivado` |
+   | 上板脚本 / ILA 配置 / 运行记录 | `board` |
+   | 项目文档（charter、architecture 等） | `docs` |
+   | Task 合同 / session 记录 / handoff / review / task_board / decisions / registry 条目 | `session` |
+   | 模板 / Schema / namespace 定义 | `awp` |
+   | 根配置 / 脚本 / .claude / 工具链 | `conf` |
 
 ### Review
 关键设计（RTL、testbench、约束、上板方案）必须经过 review。Review 记录放入 `.awp/reviews/`，格式参考 `.awp/templates/review.template.md`。Review 文件必须包含 YAML frontmatter（task_id, reviewer, result, date）。

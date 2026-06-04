@@ -37,8 +37,9 @@ python scripts/validate_awp.py
 1. 对每个状态变为 `done` 的 task，做一次单独提交：
    - `git add` 该 task 的产出文件
    - 按 `.gitmessage` 模板编写提交信息（Task/Session/Validation trailer）
+   - 根据 task 类型选择 scope：RTL→`rtl`、testbench→`tb`、约束→`constraints`、Vivado→`vivado`、上板→`board`、项目文档→`docs`
    - `git commit`（pre-commit hook 自动 validate-awp）
-2. 所有 task 提交后，检查是否有未提交改动（如 registry、task_board 更新），如有则做最后一次补充提交。
+2. 所有 task 提交后，检查是否有未提交改动（如 session 记录、task_board、registry、review、handoff），如有则用 scope `session` 做最后一次补充提交。
 3. 同一 task 的多个产出文件合并为一次提交。
 
 ## Step 5: 门禁检查
