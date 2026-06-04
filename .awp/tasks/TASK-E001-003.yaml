@@ -1,0 +1,89 @@
+task_id: "TASK-E001-003"
+title: "主控制状态机 ctrl_fsm RTL 实现"
+status: "done"
+agent: "rtl_implementer"
+assigned_to: ""
+created_date: "2026-06-04"
+
+objective: >
+  实现 ctrl_fsm 主控制状态机模块，管理 IDLE / CAPTURE / SHIFT / DONE 四个状态，
+  协调 axis_input、axis_output、shift_addr_gen 的数据流控制。
+
+target_validation_level: "L1a"
+integration_scope: "module"
+
+validation_status:
+  L0: "pass"
+  L1a: "pass"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-001"
+  - "TASK-E001-002"
+
+scope:
+  allowed_edit_paths:
+    - "rtl/ctrl_fsm.sv"
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+    - ".awp/reviews/REV-E001-001-ARCH-001.md"
+
+acceptance:
+  - "ctrl_fsm.sv 正确实现 4 状态状态机（IDLE/CAPTURE/SHIFT/DONE）"
+  - "start 信号触发 IDLE→CAPTURE 转换"
+  - "sw_reset 信号从任意状态返回 IDLE"
+  - "采集完成信号（来自 axis_input）触发 CAPTURE→SHIFT"
+  - "移位完成信号（来自 axis_output）触发 SHIFT→DONE"
+  - "DONE 状态自动返回 IDLE（1 周期后）"
+  - "对外输出 busy_capture / busy_shift / done 状态标志"
+
+required_outputs:
+  - "rtl/ctrl_fsm.sv"
+
+handoff:
+  next_task: ""
+  handoff_file: ".awp/handoffs/HO-E001-003-001.md"
+
+risk_level: "low"
+
+notes: >
+  ## 接口定义（来自 architecture.md）
+
+  ### 输入
+  - clk, rstn
+  - ctrl_start, ctrl_sw_reset（来自 regs_top）
+  - capture_done（来自 axis_input，采集完成脉冲）
+  - shift_done（来自 axis_output，移位输出完成脉冲）
+  - img_rows[9:0], img_cols[9:0]（来自 regs_top，传递给下游或用于计数校验）
+
+  ### 输出
+  - status_idle, status_busy_capture, status_busy_shift, status_done（连 regs_top STATUS 输入）
+  - capture_en（使能 axis_input 采集）
+  - shift_en（使能 shift_addr_gen 和 axis_output）
+
+  ## 状态转换
+  - IDLE: 等待 start=1 → CAPTURE；输出 idle=1
+  - CAPTURE: 采集数据，capture_en=1；capture_done=1 → SHIFT
+  - SHIFT: 移位输出，shift_en=1；shift_done=1 → DONE
+  - DONE: done=1 一周期 → 自动返回 IDLE
+  - 任意状态：sw_reset=1 → IDLE
+
+  ## Review 问题
+  - F4（采集超时保护）：本 task 暂不实现超时计数器，保持简单状态机
+  - F3（error 位）：暂不实现，STATUS.error 固定为 0（已在 regs_top 中处理）
