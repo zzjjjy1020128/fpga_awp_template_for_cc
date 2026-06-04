@@ -39,6 +39,24 @@
 
 ---
 
+## 全局视角：一眼看清项目全貌
+
+自动化不代表黑盒。以下入口让你随时掌握全局状态：
+
+| 你想知道 | 怎么看 |
+|---------|--------|
+| **项目整体状态** | 运行 `make status` —— 显示所有 task、验证进度、最近 session、待解决问题、下一步行动 |
+| **任务列表** | 查看 `.awp/task_board.md`（`make task-board` 自动生成，每次 task 状态变更后更新） |
+| **某个 task 的细节** | 打开 `.awp/tasks/TASK-xxx.yaml`，包含 scope、验收条件、产出文件、验证状态 |
+| **历史记录** | 浏览 `.awp/sessions/` 目录，每次 session 都有完整记录（做了啥、改了啥、决策了啥） |
+| **交接记录** | 查看 `.awp/handoffs/` 目录，了解 session 之间传递了哪些关键上下文 |
+| **架构决策** | 阅读 `.awp/decisions.md`，记录了所有 ADR 风格的架构决策 |
+| **审查结果** | 打开 `.awp/reviews/` 目录，每次 review 都有独立记录 |
+| **上板验证** | 查看 `.awp/runs/` 目录，每次运行都有板卡、bitstream、ILA/VIO 证据记录 |
+| **项目演进** | 运行 `git log --oneline`，每次提交都有 Task/Session/Validation trailer 可追溯 |
+
+**建议**：每次打开项目先运行 `make status` 了解当前全局状态，再决定下一步做什么。
+
 ## 可用命令/技能
 
 | 命令 | 什么时候用 | 会发生什么 |

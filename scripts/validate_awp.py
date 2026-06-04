@@ -339,27 +339,167 @@ def cmd_validate():
 
 
 def cmd_summary():
-    """输出任务状态汇总"""
+    """输出项目仪表盘（人类可读的全局视图）"""
+    return cmd_dashboard()
+
+
+def cmd_dashboard():
+    """FPGA-AWP 项目全局仪表盘"""
     tasks = collect_tasks()
+    today = date.today().isoformat()
+
+    # === 项目信息 ===
+    manifest_path = ROOT / ".awp" / "workspace_manifest.json"
+    project_name = "未知项目"
+    if manifest_path.exists():
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+            project_name = manifest.get("project", {}).get("name", project_name)
+        except Exception:
+            pass
+
+    # EXP 信息
+    registry_path = ROOT / ".awp" / "registry" / "id_registry.yaml"
+    exp_info = ""
+    if registry_path.exists():
+        registry_data, _ = load_yaml_file(".awp/registry/id_registry.yaml")
+        if registry_data:
+            for entry in registry_data.get("ids", []):
+                if entry.get("type") == "EXP":
+                    exp_info = f"{entry['id']} - {entry.get('title', '')}"
+                    break
+
+    # Project charter
+    charter_path = ROOT / "project_charter.md"
+    charter_exists = charter_path.exists()
+
+    print()
+    print("=" * 70)
+    print(f"  FPGA-AWP 项目仪表盘")
+    print(f"  项目: {project_name}")
+    if exp_info:
+        print(f"  实验: {exp_info}")
+    print(f"  时间: {today}")
+    if charter_exists:
+        print(f"  章程: project_charter.md ✓")
+    else:
+        print(f"  章程: 尚未创建（建议创建 project_charter.md）")
+    print("=" * 70)
+
+    # === 任务进度 ===
+    print(f"\n  [任务进度]")
     if not tasks:
-        print("No tasks found in .awp/tasks/")
-        return 0
+        print("  (暂无任务)")
+    else:
+        print(f"  {'Task ID':<20} {'Status':<12} {'Agent':<22} {'Target':<8} Validation")
+        print(f"  {'-'*18} {'-'*10} {'-'*20} {'-'*6} {'-'*20}")
+        for t in tasks:
+            tid = t.get("task_id", "?")
+            st = t.get("status", "?")
+            agent = t.get("agent", "?")
+            tv = t.get("target_validation_level", "?")
+            vs = t.get("validation_status", {})
+            # 验证进度条
+            val_parts = []
+            for level in VALID_L_LEVELS:
+                status = vs.get(level, "pending")
+                if status == "pass":
+                    val_parts.append(f"{level}✓")
+                elif status == "fail":
+                    val_parts.append(f"{level}✗")
+                elif status == "skip":
+                    val_parts.append(f"{level}−")
+                else:
+                    val_parts.append(f"{level}·")
+            val_str = " ".join(val_parts)
+            print(f"  {tid:<20} {st:<12} {agent:<22} {tv:<8} {val_str}")
 
-    print(f"\n{'Task ID':<20} {'Status':<14} {'Target':<8} {'Agent':<22} Title")
-    print("-" * 90)
-    for t in tasks:
-        tid = t.get("task_id", "?")
-        st = t.get("status", "?")
-        tv = t.get("target_validation_level", "?")
-        agent = t.get("agent", "?")
-        title = t.get("title", "?")
-        print(f"{tid:<20} {st:<14} {tv:<8} {agent:<22} {title}")
+        # 统计
+        counts = defaultdict(int)
+        for t in tasks:
+            counts[t.get("status", "?")] += 1
+        stats_parts = [f"{v} {k}" for k, v in sorted(counts.items())]
+        print(f"\n  统计: {len(tasks)} total | {' | '.join(stats_parts)}")
 
-    # 统计
-    counts = defaultdict(int)
-    for t in tasks:
-        counts[t.get("status", "?")] += 1
-    print(f"\n--- Status counts: {dict(counts)} ---\n")
+        # 下一步
+        next_tasks = [t for t in tasks if t.get("status") in ("ready", "in_progress", "blocked")]
+        if next_tasks:
+            print(f"\n  [下一步]")
+            for t in next_tasks:
+                st = t.get("status", "?")
+                icon = {"ready": "→", "in_progress": "⟳", "blocked": "⊘"}.get(st, "·")
+                print(f"  {icon} {t.get('task_id', '?')} [{st}] {t.get('title', '?')}")
+        else:
+            done_count = len([t for t in tasks if t.get("status") == "done"])
+            if done_count > 0:
+                print(f"\n  [下一步]")
+                print(f"  所有 {done_count} 个 task 已完成。建议运行复盘：spawn process_owner 编写 retrospective。")
+
+    # === 最近 Session ===
+    sessions_dir = ROOT / ".awp" / "sessions"
+    session_files = []
+    if sessions_dir.exists():
+        for f in sorted(sessions_dir.glob("SESS-*.md"), reverse=True):
+            if f.name.startswith("SESS-"):
+                session_files.append(f)
+
+    if session_files:
+        print(f"\n  [最近 Session]")
+        for sf in session_files[:5]:
+            try:
+                mtime = date.fromtimestamp(sf.stat().st_mtime).isoformat()
+            except Exception:
+                mtime = "?"
+            # 提取第一行标题
+            try:
+                with open(sf, "r", encoding="utf-8") as f:
+                    first_line = f.readline().strip().lstrip("#").strip()
+            except Exception:
+                first_line = sf.stem
+            print(f"  {sf.stem:<25} {mtime}  {first_line}")
+    else:
+        print(f"\n  [最近 Session]")
+        print(f"  (暂无)")
+
+    # === 待解决问题 ===
+    runs_dir = ROOT / ".awp" / "runs"
+    issue_files = []
+    if runs_dir.exists():
+        for f in sorted(runs_dir.glob("ISS-*.md")):
+            issue_files.append(f)
+
+    if issue_files:
+        print(f"\n  [待解决问题]")
+        for iss in issue_files:
+            print(f"  ⚠ {iss.stem}  {iss.name}")
+    else:
+        print(f"\n  [待解决问题]")
+        print(f"  (无)")
+
+    # === Git ===
+    print(f"\n  [最近提交]")
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["git", "log", "--oneline", "-5"],
+            capture_output=True, text=True, cwd=ROOT, timeout=5
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            for line in result.stdout.strip().split("\n"):
+                print(f"  {line}")
+        else:
+            print(f"  (无法获取)")
+    except Exception:
+        print(f"  (无法获取)")
+
+    # === 快速入口 ===
+    print(f"\n  [快速入口]")
+    print(f"  创建任务:     /task-bootstrap")
+    print(f"  关闭 session: /session-close")
+    print(f"  运行校验:     make validate-awp")
+    print(f"  查看此面板:   make status")
+    print()
     return 0
 
 
@@ -457,7 +597,8 @@ def cmd_gen_task_board():
 
 def main():
     parser = argparse.ArgumentParser(description="FPGA-AWP Workspace Validator")
-    parser.add_argument("--summary", action="store_true", help="Print task status summary")
+    parser.add_argument("--summary", action="store_true", help="Print project dashboard (alias for --dashboard)")
+    parser.add_argument("--dashboard", action="store_true", help="Print human-readable project dashboard")
     parser.add_argument("--gate-check", action="store_true", help="Check L0-L7 gate progression")
     parser.add_argument("--gen-task-board", action="store_true", help="Generate task_board.md from YAML files")
     args = parser.parse_args()
@@ -465,8 +606,8 @@ def main():
     # 切换到项目根目录
     os.chdir(ROOT)
 
-    if args.summary:
-        return cmd_summary()
+    if args.dashboard or args.summary:
+        return cmd_dashboard()
     elif args.gate_check:
         return cmd_gate_check()
     elif args.gen_task_board:
