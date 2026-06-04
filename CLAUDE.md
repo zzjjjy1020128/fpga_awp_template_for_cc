@@ -142,6 +142,13 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 3. 若不存在 handoff：检查 `.awp/task_board.md` 确认当前项目状态
 4. 向用户汇报恢复结果："检测到上次未完成的 session，已从 HO-xxx 恢复上下文"或"这是新项目的首次 session"
 
+**Handoff 恢复后的 gate re-validation（强制）**：从 handoff 恢复到下一步 task 后，在 spawn 任何子智能体之前，必须：
+
+1. 读取目标 task 的 `validation_status`，确认所有前置验证级别已通过
+2. 若前置级别未通过（如目标 L1c 但 L1b 为 `pending`），**不得直接执行该 task**——先创建前置验证 task（如 L1b 集成验证），将当前 task 设为 `blocked`
+3. 检查 task 合同的 `forbidden_edit_paths` 是否与当前 agent 定义的能力匹配——若合同是旧规范产物（如禁止 integration_verifier 触碰子模块 RTL），以当前 agent 定义为准，更新合同约束
+4. 向用户汇报 gate check 结果后再 spawn
+
 ### Spawn 决策规则（G1）
 
 收到用户需求时，按以下优先级判断是否需要 spawn 子智能体：
