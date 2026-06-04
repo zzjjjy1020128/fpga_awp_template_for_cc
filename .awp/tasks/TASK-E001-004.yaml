@@ -1,0 +1,95 @@
+task_id: "TASK-E001-004"
+title: "AXI-Stream 输入接口 axis_input RTL 实现"
+status: "done"
+agent: "rtl_implementer"
+assigned_to: ""
+created_date: "2026-06-04"
+
+objective: >
+  实现 axis_input 模块，负责 AXI4-Stream 从属输入接口协议处理、
+  行/列计数跟踪以及帧缓冲写地址生成。
+
+target_validation_level: "L1a"
+integration_scope: "module"
+
+validation_status:
+  L0: "pass"
+  L1a: "pass"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-001"
+  - "TASK-E001-003"
+
+scope:
+  allowed_edit_paths:
+    - "rtl/axis_input.sv"
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+    - "rtl/ctrl_fsm.sv"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+    - "docs/project_charter.md"
+
+acceptance:
+  - "实现 AXI4-Stream Slave 握手协议（tvalid/tready）"
+  - "正确检测 tuser（帧起始）和 tlast（行结束）"
+  - "内部 row_cnt/col_cnt 计数器正确跟踪二维位置"
+  - "生成 BRAM 写地址 write_addr = row_cnt * IMG_COLS + col_cnt"
+  - "采集完成时输出 capture_done 脉冲"
+  - "仅当 capture_en=1 时接收数据"
+
+required_outputs:
+  - "rtl/axis_input.sv"
+
+handoff:
+  next_task: ""
+  handoff_file: ".awp/handoffs/HO-E001-004-001.md"
+
+risk_level: "low"
+
+notes: >
+  ## 接口定义
+
+  ### 参数
+  - DATA_WIDTH (default 8)
+  - MAX_ROWS (default 64)
+  - MAX_COLS (default 64)
+
+  ### AXI-Stream Slave 端口
+  - s_axis_tdata[DATA_WIDTH-1:0], s_axis_tvalid, s_axis_tready
+  - s_axis_tlast (行结束), s_axis_tuser (帧起始)
+
+  ### 控制接口
+  - capture_en (来自 ctrl_fsm)
+  - img_rows[9:0], img_cols[9:0] (来自 regs_top)
+
+  ### 输出到 frame_buf_mgr
+  - write_addr[11:0] (MAX_ROWS*MAX_COLS=4096, 12-bit 足够)
+  - write_data[DATA_WIDTH-1:0]
+  - write_en (写使能)
+
+  ### 输出到 ctrl_fsm
+  - capture_done (1-cycle pulse, 采集完一帧)
+
+  ## 设计要点
+  - capture_en=0 时不接收数据（tready=0）
+  - tuser=1 时重置计数器到 0
+  - tlast=1 时 col_cnt 归零，row_cnt+1
+  - 每拍有效传输 col_cnt+1
+  - 总采集元素数 = img_rows * img_cols，收满后产出 capture_done 脉冲
+  - write_addr 可用组合逻辑：row_cnt * IMG_COLS + col_cnt
