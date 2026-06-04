@@ -38,6 +38,11 @@ xsim.dir/
 *.vpd
 *.fsdb
 
+# Icarus Verilog 产物
+a.out
+sim/simv*
+sim/*.vvp
+
 # Python
 __pycache__/
 *.pyc
