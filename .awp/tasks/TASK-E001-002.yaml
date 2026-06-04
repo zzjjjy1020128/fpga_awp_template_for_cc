@@ -1,0 +1,102 @@
+task_id: "TASK-E001-002"
+title: "AXI-Lite 从属接口与寄存器文件 RTL 实现"
+status: "done"
+agent: "rtl_implementer"
+assigned_to: ""
+created_date: "2026-06-04"
+
+objective: >
+  实现 axil_slave_if 和 regs_top 两个子模块的 RTL 设计。
+  axil_slave_if 处理 AXI4-Lite 总线协议（5 通道握手、地址译码、响应生成）；
+  regs_top 实现寄存器文件（CTRL/STATUS/CFG/IMG_ROWS/IMG_COLS 及保留槽位）。
+
+target_validation_level: "L1a"
+integration_scope: "module"
+
+validation_status:
+  L0: "pass"
+  L1a: "pass"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-001"
+
+scope:
+  allowed_edit_paths:
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+    - "docs/project_charter.md"
+    - ".awp/reviews/REV-E001-001-ARCH-001.md"
+
+acceptance:
+  - "axil_slave_if.sv 通过 L0 审查，正确实现 AXI4-Lite 5 通道握手"
+  - "regs_top.sv 通过 L0 审查，寄存器映射与 architecture.md 4.1 节一致"
+  - "两模块间接口（wr_strobe / rd_strobe / 寄存器值输出 / 状态输入）清晰定义"
+  - "所有保留地址读返回 0，写忽略"
+
+required_outputs:
+  - "rtl/axil_slave_if.sv"
+  - "rtl/regs_top.sv"
+
+handoff:
+  next_task: ""
+  handoff_file: ".awp/handoffs/HO-E001-002-001.md"
+
+risk_level: "medium"
+
+notes: >
+  ## 需在实现中解决的 Review 问题
+
+  来自 REV-E001-001-ARCH-001 审查，以下问题需在本 task 中明确决策：
+
+  ### High
+  - **F1**：冗余 SW_RESET — 保留 CTRL[1] 作为 sw_reset（自清零），删除 0x14 独立 SW_RESET 寄存器，0x14 归入保留空间
+  - **F2**：STATUS.done 清除机制 — CTRL.start 写 1 时自动清零 done 位
+  - **F3**：STATUS.error 触发条件 — 保留但暂不实现（RTL 中 error 固定为 0），待后续阶段定义触发场景
+
+  ### Medium
+  - **F5**：寄存器地址统一 — 保留区间为 0x14-0x3C（11 个槽位，因删除 SW_RESET），全部读返回 0
+  - **F7**：STATUS 位互斥编码 — idle=1 时其他位为 0；busy 时 idle=0；done 与 idle 互斥
+  - **F11**：WSTRB 处理 — 所有寄存器支持 byte-level WSTRB 掩码
+
+  ## 接口规格（来自 architecture.md）
+
+  ### axil_slave_if → regs_top
+  - wr_strobe[15:0]：写选通，每个对应 4-byte 对齐寄存器槽
+  - rd_strobe[15:0]：读选通
+  - wdata[31:0]：写数据直通
+  - 各寄存器地址映射：CTRL=0x00, STATUS=0x04, CFG=0x08, IMG_ROWS=0x0C, IMG_COLS=0x10
+
+  ### regs_top 对外输出
+  - ctrl_start, ctrl_sw_reset → 连 ctrl_fsm
+  - cfg_dir[2:0], cfg_step[4:0], cfg_wrap_en → 连 shift_addr_gen
+  - img_rows[15:0], img_cols[15:0] → 连 axis_input / shift_addr_gen
+  - status 信号从 ctrl_fsm 输入 → 组装 STATUS[4:0]
+
+  ## 寄存器位域定义
+  - CTRL[0]: start (WO, 自清零)
+  - CTRL[1]: sw_reset (WO, 自清零)
+  - STATUS[0]: idle (RO)
+  - STATUS[1]: busy_capture (RO)
+  - STATUS[2]: busy_shift (RO)
+  - STATUS[3]: done (RO, start 写 1 时清零)
+  - STATUS[4]: error (RO, 暂固定为 0)
+  - CFG[2:0]: dir (RW)
+  - CFG[7:3]: step (RW)
+  - CFG[8]: wrap_en (RW)
