@@ -21,11 +21,11 @@
 
 ## Review
 
-- [ ] *（暂无）*
+- [ ] [TASK-E001-002](.awp/tasks/TASK-E001-002.yaml) | rtl_implementer | AXI-Lite 从属接口与寄存器文件 RTL 实现
 
 ## Done
 
-- [ ] *（暂无）*
+- [ ] [TASK-E001-001](.awp/tasks/TASK-E001-001.yaml) | planner | AXI-Lite 2D Shift 模块架构规划
 
 ## Retrospective Items
 

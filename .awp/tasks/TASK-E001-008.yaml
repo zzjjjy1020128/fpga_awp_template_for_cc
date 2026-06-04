@@ -1,0 +1,125 @@
+task_id: "TASK-E001-008"
+title: "AXI-Lite 2D Shift 顶层模块集成"
+status: "review"
+agent: "rtl_implementer"
+assigned_to: ""
+created_date: "2026-06-04"
+
+objective: >
+  创建顶层模块 axil_2d_shift，将全部 7 个子模块（axil_slave_if、regs_top、ctrl_fsm、
+  axis_input、shift_addr_gen、axis_output、frame_buf_mgr）实例化并正确连接。
+  解决 zero_fill 与 read_data 的流水线对齐问题。
+
+target_validation_level: "L1c"
+integration_scope: "system"
+
+validation_status:
+  L0: "pass"
+  L1a: "skip"
+  L1b: "pending"
+  L1c: "pending"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-002"
+  - "TASK-E001-003"
+  - "TASK-E001-004"
+  - "TASK-E001-005"
+  - "TASK-E001-006"
+  - "TASK-E001-007"
+
+scope:
+  allowed_edit_paths:
+    - "rtl/axil_2d_shift.sv"
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+    - "rtl/ctrl_fsm.sv"
+    - "rtl/axis_input.sv"
+    - "rtl/shift_addr_gen.sv"
+    - "rtl/axis_output.sv"
+    - "rtl/frame_buf_mgr.sv"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+    - "rtl/ctrl_fsm.sv"
+    - "rtl/axis_input.sv"
+    - "rtl/shift_addr_gen.sv"
+    - "rtl/axis_output.sv"
+    - "rtl/frame_buf_mgr.sv"
+
+acceptance:
+  - "顶层模块正确实例化全部 7 个子模块"
+  - "所有端口连接正确，无悬空/错位"
+  - "zero_fill 信号经 1 级流水线寄存器延迟后连接到 axis_output，与 BRAM read_data 延迟对齐"
+  - "顶层端口与 project_charter.md 接口列表一致"
+
+required_outputs:
+  - "rtl/axil_2d_shift.sv"
+
+handoff:
+  next_task: ""
+  handoff_file: ".awp/handoffs/HO-E001-008-001.md"
+
+risk_level: "medium"
+
+notes: >
+  ## 顶层端口（来自 project_charter.md）
+
+  ### 时钟与复位
+  - clk, rstn
+
+  ### AXI4-Lite Slave
+  - s_axil_awaddr[31:0], s_axil_awvalid, s_axil_awready
+  - s_axil_wdata[31:0], s_axil_wstrb[3:0], s_axil_wvalid, s_axil_wready
+  - s_axil_bresp[1:0], s_axil_bvalid, s_axil_bready
+  - s_axil_araddr[31:0], s_axil_arvalid, s_axil_arready
+  - s_axil_rdata[31:0], s_axil_rresp[1:0], s_axil_rvalid, s_axil_rready
+
+  ### AXI4-Stream Slave（数据输入）
+  - s_axis_tdata[DATA_WIDTH-1:0], s_axis_tvalid, s_axis_tready
+  - s_axis_tlast, s_axis_tuser
+
+  ### AXI4-Stream Master（数据输出）
+  - m_axis_tdata[DATA_WIDTH-1:0], m_axis_tvalid, m_axis_tready
+  - m_axis_tlast, m_axis_tuser
+
+  ## 关键互连
+
+  ```
+  s_axil_* → axil_slave_if → wr/rd_strobe → regs_top
+                                    ↑↓ (rdata from regs_top)
+  regs_top → ctrl_start/sw_reset/cfg_*/img_* → ctrl_fsm, shift_addr_gen, axis_input, axis_output
+  ctrl_fsm → capture_en/shift_en → axis_input, shift_addr_gen, axis_output
+  ctrl_fsm ← capture_done, shift_done ← axis_input, axis_output
+
+  axis_input → write_addr/data/en → frame_buf_mgr (port A)
+  shift_addr_gen → read_addr → frame_buf_mgr (port B)
+  frame_buf_mgr → read_data → axis_output
+
+  shift_addr_gen → zero_fill → [1-stage pipeline reg] → axis_output
+  ```
+
+  ## 流水线对齐（关键！）
+  frame_buf_mgr 读端口有 1 周期延迟（read_data 在 read_addr 后的下一拍才有效）。
+  shift_addr_gen 的 zero_fill 与 read_addr 同步输出，因此需要延迟 1 拍才能与 read_data 对齐。
+  在顶层模块中插入一个 1-bit 寄存器：
+
+  ```systemverilog
+  always_ff @(posedge clk) begin
+      zero_fill_d1 <= shift_zero_fill;
+  end
+  ```
+  然后将 zero_fill_d1 连接到 axis_output 的 zero_fill 端口。
