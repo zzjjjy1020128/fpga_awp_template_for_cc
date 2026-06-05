@@ -178,17 +178,16 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 |---------|------|------|
 | 启动新 FPGA 项目 | `planner` | 先创建 `project_charter.md` 定义范围/约束/验证目标，再创建 architecture |
 | 架构设计/验证规划 | `planner` | |
-| 模块 RTL 设计 + L1a 验证 | `module_owner` | **v0.2 新角色**：单模块全周期负责（设计 + TB + 仿真 + 自证），L1a 不拆分 agent |
-| L1a 完成后的代码审查 | `rtl_reviewer` | module_owner 产出后自动触发 |
-| 数据通路闭环仿真 | `integration_verifier` | L1b 验证，按数据通路切片（WRITE/READ/CONTROL path），**默认不得修改子模块 RTL** |
+| 模块 RTL 设计 + L1a 验证 | `rtl_implementer` | **v0.2**：单模块全周期负责（设计 + TB + 仿真 + 自证），不再拆分设计/验证 agent |
+| L1a 完成后的代码审查 | `rtl_reviewer` | rtl_implementer 产出后自动触发 |
+| 数据通路闭环仿真 | `integration_verifier` | L1b 验证，按数据通路切片，scope 见 G6 分层规则 |
 | 全系统集成仿真 | `integration_verifier` | L1c 验证，全系统 + 多帧/多事务 |
-| 集成失败回修 | `module_owner` | L1b/L1c 发现缺陷 → 创建 ISS issue → 交回 module_owner 修复 + L1a 自证 |
+| 集成失败回修 | `rtl_implementer` | L1b/L1c 发现缺陷 → 创建 ISS issue → 交回 rtl_implementer 修复 + L1a 自证 |
 | XDC 约束编写 | `vivado_integrator` | |
 | 约束完成后的审查 | `rtl_reviewer` | vivado_integrator 产出 XDC 后自动触发 |
 | Vivado 工程/综合/实现 | `vivado_integrator` | |
 | 上板验证 | `hardware_validator` | |
 | 流程检查/复盘 | `process_owner` | 所有 task 完成后自动触发 |
-| RTL 纯修复/紧急补丁 | `rtl_implementer` | **deprecated in v0.2**：仅用于非 module_owner 场景的纯 RTL 小修 |
 
 4. **需求是以下管理工作** → orchestrator 自己处理，不 spawn：
    - 任务拆分、task_board 更新、进度汇报
@@ -288,18 +287,25 @@ integration_verifier 发现失败
 
 **GAP 阻断不阻止**：创建 L1b task、执行 L1b、module_owner 修复 issue、rtl_reviewer 审查、process_owner 流程修补。
 
-### Scope 规则（G6）—— v0.2 责任边界
+### Scope 规则（G6）—— v0.2 分层责任边界
+
+integration_verifier 对子模块 RTL 的修改权限分三层：
+
+| 层级 | 条件 | 权限 |
+|------|------|------|
+| **may-fix-with-record** | 发现 bug 且修复方案明确（≤5 行改动） | 允许修改子模块 RTL，**必须**创建 ISS issue 记录每次修改。修复后**必须**触发对应 rtl_implementer 的 L1a 回验 + L1b 重验 |
+| **must-report** | 发现 bug 但修复不明确或涉及接口变更 | **禁止**修改。创建 ISS issue，注明 suspected module，交回 rtl_implementer |
+| **must-escalate** | 无法定位根因或涉及架构级问题 | 创建 ISS issue，标记 status=blocked，转 human_owner |
 
 | Agent | 允许编辑 | 禁止编辑 |
 |-------|---------|---------|
-| `module_owner` | 本模块 RTL + 本模块 L1a TB + 本模块文档 | 其他模块 RTL、集成 TB、架构文档 |
-| `module_owner` (fix) | 本模块 RTL + 本模块 L1a TB（即使 status=review） | 其他模块 RTL、集成 TB |
-| `integration_verifier` (L1b) | L1b TB、golden model、run script、ISS issue、failure report | **子模块 RTL**（默认禁止） |
-| `integration_verifier` (L1c) | L1c/system TB、golden model、run script、failure report | **子模块 RTL**（默认禁止） |
+| `rtl_implementer` | 本模块 RTL + 本模块 L1a TB + 本模块文档 | 其他模块 RTL、集成 TB、架构文档 |
+| `rtl_implementer` (fix) | 本模块 RTL + 本模块 L1a TB（即使 status=review） | 其他模块 RTL、集成 TB |
+| `integration_verifier` (L1b) | L1b TB、golden model、run script、ISS issue、failure report；子模块 RTL 仅 may-fix-with-record | 架构文档 |
+| `integration_verifier` (L1c) | L1c/system TB、golden model、run script、failure report；子模块 RTL 仅 may-fix-with-record | 架构文档 |
 | `rtl_reviewer` | review report、issue 建议 | 默认不直接改 RTL |
-| `human_owner` | 可授权跨边界修改 | 必须记录 issue、patch note、required rerun |
 
-> **核心**：integration_verifier 负责定位和报告，module_owner 负责修复和自证，orchestrator 负责 gate 和 issue lifecycle。
+> **核心**：integration_verifier 优先定位和报告，但发现明确 bug 时可以修复（必须记录 + 触发回验）。避免"必须等 rtl_implementer 重新加载上下文"的往返延迟。
 
 ### Issue 记录决策规则（G6-Issue）
 

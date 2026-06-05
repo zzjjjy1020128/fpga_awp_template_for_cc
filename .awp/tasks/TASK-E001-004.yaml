@@ -1,7 +1,7 @@
 task_id: "TASK-E001-004"
 title: "AXI-Stream 输入接口 axis_input RTL 实现"
 status: "review"
-agent: "module_owner"
+agent: "rtl_implementer"
 assigned_to: ""
 created_date: "2026-06-04"
 

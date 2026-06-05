@@ -52,7 +52,7 @@ NAMESPACE_PATTERNS = {
 VALID_TASK_STATUSES = {"ready", "in_progress", "blocked", "review", "done"}
 
 # v0.2: 即使有 L1b GAP 也允许 spawn 的 agent（修复、建 task、审查、流程修补）
-GAP_SAFE_AGENTS = {"planner", "module_owner", "rtl_reviewer", "process_owner"}
+GAP_SAFE_AGENTS = {"planner", "rtl_implementer", "rtl_reviewer", "process_owner"}
 VALID_VAL_STATUSES = {"pending", "pass", "fail", "skip"}
 VALID_L_LEVELS = ["L0", "L1a", "L1b", "L1c", "L2", "L3", "L4", "L5", "L6", "L7"]
 
@@ -354,7 +354,6 @@ def validate_skip_usage():
     # 规则：对模块级 RTL/验证 task，L1b(数据通路闭环) 和 L1c(全系统集成) 必须 pending
     AGENT_MUST_NOT_SKIP = {
         "rtl_implementer": ["L1b", "L1c"],
-        "tb_verifier": ["L1b", "L1c"],
     }
 
     for yaml_file in sorted(tasks_dir.glob("*.yaml")):
@@ -533,6 +532,62 @@ def validate_integration_scope():
     return errors
 
 
+def validate_dependency_ripple():
+    """检测依赖链上的验证状态不一致。
+    当上游 task 的验证 level 回退（如 L1a pass→pending），下游 task 的对应 level
+    应同步回退。例如 TASK-E001-004 L1a 回退 → TASK-E001-009 的 L1b 也应 pending。
+    """
+    errors = []
+    tasks_dir = ROOT / ".awp" / "tasks"
+    if not tasks_dir.exists():
+        return errors
+
+    # 收集所有 task
+    all_tasks = {}
+    for yaml_file in sorted(tasks_dir.glob("*.yaml")):
+        if yaml_file.name == ".gitkeep":
+            continue
+        rel = str(yaml_file.relative_to(ROOT))
+        data, _ = load_yaml_file(rel)
+        if data:
+            all_tasks[data.get("task_id", "")] = data
+
+    # Level 映射：上游 task 的 target level → 下游 task 应关注的 level
+    # rtl_implementer (target=L1a) → 下游 integration task 应关注 L1b
+    UPSTREAM_TARGET_TO_DOWNSTREAM_LEVEL = {
+        "L1a": "L1b",
+        "L1b": "L1c",
+    }
+
+    for tid, t in all_tasks.items():
+        deps = t.get("depends_on", []) or []
+        upstream_target = t.get("target_validation_level", "")
+        downstream_level = UPSTREAM_TARGET_TO_DOWNSTREAM_LEVEL.get(upstream_target, "")
+
+        if not downstream_level:
+            continue
+
+        for dep_id in deps:
+            if dep_id not in all_tasks:
+                continue
+            dep_task = all_tasks[dep_id]
+            dep_vs = dep_task.get("validation_status", {})
+            # 如果下游 task 的该 level 是 pass，但上游 task 的 target 不是 pass → 涟漪未传播
+            downstream_status = dep_vs.get(downstream_level, "pending")
+            upstream_vs = t.get("validation_status", {})
+            upstream_status = upstream_vs.get(upstream_target, "pending")
+
+            if downstream_status == "pass" and upstream_status not in ("pass", "skip"):
+                errors.append(
+                    f".awp/tasks/{tid}.yaml: depends on {dep_id} but "
+                    f"{dep_id}.{upstream_target}={upstream_status} while "
+                    f"{tid}.{downstream_level}=pass. "
+                    f"Upstream regression should propagate — set {downstream_level}=pending."
+                )
+
+    return errors
+
+
 def validate_manifest():
     """校验 workspace_manifest.json"""
     errors = []
@@ -585,6 +640,7 @@ def cmd_validate():
     all_errors.extend(validate_fail_status())
     all_errors.extend(validate_issue_files())
     all_errors.extend(validate_integration_scope())
+    all_errors.extend(validate_dependency_ripple())
 
     if all_errors:
         print(f"\n[FAIL] {len(all_errors)} validation error(s):\n")
@@ -645,7 +701,7 @@ def cmd_sync():
         scope = t.get("integration_scope", "module")
         status = t.get("status", "")
         vs = t.get("validation_status", {})
-        if agent not in ("rtl_implementer", "tb_verifier"):
+        if agent not in ("rtl_implementer",):
             continue
         if scope != "module":
             continue
@@ -669,7 +725,7 @@ def cmd_sync():
         agent = t.get("agent", "")
         scope = t.get("integration_scope", "module")
         vs = t.get("validation_status", {})
-        if agent not in ("rtl_implementer", "tb_verifier"):
+        if agent not in ("rtl_implementer",):
             continue
         if scope != "module":
             continue

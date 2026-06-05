@@ -1,273 +1,161 @@
-# AWP 方法论复盘 —— 基于 E001 测试项目的系统性缺陷分析
+# FPGA-AWP v0.2 实验复盘
 
-> 日期: 2026-06-04 | 项目: E001 (AXI-Lite 2D Shift) | 触发事件: 集成仿真 3 次 attempt 全部失败
+> 实验分支：exp/E001
+> 日期：2026-06-04 ~ 2026-06-05
+> 项目：AXI-Lite 2D Shift
 
-## 一、技术根因（DUT 层）
+## 一、验证结果总结
 
-集成仿真失败的**直接原因**是 `shift_addr_gen.sv` 的一个设计缺陷：
+| 级别 | 描述 | 结果 |
+|------|------|------|
+| L0 | 静态审查 | pass |
+| L1a | 模块级单元仿真（7 模块） | pass（含 2 模块回验） |
+| L1b | 数据通路闭环（WRITE/READ/CONTROL） | pass（209 assertions, 0 failures） |
+| L1c | 全系统集成仿真 | pass（247 assertions, 0 failures） |
+| L2-L7 | 综合→上板→复盘 | 未执行 |
 
-```verilog
-// shift_addr_gen.sv:56-72 — 缺陷代码
-always_ff @(posedge clk or negedge rstn) begin
-    if (!rstn) begin
-        row_cnt <= '0;  col_cnt <= '0;
-    end else if (shift_en) begin
-        // ... 计数器推进逻辑 ...
-        // 帧结束时 row/col 归零
-    end
-    // ← shift_en=0 时计数器完全保持，不归零！
-end
-```
+## 二、流程中发现的 8 个问题
 
-同一个模块 `axis_output.sv:83-87` 正确处理了这个问题：
-```verilog
-if (!shift_en) begin
-    row_cnt <= '0;  col_cnt <= '0;  all_done <= 1'b0;
-end
-```
+### 问题 1：Handoff 叙事覆盖 YAML 事实
 
-两个协作者模块在相同场景（shift_en=0 时是否复位计数器）上**行为不一致**。单帧仿真碰巧正确，多帧场景立即暴露。
+**现象**：HO-E001-008-001 写"L1c 集成仿真 FAIL，下一步调试"，orchestrator 直接按 narrative 行动，忽略了 YAML 中 `L1b: pending` 的事实。
+
+**根因**：Handoff 没有 formal state 字段，纯 prose 叙事容易被扫读跳过。
+
+**已修**：handoff template 加 Gate Status 必填表；B1 从段落改为 checklist；`--gate-check` 检测 target-gap。
+
+**残留风险**：prose 和 structured data 的 divergence 是永恒问题——即使有了 Gate Status 表，orchestrator 仍可能只读 narrative 跳过表格。
 
 ---
 
-## 二、AWP 规范缺陷逐条追溯
+### 问题 2：`skip` 语义被滥用
 
-以下按"对本次失败的贡献度"从高到低排序。
+**现象**：6 个子模块 RTL task 的 L1b/L1c 全部标记为 `skip`，声明模块"不需要集成验证"。模块 L1a pass 直接 done，RTL 被 lock。L1c 失败时无法修改子模块，被迫 hack TB。
 
----
+**根因**：`skip` 被解释为"不归我管"而非"此 task 类型确实不涉及此 level"。模块级 task 的 target=L1a 意味着只负责到 L1a，但 `L1b=skip` 给人以"集成验证不需要了"的错觉。
 
-### P0 — 致命缺陷
+**已修**：validate_awp 检查 skip 滥用；`--sync` 自动 fix `skip → pending`；CLAUDE.md 明确 skip 语义。
 
-#### 2.1 Agent 角色隔离导致"发现-修复"链路断裂
-
-**涉及规范**：
-- `.claude/agents/tb_verifier.md` 第 24 行：`"禁止修改 RTL 设计文件（rtl/）—— 发现 bug 应反馈给 rtl_implementer 或 orchestrator"`
-- `CLAUDE.md` G1 表：仿真/测试 → `tb_verifier`、RTL 设计/修改 → `rtl_implementer`
-- task 模板 `scope.forbidden_edit_paths`：所有 tb_verifier task 均将 `rtl/` 列入禁止路径
-
-**问题**：规范定义了一条"反馈给 rtl_implementer 或 orchestrator"的路径，但这条路径**根本不存在**。整个 session 中没有一次成功从 tb_verifier 向 rtl_implementer 传递 bug 报告的实例。原因：
-
-- tb_verifier agent 的指令中只说了"应该反馈"，但没有具体机制（写什么文件？发给谁？什么格式？）
-- orchestrator 收到 tb_verifier 的"仿真失败"结果时，看到的只是汇总信息（"253 failures"），无法判断是 DUT bug 还是 TB bug
-- 默认假设是 "DUT 已验证过（单元仿真全部通过），所以是 TB 问题" → 反复 spawn tb_verifier 修 TB
-- 3 次 attempt 累计 120+ 分钟，没有一个 agent 被允许去读 DUT RTL 并发现计数器残留问题
-
-**影响**：当 bug 跨 agent 边界时（验证 agent 发现设计 agent 的缺陷），没有任何机制让 bug 被正确路由到能修复它的人。
+**残留风险**：`skip` vs `pending` 的边界依赖 agent 类型判断，validate_awp 中硬编码了 agent 列表。如果新增 agent 类型，此检查可能遗漏。
 
 ---
 
-#### 2.2 L1 验证粒度缺失 —— 单元仿真与集成仿真未区分
+### 问题 3：module_owner 设计但不可 spawn
 
-**涉及规范**：`CLAUDE.md` L0-L7 验证级别定义
+**现象**：v0.2 架构核心是 module_owner 角色，但 `.claude/agents/module_owner.md` 创建后并未注册为可 spawn 的 agent 类型。L1a 回验时被迫使用 `rtl_implementer`，功能上等效但语义上不一致——`rtl_implementer` 被标记为 deprecated 但它仍然是唯一能执行模块级工作的 agent。
 
-当前定义只有 8 个大级别（L0-L7），L1 = "仿真验证"，不区分：
-- L1a：模块级单元仿真（当前 session 中全部通过，1850/1850）
-- L1b：数据通路闭环仿真（axis_input + frame_buf_mgr + shift_addr_gen + axis_output）
-- L1c：全系统集成仿真（当前 session 中 9/269 通过）
+**根因**：AWP 的 agent 定义（`.claude/agents/*.md`）和 Claude Code 的 spawnable agent 列表是两套系统。模板中的 agent 定义文件是给 agent 看的 system prompt，但能否 spawn 取决于平台注册。我们只写了一半。
 
-**问题**：L1a 全部通过后，orchestrator 按"低级别通过才进入高级别"规则直接推进到 L1c。但 L1a→L1c 的跳跃掩盖了跨模块状态持久性问题。如果存在中间的 L1b 级别，单帧+连续帧的数据通路闭环测试就会立即暴露计数器残留 bug，根本不需要走到全系统 11 个测试用例的 TB。
+**待修**：要么将 module_owner 注册为 spawnable agent，要么重新设计——不要让 AWP 规范依赖不可 spawn 的 agent 类型。当前最务实的方案：保留 `rtl_implementer` 作为模块级工作的主 agent，把 module_owner 的能力描述（RTL + L1a TB + 自证）写入 `rtl_implementer` 的 system prompt，而不是新建一个无法 spawn 的角色。
 
 ---
 
-### P1 — 高优先级
+### 问题 4：integration_verifier 违反 G6 scope 但修对了
 
-#### 2.3 G4 失败升级规则假定"故障在同域内可修复"
+**现象**：L1c 调试中，integration_verifier 直接修改了 `axis_input.sv`（计数器复位）和 `shift_addr_gen.sv`（proceed 端口连接、计数器复位），违反了 v0.2 G6"默认禁止修改子模块 RTL"的规则。但这些修改恰好是根因。
 
-**涉及规范**：`CLAUDE.md` G4 验证失败升级规则
+**根因**：v0.2 G6 画了一条严格的边界——integration_verifier 只报告不修复。但实际调试中，拥有全系统上下文的人（integration_verifier）是定位和修复 bug 的最佳人选。把修复交给 module_owner 意味着：创建 ISS → 等待 module_owner spawn → module_owner 重新加载上下文 → 理解 bug → 修复 → L1a 自证 → 返回。这个往返链条在实际执行中太慢了。
 
-```
-1st fail → spawn 同一 agent 修复
-2nd fail → spawn 同一 agent 修复 + 强调
-3rd fail → STOP, 创建 ISS
-```
-
-**问题**：规则假定失败原因是 agent 执行不到位（需要"更强调"），而非 agent 选错了（应该换人）。本次 3 次 attempt 的实际轨迹：
-
-| Attempt | Agent | 时间 | 失败数 | 实际做了什么 |
-|---------|-------|------|--------|------------|
-| 1 | tb_verifier | 1936s | 253 | 创建 TB + pipeline 补偿 hack |
-| 2 | tb_verifier | 1186s | 264 | 增加 debug probe、cleanup 逻辑（更差）|
-| 3 | tb_verifier | 4124s | 260 | 试图修改 pipeline 补偿顺序（未完成）|
-
-3 次全部在错误方向上迭代。G4 的正确行为应该是：**第 2 次失败时切换 agent 类型**（如联合 spawn rtl_implementer 调查 DUT），而非继续 spawn 同一类型。
+**待修**：G6 的严格性需要分层——
+- **must-report**（不涉及子模块 RTL 修改的 bug）：走 ISS → module_owner 流程
+- **may-fix-with-record**（integration_verifier 发现并修复，需标注）：允许 integration_verifier 修改子模块 RTL，但必须创建 ISS issue 记录每次修改，且修复后必须触发 module_owner 的 L1a 回验
+- **must-escalate**（integration_verifier 无法确定修复方案）：创建 ISS，转 human_owner
 
 ---
 
-#### 2.4 tb_verifier agent 模型能力不足
+### 问题 5：RTL 接口变更后 TB 未自动检测
 
-**涉及规范**：`.claude/agents/tb_verifier.md` frontmatter
+**现象**：shift_addr_gen 在 L1c 修复中新增了 `proceed` 输入端口，但 L1a testbench 未同步更新——缺少 `.proceed(1'b1)` 连接。L1a 仿真中 proceed 悬空为 X，导致所有像素地址递增失败，但首个像素恰好为 0 掩盖了问题。直到 L1a 回验时才暴露。
 
-```yaml
-model: deepseek-v4-flash
-maxTurns: 60
-```
+**根因**：没有机制在 RTL 端口变更时自动检测依赖的 TB 是否需要更新。这在真实 FPGA 流程中通常由 lint 工具（如 Verilator --lint-only）或持续集成捕获，但当前 AWP 缺少这一层。
 
-对比其他 agent：
-- planner: `deepseek-v4-pro`, maxTurns: 40
-- rtl_implementer: 继承主 session 模型
-- rtl_reviewer: 继承主 session 模型
-- tb_verifier: **`deepseek-v4-flash`**, maxTurns: 60
-
-**问题**：tb_verifier 被分配了最弱的模型。对于模块级 TB（简单的激励-检查模式）这或许够用，但对于集成仿真——需要理解 7 个模块的接口、BRAM 读延迟、流水线对齐、AXI 协议握手——`deepseek-v4-flash` 的能力严重不足。更致命的是，它拿到了 60 个 turns（其他 agent 的 1.5 倍），刚好够在错误方向上走得更远。
+**待修**：validate_awp 可增加"端口一致性检查"——解析 RTL 模块的端口列表，与 TB 中的实例化端口列表比对，发现不匹配时报警。这不是完整的 formal verification，但能捕获明显的连接遗漏。
 
 ---
 
-#### 2.5 缺少"集成验证"角色
+### 问题 6：PostToolUse sync 的副作用
 
-**涉及规范**：`CLAUDE.md` G1 Spawn 决策表 + `.awp/orchestration_guide.md` 角色总览
+**现象**：TASK-E001-009 的 L1b 从 pending 更新为 pass 后，`--sync` 检测到 L0=pending + target=L1b → GAP，自动将 status 改为 blocked。但 L0 对 integration_verifier 任务本应是 skip——集成 TB 不需要静态审查。
 
-当前角色表中，tb_verifier 的职责是 "编写 testbench 并运行仿真验证"，没有区分模块级和系统级。角色表中也没有"集成验证工程师"。
+**根因**：sync 的 GAP 检测和 skip 滥用检测是两个独立逻辑。sync 先检测到 GAP（L0 pending 但 target 是 L1b），在 skip 检测之前就改了 status。更根本的问题是：integration_verifier task 的默认 validation_status 模板没有将 L0 设为 skip。
 
-**问题**：模块级验证和系统级集成验证是两种完全不同技能的工作：
-- 模块级：只需理解一个模块的接口，写定向+随机激励
-- 集成级：需要理解所有模块的接口、跨模块时序、流水线对齐、状态持久性
-
-把这两者交给同一个 agent 类型且使用同一个模型，相当于让单元测试工程师做系统集成测试。
-
----
-
-### P2 — 中优先级
-
-#### 2.6 架构文档未定义跨模块时序契约
-
-**涉及规范**：架构规划无强制性内容清单
-
-`docs/architecture.md` 提到了"BRAM 读延时：1 cycle"，但没有定义：
-- 各计数器在 shift_en=0 时的行为（保持 vs 复位）
-- FSM 状态转换的精确周期数（shift_done 到 shift_en=0 延迟）
-- 跨帧操作时哪些状态需要保留/清除
-
-**对比**：如果 architecture.md 中有一张"模块间时序契约表"：
-
-| 信号/状态 | 条件 | 行为 |
-|-----------|------|------|
-| shift_addr_gen.row/col_cnt | shift_en=0 | 复位到 0 |
-| axis_output.row/col_cnt | shift_en=0 | 复位到 0 |
-| frame_buf_mgr.read_data | read_addr 变化后 | 1 cycle 后更新 |
-
-这 3 行就足以让 rtl_implementer 和 rtl_reviewer 在实现/审查时发现 shift_addr_gen 的遗漏。
+**待修**：
+- task template 应按 agent 类型提供不同的默认 validation_status
+- sync 执行顺序：先 fix skip 滥用，再检测 GAP
+- 或在 GAP 检测中跳过对 agent 类型不适用 level 的检查
 
 ---
 
-#### 2.7 L0 Review Checklist 缺少交叉一致性检查
+### 问题 7：验证状态变更的涟漪效应是手动的
 
-**涉及规范**：`.awp/templates/review.template.md` 的 Checklist
+**现象**：axis_input 和 shift_addr_gen 的 RTL 修改后，需要手动操作以下步骤：
+1. 模块 task L1a: pass → pending, status: review → in_progress
+2. 模块 task L1b: pass → pending
+3. L1b 集成 task L1b: pass → pending, status: review → in_progress
+4. L1c task L1b: pass → pending（如果已 pass）
+5. 跑 L1a 回验 → 更新 L1a
+6. 跑 L1b 回验 → 更新 L1b
+7. 最终所有状态恢复
 
-当前 checklist：
-```
-- [ ] 接口兼容性
-- [ ] 时序正确性
-- [ ] 复位策略
-- [ ] CDC 处理
-- [ ] 代码风格
-- [ ] 与 architecture.md 一致性
-```
+整个过程全靠人手动追踪依赖链。如果模块更多（真实项目可能有 20+ 模块），这会迅速失控。
 
-**缺失项**：
-- `[ ] 同级模块间行为一致性`（两个模块处理相同场景的方式是否一致？）
-- `[ ] 跨帧/跨事务状态持久性`（模块在多帧操作中状态是否正确复位？）
-
-如果有这两项，REV-E001-005-RTL-001（shift_addr_gen 审查）就能发现它与 axis_output 在 shift_en=0 时的行为不一致。
+**待修**：`--sync` 应有"依赖传播"模式——当某个 task 的 validation_status 回退时，自动检测所有 `depends_on` 它的 task，将它们对应的 level 也回退。例如 TASK-E001-004 (axis_input) L1a 回退到 pending → 自动将 TASK-E001-009 (L1b-WRITE) 的 L1b 回退到 pending → 自动将 TASK-E001-008 (L1c) 的 L1b 回退到 pending。
 
 ---
 
-#### 2.8 G5 粒度规则未考虑集成验证步骤
+### 问题 8：L1b checkpoint 被正确执行，但触发方式是"规范要求"而非"自动阻断"
 
-**涉及规范**：`CLAUDE.md` G5 任务粒度决策规则
+**现象**：v0.2 的三个 L1b task（WRITE/READ/CONTROL）被正确创建和执行，这是整个实验中 v0.2 架构最成功的部分。但触发方式仍然是 orchestrator 按规范手动创建——不是系统自动检测"3 个模块 ready 但无 L1b task"并强制阻断。
 
-G5 只规定了"一个模块 = 一个 task"，以及何时拆分/合并。但没有规定：
-- 多少个模块完成后应插入一次集成验证
-- 集成验证 task 的格式是什么
+**根因**：validate_awp 和 pre-spawn guard 目前只检测 GAP（已有 task 的 level 不一致），不检测 MISSING（应该有但没有的 task）。
 
-**后果**：7 个模块全部独立完成后才做集成，8 个模块（7子+1顶）中没有一个是"数据通路闭环验证"。如果规则中有"每 3-4 个数据通路模块完成后必须插入一次中间集成验证"，问题会在更早阶段暴露。
-
----
-
-### P3 — 低优先级
-
-#### 2.9 Handoff 缺少仿真失败上下文
-
-**涉及规范**：`CLAUDE.md` G2 Handoff 决策规则
-
-Handoff 文件记录了 task 状态和关键文件，但没有机制传递"仿真失败的具体调试信息"。当前 handoff 只能说"集成仿真有 260 个失败"，无法传递"DBG_RECV 显示 sg_col=3 而非预期的 0"这类关键线索。下一 session 的 orchestrator 需要从头分析仿真日志。
+**待修**：pre-spawn guard 增加"L1b coverage check"——当满足以下条件时阻断 L1c/L2+ spawn：
+- 存在 ≥2 个 module_owner task 的 L1a=pass 且 L1b=pending
+- 不存在对应的 L1b integration_verifier task
+- 意味着"有模块 ready for integration 但没有 integration task"
 
 ---
 
-#### 2.10 子 agent 工作产品无强制交叉验证
+## 三、v0.2 架构中被验证为正确的设计
 
-**涉及规范**：`CLAUDE.md` 合规分层
+### 成功点 1：L1b 分级验证
 
-orchestrator "负责"运行 validate-awp、更新 task_board、创建 session 记录，但**不对子 agent 技术产出的正确性负责**。实际上 orchestrator 也没有能力深度审查 947 行 TB 或 8 个 RTL 模块的正确性。
+将 L1b 按数据通路切片（WRITE/READ/CONTROL）而不是按模块数触发，证明是正确的。每个 L1b task 验证一个独立的协议边界，失败时能精准定位。三个 L1b 全部 pass 后，L1c 的 247 个断言一次性全部通过——说明 L1b 确实起到了"在进入全系统前消除跨模块协议问题"的作用。
 
-子 agent 的产出质量完全依赖两个机制：(1) rtl_reviewer 的 L0 审查，(2) tb_verifier 的 L1 仿真。如果这两个机制同时失效（reviewer 没发现计数器缺失，仿真在单帧场景下碰巧通过），缺陷就无阻碍地向下游传播。
+### 成功点 2：从 L1c 失败回溯到子模块 bug 的链路
 
----
+旧架构：L1c 失败 → 子模块 done 锁死 → TB 无限 hack。
+新架构：L1c 失败 → 创建 ISS → 定位子模块 → 修复 → L1a 自证 → L1b 重验 → L1c 通过。
 
-## 三、修复提案
+虽然 G6 scope 规则在实操中被违反，但整体闭环逻辑是正确的。
 
-### 立即修复（当前项目）
+### 成功点 3：Guard/Sync 自动化
 
-| # | 问题 | 修复 | 改动 |
-|---|------|------|------|
-| F1 | shift_addr_gen 计数器跨帧残留 | 添加 `else begin row_cnt<='0; col_cnt<='0; end` | `rtl/shift_addr_gen.sv` 1 行 |
-| F2 | 集成 TB 过度复杂 | 修复 DUT 后重写集成 TB，去掉 pipeline 补偿 hack | `tb/tb_axil_2d_shift.sv` |
+post-edit sync、pre-spawn guard、session-start 审计这一套自动触发机制多次捕获了状态漂移（skip 滥用、done 锁定、L0 pending GAP），证明自动化门禁比纯靠人记 checklist 有效。
 
-### AWP 规范修改
+### 成功点 4：Skip 语义明确化
 
-| # | 优先级 | 规范 | 当前 | 改为 | 理由 |
-|---|:--:|------|------|------|------|
-| R1 | P0 | tb_verifier 禁止修改 RTL | 硬禁止 | **发现 DUT 嫌疑 bug 时允许修改，但需在报告中标注并通知 orchestrator** | 2.1 |
-| R2 | P0 | L1 验证级别 | 单一 "仿真验证" | **拆分为 L1a(单元) / L1b(数据通路) / L1c(全系统)** | 2.2 |
-| R3 | P1 | G4 失败升级 | 同 agent 重试 3 次 | **第 2 次失败时切换 agent 类型联合调查** | 2.3 |
-| R4 | P1 | tb_verifier 模型 | `deepseek-v4-flash` | **集成仿真用 `deepseek-v4-pro`，模块级保持 flash** | 2.4 |
-| R5 | P1 | 角色表 | 无集成验证角色 | **新增 `integration_verifier` 角色** | 2.5 |
-| R6 | P2 | architecture.md 内容 | 自由格式 | **增加"模块间时序契约"章节** | 2.6 |
-| R7 | P2 | review checklist | 6 项 | **增加"同级行为一致性"+"跨帧状态持久性"** | 2.7 |
-| R8 | P2 | G5 粒度规则 | 仅模块拆分 | **增加"每 N 个数据通路模块后插入集成验证"** | 2.8 |
-| R9 | P3 | task 合同模板 | 无集成维度 | **增加 `integration_scope: module \| datapath \| system`** | 2.8 |
-| R10 | P3 | handoff 模板 | 自由文本 | **增加 "Known Simulation Issues" 结构化字段** | 2.9 |
+将 `skip` 限定为"agent 类型确实不涉及此 level"，将子模块的 L1b/L1c 从 `skip` 改为 `pending`，从根本上改变了模块状态的心理模型——从"已完成"变为"等待集成确认"。
 
 ---
 
-## 四、方法论反思
+## 四、优化建议优先级
 
-### 4.1 核心矛盾
+| 优先级 | 问题 | 建议 |
+|:--:|------|------|
+| P0 | module_owner 不可 spawn | 将 v0.2 能力描述合并到 `rtl_implementer` agent 定义，不依赖不可用的 agent 类型 |
+| P0 | G6 太严格 | 分层：may-fix-with-record / must-report / must-escalate |
+| P1 | 验证涟漪手动传播 | `--sync` 增加依赖传播模式 |
+| P1 | TB 不随 RTL 更新 | validate_awp 增加端口一致性检查 |
+| P2 | L1b coverage 检测 | pre-spawn guard 检测"有模块 ready 但无 L1b task" |
+| P2 | PostToolUse sync 顺序 | 先 fix skip 再检测 GAP |
+| P3 | Handoff prose vs data | 长期问题，持续加固 Gate Status 表 |
 
-AWP 的设计哲学是**通过严格的角色分离和 scope 边界来保证工程纪律**——每个 agent 只做自己领域的事，不允许越界。这个设计在文档管理、状态更新、Git 提交等"软性"流程上运作良好。
+---
 
-但在 FPGA 设计的**硬性技术流**（RTL→仿真→综合→上板）中，严格的角色隔离反而制造了**信息断裂面**：
+## 五、下一步行动
 
-```
-[设计缺陷] → [验证 agent 发现异常] → [验证 agent 无权修复]
-                                    → [报告给 orchestrator]
-                                    → [orchestrator 不懂 RTL 细节]
-                                    → [判断为 TB bug]
-                                    → [spawn 验证 agent 修 TB]
-                                    → [循环]
-```
-
-这个断裂面在模块级仿真中被掩盖了（因为单帧场景下 bug 不触发），在集成仿真中才暴露——而此时修复成本（3 个 agent × 120 分钟 + 947 行 TB 膨胀）已经极高。
-
-### 4.2 正确的信息流
-
-```
-[设计缺陷] → [验证 agent 发现异常]
-           → [验证 agent 允许临时编辑 RTL 做诊断]
-           → [确认是 DUT bug → 在仿真报告中标注 + 给出根因分析]
-           → [orchestrator 看到报告 → spawn rtl_implementer 修复]
-           → [修复完成 → 重新仿真验证]
-```
-
-关键改变：(1) 验证 agent 有诊断权限（不只是报告权限），(2) 有一条明确的"验证发现 → 设计修复"闭环路径。
-
-### 4.3 缺陷本应在何时暴露？
-
-在理想流程中，shift_addr_gen 的计数器残留 bug 应该在 **TASK-E001-005 的 L1 仿真**中就暴露——只需在已有的 15 个测试用例中加一个 TC16："连续两帧 NONE 模式，验证第二帧输出正确"。这个测试用例在 626 行的 `tb_shift_addr_gen.sv` 中只需约 20 行代码。
-
-它没能暴露的原因不是 TB 写得不好，而是**测试计划中根本没有"跨帧"这个维度**。这个维度的缺失，根源是 architecture.md 没有定义跨帧行为，导致 tb_verifier 写 TB 时没有依据去设计跨帧测试。
-
-### 4.4 结语
-
-> **角色隔离是双刃剑。它在文档管理上建立秩序，却在技术调试中阻断信息流。FPGA 验证工程师必须有跨越边界诊断设计的权限，否则"仿真发现 bug → 反馈给设计者"这条路径只能是纸面上的空文。**
-
-所有子模块独立验证 100% 通过（1850/1850 断言），却无法组装出一个通过集成测试的系统——这是任何 FPGA 方法论都不应该出现的结果。E001 成功暴露了这一矛盾，这正是它作为测试项目的价值所在。
+1. 实施 P0 修复：重写 `rtl_implementer` agent 定义，吸收 module_owner 能力
+2. 实施 P0 修复：G6 分层规则写入 CLAUDE.md
+3. 实施 P1 修复：`--sync --propagate` 依赖传播 + 端口检查
+4. 进入 L2 综合阶段

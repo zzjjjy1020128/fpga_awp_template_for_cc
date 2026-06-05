@@ -1,7 +1,7 @@
 task_id: "TASK-E001-002"
 title: "AXI-Lite 从属接口与寄存器文件 RTL 实现"
 status: "review"
-agent: "module_owner"
+agent: "rtl_implementer"
 assigned_to: ""
 created_date: "2026-06-04"
 
