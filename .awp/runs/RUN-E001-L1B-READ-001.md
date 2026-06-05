@@ -100,6 +100,7 @@ axis_output
 ## Simulation Log (last 150 lines)
 
 ```
+  F3 UP zf 5x3
   [CHK] beats=15 exp=15 data_err=0 tuser_err=0 tlast_err=0
   PASS [8] beat count
   PASS [8] data OK
@@ -201,44 +202,43 @@ axis_output
   [DBG] TC12a i=6: read_data=0x6 tvalid=1 sag_row=1 sag_col=3 ao_row=1 ao_col=3
   [DBG] TC12a CAPTURED idx=6 data=0x6
   [DBG] TC12a done after 7 captures
-  [DBG] TC12 AFTER F1: sag_row=1 sag_col=3 ao_row=0 ao_col=0 read_data=0x7
+  [DBG] TC12 AFTER F1: sag_row=0 sag_col=0 ao_row=0 ao_col=0 read_data=0x7
   [TC12] Frame1: 7 beats captured
   [TC12] Frame2: resume without reset
-  [DBG] TC12 F2 init: sag_row=2 sag_col=0 ao_row=0 ao_col=1 read_data=0x7
-  [DBG] TC12b i=0: read_data=0x8 tvalid=1 sag_row=2 sag_col=1 ao_row=0 ao_col=2
-  [DBG] TC12b CAPTURED idx=7 data=0x8
-  [DBG] TC12b i=1: read_data=0x9 tvalid=1 sag_row=2 sag_col=2 ao_row=0 ao_col=3
-  [DBG] TC12b CAPTURED idx=8 data=0x9
-  [DBG] TC12b i=2: read_data=0xa tvalid=1 sag_row=2 sag_col=3 ao_row=1 ao_col=0
-  [DBG] TC12b CAPTURED idx=9 data=0xa
-  [DBG] TC12b i=3: read_data=0xb tvalid=1 sag_row=3 sag_col=0 ao_row=1 ao_col=1
-  [DBG] TC12b CAPTURED idx=10 data=0xb
-  [DBG] TC12b i=4: read_data=0xc tvalid=1 sag_row=3 sag_col=1 ao_row=1 ao_col=2
-  [DBG] TC12b CAPTURED idx=11 data=0xc
-  [DBG] TC12b i=5: read_data=0xd tvalid=1 sag_row=3 sag_col=2 ao_row=1 ao_col=3
-  [DBG] TC12b CAPTURED idx=12 data=0xd
-  [DBG] TC12b i=6: read_data=0xe tvalid=1 sag_row=3 sag_col=3 ao_row=2 ao_col=0
-  [DBG] TC12b CAPTURED idx=13 data=0xe
-  [DBG] TC12b i=7: read_data=0xf tvalid=1 sag_row=0 sag_col=0 ao_row=2 ao_col=1
-  [DBG] TC12b CAPTURED idx=14 data=0xf
-  [DBG] TC12b i=8: read_data=0x0 tvalid=1 sag_row=0 sag_col=0 ao_row=2 ao_col=2
-  [DBG] TC12b CAPTURED idx=15 data=0x0
-  [DBG] TC12b i=9: read_data=0x0 tvalid=1 sag_row=0 sag_col=0 ao_row=2 ao_col=3
-  [DBG] TC12b CAPTURED idx=16 data=0x0
-  [DBG] TC12b i=10: read_data=0x0 tvalid=1 sag_row=0 sag_col=0 ao_row=3 ao_col=0
-  [DBG] TC12b CAPTURED idx=17 data=0x0
-  [DBG] TC12b i=11: read_data=0x0 tvalid=1 sag_row=0 sag_col=0 ao_row=3 ao_col=1
-  [DBG] TC12b CAPTURED idx=18 data=0x0
-  [DBG] TC12b i=12: read_data=0x0 tvalid=1 sag_row=0 sag_col=0 ao_row=3 ao_col=2
-  [DBG] TC12b CAPTURED idx=19 data=0x0
-  [DBG] TC12b i=13: read_data=0x0 tvalid=1 sag_row=0 sag_col=0 ao_row=3 ao_col=3
-  [DBG] TC12b CAPTURED idx=20 data=0x0
-  [DBG] TC12b i=14: read_data=0x0 tvalid=1 sag_row=0 sag_col=0 ao_row=0 ao_col=0
-  [DBG] TC12b CAPTURED idx=21 data=0x0
+  [DBG] TC12 F2 init: sag_row=0 sag_col=1 ao_row=0 ao_col=1 read_data=0x0
+  [DBG] TC12b i=0: read_data=0x1 tvalid=1 sag_row=0 sag_col=2 ao_row=0 ao_col=2
+  [DBG] TC12b CAPTURED idx=7 data=0x1
+  [DBG] TC12b i=1: read_data=0x2 tvalid=1 sag_row=0 sag_col=3 ao_row=0 ao_col=3
+  [DBG] TC12b CAPTURED idx=8 data=0x2
+  [DBG] TC12b i=2: read_data=0x3 tvalid=1 sag_row=1 sag_col=0 ao_row=1 ao_col=0
+  [DBG] TC12b CAPTURED idx=9 data=0x3
+  [DBG] TC12b i=3: read_data=0x4 tvalid=1 sag_row=1 sag_col=1 ao_row=1 ao_col=1
+  [DBG] TC12b CAPTURED idx=10 data=0x4
+  [DBG] TC12b i=4: read_data=0x5 tvalid=1 sag_row=1 sag_col=2 ao_row=1 ao_col=2
+  [DBG] TC12b CAPTURED idx=11 data=0x5
+  [DBG] TC12b i=5: read_data=0x6 tvalid=1 sag_row=1 sag_col=3 ao_row=1 ao_col=3
+  [DBG] TC12b CAPTURED idx=12 data=0x6
+  [DBG] TC12b i=6: read_data=0x7 tvalid=1 sag_row=2 sag_col=0 ao_row=2 ao_col=0
+  [DBG] TC12b CAPTURED idx=13 data=0x7
+  [DBG] TC12b i=7: read_data=0x8 tvalid=1 sag_row=2 sag_col=1 ao_row=2 ao_col=1
+  [DBG] TC12b CAPTURED idx=14 data=0x8
+  [DBG] TC12b i=8: read_data=0x9 tvalid=1 sag_row=2 sag_col=2 ao_row=2 ao_col=2
+  [DBG] TC12b CAPTURED idx=15 data=0x9
+  [DBG] TC12b i=9: read_data=0xa tvalid=1 sag_row=2 sag_col=3 ao_row=2 ao_col=3
+  [DBG] TC12b CAPTURED idx=16 data=0xa
+  [DBG] TC12b i=10: read_data=0xb tvalid=1 sag_row=3 sag_col=0 ao_row=3 ao_col=0
+  [DBG] TC12b CAPTURED idx=17 data=0xb
+  [DBG] TC12b i=11: read_data=0xc tvalid=1 sag_row=3 sag_col=1 ao_row=3 ao_col=1
+  [DBG] TC12b CAPTURED idx=18 data=0xc
+  [DBG] TC12b i=12: read_data=0xd tvalid=1 sag_row=3 sag_col=2 ao_row=3 ao_col=2
+  [DBG] TC12b CAPTURED idx=19 data=0xd
+  [DBG] TC12b i=13: read_data=0xe tvalid=1 sag_row=3 sag_col=3 ao_row=3 ao_col=3
+  [DBG] TC12b CAPTURED idx=20 data=0xe
+  [DBG] TC12b i=14: read_data=0xf tvalid=1 sag_row=0 sag_col=0 ao_row=0 ao_col=0
+  [DBG] TC12b CAPTURED idx=21 data=0xf
   [DBG] TC12b i=15: read_data=0x0 tvalid=0 sag_row=0 sag_col=0 ao_row=0 ao_col=0
   [TC12] Total beats: 22
-  [TC12] F2 1st pixel=0x8 (bram[6]=0x6 bram[7]=0x7 bram[8]=0x8)
-  [INFO] Counters at (2,0)=addr 8 (off by 1).
+  [TC12] F2 1st pixel=0x1 (bram[6]=0x6 bram[7]=0x7 bram[8]=0x8)
   PASS [12] counter persistence check done
 
 ============================================================

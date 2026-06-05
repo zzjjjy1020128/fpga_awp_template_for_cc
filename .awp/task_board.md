@@ -13,8 +13,7 @@
 
 ## In Progress
 
-- [ ] [TASK-E001-004](.awp/tasks/TASK-E001-004.yaml) | module_owner | AXI-Stream 输入接口 axis_input RTL 实现
-- [ ] [TASK-E001-005](.awp/tasks/TASK-E001-005.yaml) | module_owner | 移位地址生成器 shift_addr_gen RTL 实现
+- [ ] *（暂无）*
 
 ## Blocked
 
@@ -24,6 +23,8 @@
 
 - [ ] [TASK-E001-002](.awp/tasks/TASK-E001-002.yaml) | module_owner | AXI-Lite 从属接口与寄存器文件 RTL 实现
 - [ ] [TASK-E001-003](.awp/tasks/TASK-E001-003.yaml) | module_owner | 主控制状态机 ctrl_fsm RTL 实现
+- [ ] [TASK-E001-004](.awp/tasks/TASK-E001-004.yaml) | module_owner | AXI-Stream 输入接口 axis_input RTL 实现
+- [ ] [TASK-E001-005](.awp/tasks/TASK-E001-005.yaml) | module_owner | 移位地址生成器 shift_addr_gen RTL 实现
 - [ ] [TASK-E001-006](.awp/tasks/TASK-E001-006.yaml) | module_owner | AXI-Stream 输出接口 axis_output RTL 实现
 - [ ] [TASK-E001-007](.awp/tasks/TASK-E001-007.yaml) | module_owner | 帧缓冲控制器 frame_buf_mgr RTL 实现
 - [ ] [TASK-E001-008](.awp/tasks/TASK-E001-008.yaml) | integration_verifier | AXI-Lite 2D Shift 顶层模块集成

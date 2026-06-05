@@ -58,7 +58,8 @@ module tb_shift_addr_gen;
         .img_rows   (img_rows),
         .img_cols   (img_cols),
         .read_addr  (read_addr),
-        .zero_fill  (zero_fill)
+        .zero_fill  (zero_fill),
+        .proceed    (1'b1)
     );
 
     // -------------------------------------------------------------------------

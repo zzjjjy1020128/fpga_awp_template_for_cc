@@ -5,7 +5,7 @@
 - **Task**: TASK-E001-004
 - **Verification Level**: L1 (Simulation)
 - **Simulator**: Icarus Verilog (iverilog)
-- **Date**: 2026/06/04 周四
+- **Date**: 2026/06/05 周五
 - **Testbench**: tb/tb_axis_input.sv
 - **DUT**: rtl/axis_input.sv
 
@@ -50,7 +50,7 @@
   PASS [10] after 3 beats: write_addr == 3
   PASS [10] tready=0 when paused
   PASS [10] write_en=0 during pause
-  PASS [10] write_addr still 3 (frozen)
+  PASS [10] write_addr reset to 0 after capture_en=0
   PASS [10] write_en=1 after resume
   PASS [10] write_addr == 4 after row boundary
   PASS [10] capture_done after resumed frame
@@ -147,4 +147,4 @@ Open with: `gtkwave sim/tb_axis_input.vcd`
 
 ## Checksum
 
-- Report generated: 2026/06/04 周四
+- Report generated: 2026/06/05 周五

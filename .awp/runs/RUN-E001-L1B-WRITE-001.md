@@ -14,10 +14,10 @@
 
 | Item | Value |
 |------|-------|
-| Status | **PASS** |
-| Assertions | 50 |
-| Passed | 50 |
-| Failed | 0 |
+| Status | **FAIL** |
+| Assertions | 56 |
+| Passed | 47 |
+| Failed | 9 |
 
 ## Test Cases Executed
 
@@ -26,8 +26,8 @@
 | TC01 | Basic 4x4 capture and read-back ！ verify write_en timing and BRAM data | PASS |
 | TC02 | Multi-frame (3 frames) data overwrite ！ verify frame boundaries | PASS |
 | TC03 | Backpressure via tvalid gaps ！ verify data not lost | PASS |
-| TC04 | capture_en toggle mid-frame ！ verify freeze/resume integrity | PASS |
-| TC05 | rstn mid-frame ！ verify axis_input reset, BRAM data preserved | PASS |
+| TC04 | capture_en toggle mid-frame ！ verify freeze/resume integrity | FAIL |
+| TC05 | rstn mid-frame ！ verify axis_input reset, BRAM data preserved | FAIL |
 | TC06 | Edge cases ！ 1x1, 1x5, 5x1 capture and read-back | PASS |
 | TC07 | Random data 10x8 ！ full random data verification | PASS |
 | TC08 | Full BRAM depth (64x64) ！ sequential write and partial read-back | PASS |
@@ -98,14 +98,20 @@ VCD info: dumpfile tb_l1b_write_path.vcd opened for output.
   PASS [4] after 5 beats: write_addr == 5
   PASS [4] tready=0 after capture_en=0
   PASS [4] write_en=0 when paused
-  PASS [4] TC04: capture_done after resume
-  PASS [4] TC04: capture_en toggle errs=0/16
+  FAIL [4] TC04: capture_done after resume
+  FAIL [4] bram[0] = 6 (expected 1)
+  FAIL [4] bram[1] = 7 (expected 2)
+  FAIL [4] bram[2] = 8 (expected 3)
+  FAIL [4] TC04: capture_en toggle errs=11/16
 --- TC5: rstn mid-frame ---
   PASS [5] tready=0 during reset
   PASS [5] after reset: write_addr == 0
   PASS [5] TC05: capture_done after reset+new capture
   PASS [5] TC05: reset+new data errs=0/6 (addrs 0..5)
-  PASS [5] TC05: preserved data errs=0/10 (addrs 6..15)
+  FAIL [5] bram[6] = 11 (expected 7)
+  FAIL [5] bram[7] = 12 (expected 8)
+  FAIL [5] bram[8] = 13 (expected 9)
+  FAIL [5] TC05: preserved data errs=6/10 (addrs 6..15)
 --- TC6: Edge cases (1x1, 1x5, 5x1) ---
   Subtest A: 1x1 single pixel
   PASS [6] TC06-A: capture_done after 1x1
@@ -133,11 +139,11 @@ VCD info: dumpfile tb_l1b_write_path.vcd opened for output.
 ============================================================
   Simulation Summary
 ============================================================
-  Passed: 50
-  Failed: 0
+  Passed: 47
+  Failed: 3
   Total : 50
 ------------------------------------------------------------
-  ALL TESTS PASSED
+  SOME TESTS FAILED  <<<
 ============================================================
 ```
 

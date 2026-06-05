@@ -580,7 +580,7 @@ module tb_axis_input;
         @(posedge clk);
         settle();
         check("write_en=0 during pause", sample_write_en == 0);
-        check("write_addr still 3 (frozen)", write_addr == 3);
+        check("write_addr reset to 0 after capture_en=0", write_addr == 0);
 
         // Resume — beat 3 gets captured (data still on bus)
         capture_en = 1;

@@ -1,6 +1,6 @@
 task_id: "TASK-E001-005"
 title: "移位地址生成器 shift_addr_gen RTL 实现"
-status: "in_progress"
+status: "review"
 agent: "module_owner"
 assigned_to: ""
 created_date: "2026-06-04"
@@ -14,8 +14,8 @@ integration_scope: "module"
 
 validation_status:
   L0: "pass"
-  L1a: "pending"
-  L1b: "pending"
+  L1a: "pass"
+  L1b: "pass"
   L1c: "pending"
   L2: "pending"
   L3: "pending"
