@@ -1,6 +1,6 @@
 task_id: "TASK-E001-008"
 title: "AXI-Lite 2D Shift 顶层模块集成"
-status: "review"
+status: "done"
 agent: "integration_verifier"
 assigned_to: ""
 created_date: "2026-06-04"

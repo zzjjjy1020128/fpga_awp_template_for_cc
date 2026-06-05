@@ -1,6 +1,6 @@
 task_id: "TASK-E001-011"
 title: "L1b 数据通路闭环 —— 控制通路（axil_slave_if + regs_top → ctrl_fsm → datapath stubs）"
-status: "review"
+status: "done"
 agent: "integration_verifier"
 assigned_to: ""
 created_date: "2026-06-05"

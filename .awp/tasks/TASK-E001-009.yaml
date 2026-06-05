@@ -1,6 +1,6 @@
 task_id: "TASK-E001-009"
 title: "L1b 数据通路闭环 —— 写通路（axis_input → frame_buf_mgr）"
-status: "review"
+status: "done"
 agent: "integration_verifier"
 assigned_to: ""
 created_date: "2026-06-05"

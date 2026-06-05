@@ -123,50 +123,50 @@ ids:
 - id: TASK-E001-002
   type: TASK
   title: AXI-Lite 从属接口与寄存器文件 RTL 实现
-  status: active
+  status: closed
   created: '2026-06-04'
 - id: TASK-E001-003
   type: TASK
   title: 主控制状态机 ctrl_fsm RTL 实现
-  status: active
+  status: closed
   created: '2026-06-04'
 - id: TASK-E001-004
   type: TASK
   title: AXI-Stream 输入接口 axis_input RTL 实现
-  status: active
+  status: closed
   created: '2026-06-04'
 - id: TASK-E001-005
   type: TASK
   title: 移位地址生成器 shift_addr_gen RTL 实现
-  status: active
+  status: closed
   created: '2026-06-04'
 - id: TASK-E001-006
   type: TASK
   title: AXI-Stream 输出接口 axis_output RTL 实现
-  status: active
+  status: closed
   created: '2026-06-04'
 - id: TASK-E001-007
   type: TASK
   title: 帧缓冲控制器 frame_buf_mgr RTL 实现
-  status: active
+  status: closed
   created: '2026-06-04'
 - id: TASK-E001-008
   type: TASK
   title: AXI-Lite 2D Shift 顶层模块集成
-  status: active
+  status: closed
   created: '2026-06-04'
 - id: TASK-E001-009
   type: TASK
   title: L1b 数据通路闭环 —— 写通路（axis_input → frame_buf_mgr）
-  status: active
+  status: closed
   created: '2026-06-05'
 - id: TASK-E001-010
   type: TASK
   title: L1b 数据通路闭环 —— 读通路（shift_addr_gen → frame_buf_mgr → axis_output）
-  status: active
+  status: closed
   created: '2026-06-05'
 - id: TASK-E001-011
   type: TASK
   title: L1b 数据通路闭环 —— 控制通路（axil_slave_if + regs_top → ctrl_fsm → datapath stubs）
-  status: active
+  status: closed
   created: '2026-06-05'

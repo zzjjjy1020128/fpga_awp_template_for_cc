@@ -21,6 +21,11 @@
 
 ## Review
 
+- [ ] *（暂无）*
+
+## Done
+
+- [ ] [TASK-E001-001](.awp/tasks/TASK-E001-001.yaml) | planner | AXI-Lite 2D Shift 模块架构规划
 - [ ] [TASK-E001-002](.awp/tasks/TASK-E001-002.yaml) | rtl_implementer | AXI-Lite 从属接口与寄存器文件 RTL 实现
 - [ ] [TASK-E001-003](.awp/tasks/TASK-E001-003.yaml) | rtl_implementer | 主控制状态机 ctrl_fsm RTL 实现
 - [ ] [TASK-E001-004](.awp/tasks/TASK-E001-004.yaml) | rtl_implementer | AXI-Stream 输入接口 axis_input RTL 实现
@@ -31,10 +36,6 @@
 - [ ] [TASK-E001-009](.awp/tasks/TASK-E001-009.yaml) | integration_verifier | L1b 数据通路闭环 —— 写通路（axis_input → frame_buf_mgr）
 - [ ] [TASK-E001-010](.awp/tasks/TASK-E001-010.yaml) | integration_verifier | L1b 数据通路闭环 —— 读通路（shift_addr_gen → frame_buf_mgr → axis_output）
 - [ ] [TASK-E001-011](.awp/tasks/TASK-E001-011.yaml) | integration_verifier | L1b 数据通路闭环 —— 控制通路（axil_slave_if + regs_top → ctrl_fsm → datapath stubs）
-
-## Done
-
-- [ ] [TASK-E001-001](.awp/tasks/TASK-E001-001.yaml) | planner | AXI-Lite 2D Shift 模块架构规划
 
 ## Retrospective Items
 
