@@ -7,6 +7,17 @@
 //   4. 最后一拍握手完成后发出 shift_done 脉冲（1 周期）
 //   5. 支持下游背压（tready=0 时暂停计数器，数据保持）
 //
+// 流水线对齐修正 (2026-06-05):
+//   frame_buf_mgr 读数据有 1 周期延迟（read_data 在 read_addr 后的下
+//   一拍有效）。原始代码中 tuser/tlast/tvalid 基于内部计数器（在 read_data
+//   到达的同一拍提前递增），导致：
+//     - tuser 在数据有效时已归零（第 2 拍才置位）
+//     - tlast 在行末数据有效时已归零
+//     - tvalid 在最后一个像素数据有效时变低（all_done 提前置位）
+//   修正：引入 row_cnt_q/col_cnt_q 寄存器保存递增前的计数器值，用于
+//   tuser/tlast 生成；引入 all_done_q 将 tvalid 关闭延迟 1 拍，使最后
+//   一个像素能被正常捕获。
+//
 // 接口说明：
 //   参数
 //     DATA_WIDTH : 数据位宽（默认 8）
@@ -18,7 +29,7 @@
 //     img_cols[9:0]  : 图像列数（来自 regs_top）
 //   数据输入
 //     read_data      : 帧缓冲读数据（来自 frame_buf_mgr）
-//     zero_fill      : 补零标志（来自 shift_addr_gen）
+//     zero_fill      : 补零标志（来自 shift_addr_gen，已与 read_data 对齐）
 //   AXI-Stream Master 接口
 //     m_axis_tdata   : 输出数据
 //     m_axis_tvalid  : 输出有效
@@ -59,9 +70,14 @@ module axis_output #(
     // ============================================================
     // 内部信号
     // ============================================================
-    logic       all_done;        // 所有像素已输出完毕
+    logic       all_done;        // 所有像素已输出完毕（内部，提前 1 拍）
     logic [9:0] row_cnt;         // 当前输出行位置（0 ~ img_rows-1）
     logic [9:0] col_cnt;         // 当前输出列位置（0 ~ img_cols-1）
+
+    // 流水线对齐寄存器（保存递增前的计数器值，与 read_data 对齐）
+    logic [9:0] row_cnt_q;
+    logic [9:0] col_cnt_q;
+    logic       all_done_q;      // 延迟 1 拍的 all_done，用于 tvalid 关闭
 
     // ============================================================
     // 计数器与状态控制
@@ -70,6 +86,11 @@ module axis_output #(
     // - shift_en=1 && tready=1 且未完成时，光栅扫描推进计数器
     // - 最后一拍握手成功时拉高 shift_done 并置 all_done
     // - shift_done 默认每个周期清零，仅产生 1 周期脉冲
+    //
+    // 流水线对齐：row_cnt_q/col_cnt_q 在 posedge 捕获 row_cnt/col_cnt
+    // 的递增前值，用于输出控制信号，使其与从 BRAM 读回的 read_data 对齐。
+    // 这样 tuser 在第一个像素有效时正确置位，tlast 在行末正确置位。
+    // all_done_q 将 tvalid 关闭延迟 1 拍，确保最后一个像素被输出。
     // ============================================================
     always_ff @(posedge clk or negedge rstn) begin
         if (!rstn) begin
@@ -77,8 +98,16 @@ module axis_output #(
             col_cnt    <= '0;
             all_done   <= 1'b0;
             shift_done <= 1'b0;
+            row_cnt_q  <= '0;
+            col_cnt_q  <= '0;
+            all_done_q <= 1'b0;
         end else begin
             shift_done <= 1'b0;  // 默认清零
+
+            // 捕获递增前的计数器值（流水线对齐）
+            row_cnt_q  <= row_cnt;
+            col_cnt_q  <= col_cnt;
+            all_done_q <= all_done;
 
             if (!shift_en) begin
                 // 移位未使能：复位计数器，准备下一帧
@@ -107,14 +136,15 @@ module axis_output #(
     // ============================================================
     // 输出组合逻辑
     //
-    // - m_axis_tvalid: shift_en 使能且未完成时有效
+    // - m_axis_tvalid: 使用延迟 1 拍的 all_done_q，确保最后一个像素
+    //   的数据输出时 tvalid 仍为高
     // - m_axis_tdata:  zero_fill=1 时强制输出 0，否则透传 read_data
-    // - m_axis_tlast:  每行最后一个元素（col_cnt == img_cols-1）
-    // - m_axis_tuser:  第一个输出元素（row_cnt==0 && col_cnt==0）
+    // - m_axis_tlast:  使用延迟 1 拍的 col_cnt_q，对齐 BRAM 读延迟
+    // - m_axis_tuser:  使用延迟 1 拍的 row_cnt_q/col_cnt_q，对齐 BRAM 读延迟
     // ============================================================
-    assign m_axis_tvalid = shift_en && !all_done;
+    assign m_axis_tvalid = shift_en && !all_done_q;
     assign m_axis_tdata  = zero_fill ? {DATA_WIDTH{1'b0}} : read_data;
-    assign m_axis_tlast  = shift_en && !all_done && (col_cnt == img_cols - 1);
-    assign m_axis_tuser  = shift_en && !all_done && (row_cnt == '0 && col_cnt == '0);
+    assign m_axis_tlast  = shift_en && !all_done_q && (col_cnt_q == img_cols - 1);
+    assign m_axis_tuser  = shift_en && !all_done_q && (row_cnt_q == '0 && col_cnt_q == '0);
 
 endmodule

@@ -35,10 +35,12 @@
     },
     "validation_levels": {
       "type": "object",
-      "required": ["L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7"],
+      "required": ["L0", "L1a", "L1b", "L1c", "L2", "L3", "L4", "L5", "L6", "L7"],
       "properties": {
         "L0": { "type": "string" },
-        "L1": { "type": "string" },
+        "L1a": { "type": "string" },
+        "L1b": { "type": "string" },
+        "L1c": { "type": "string" },
         "L2": { "type": "string" },
         "L3": { "type": "string" },
         "L4": { "type": "string" },

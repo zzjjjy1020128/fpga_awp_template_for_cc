@@ -1,0 +1,97 @@
+task_id: "TASK-E001-011"
+title: "L1b 数据通路闭环 —— 控制通路（axil_slave_if + regs_top → ctrl_fsm → datapath stubs）"
+status: "review"
+agent: "integration_verifier"
+assigned_to: ""
+created_date: "2026-06-05"
+
+objective: >
+  验证控制通路（AXI-Lite 配置 → 寄存器文件 → ctrl_fsm → capture_en/shift_en 分发）。
+  重点确认配置写入/读取正确、状态机跳转与 datapath 使能信号的时序关系、
+  sw_reset 优先级和 STATUS 寄存器行为。
+
+target_validation_level: "L1b"
+integration_scope: "datapath"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "pass"
+  L1c: "pending"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-002"
+  - "TASK-E001-003"
+
+scope:
+  allowed_edit_paths:
+    - "tb/"
+    - "sim/"
+    - ".awp/runs/"
+    - ".awp/issues/"
+  forbidden_edit_paths:
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+    - "rtl/ctrl_fsm.sv"
+    - "rtl/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+    - "rtl/ctrl_fsm.sv"
+    - ".awp/runs/RUN-E001-SIM-001.md"
+    - ".awp/runs/RUN-E001-SIM-002.md"
+
+acceptance:
+  - "AXI-Lite 写入 CFG/IMG_ROWS/IMG_COLS 后正确锁存到 regs_top 输出端口"
+  - "CTRL.start 触发 ctrl_fsm: IDLE → CAPTURE，capture_en=1"
+  - "capture_done 触发 ctrl_fsm: CAPTURE → SHIFT，shift_en=1，capture_en=0"
+  - "shift_done 触发 ctrl_fsm: SHIFT → DONE → IDLE（自动），STATUS.done 锁存"
+  - "SW_RESET 在任何状态（CAPTURE/SHIFT/DONE）下立即回到 IDLE"
+  - "SW_RESET 优先级高于 CTRL.start（同时置位时保持 IDLE）"
+  - "配置寄存器在 CAPTURE 和 SHIFT 期间保持稳定（不被后续 AXI-Lite 写入干扰）"
+  - "STATUS 寄存器互斥逻辑正确（idle/busy_capture/busy_shift/done）"
+  - "连续 2 次 start（配不同参数）的行为正确"
+
+required_outputs:
+  - "tb/tb_l1b_control_path.sv"
+  - "sim/run_l1b_control_sim.py"
+  - ".awp/runs/RUN-E001-L1B-CONTROL-001.md"
+
+handoff:
+  next_task: "TASK-E001-008"
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## 数据通路切片：控制通路
+
+  ```
+  s_axil_* → axil_slave_if → wr/rd_strobe → regs_top
+                                    ↑↓ (rdata)
+  regs_top → cfg_dir/cfg_step/cfg_wrap/img_rows/img_cols
+           → ctrl_start/sw_reset
+               → ctrl_fsm
+                   → capture_en (→ axis_input)
+                   → shift_en   (→ shift_addr_gen, axis_output)
+  ```
+
+  ## 关键验证点
+
+  1. **使能信号时序**：capture_en/shift_en 在状态机跳转的同一拍还是下一拍有效
+  2. **配置锁存**：CAPTURE 期间修改 CFG 是否影响当前帧（应不影响）
+  3. **done 锁存清除**：STATUS.done 是否在下次 start 时正确清除
+  4. **SW_RESET vs start 优先级**：同时置位时 ctrl_fsm 的处理

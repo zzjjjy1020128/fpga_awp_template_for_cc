@@ -21,7 +21,9 @@
 //     cfg_dir[2:0]    : 移位方向 000=NONE 001=UP 010=DOWN 011=LEFT 100=RIGHT
 //     cfg_step[4:0]   : 移位步长（0~31）
 //     cfg_wrap_en     : 缠绕使能（0=补零，1=缠绕）
-//     shift_en        : 移位使能（来自 ctrl_fsm，每拍一个像素）
+//     shift_en        : 移位使能（来自 ctrl_fsm）
+//     proceed         : 推进使能（连接 m_axis_tready，与 AO 握手同步）
+//                       为 0 时计数器冻结，防止背压期间 BRAM 读地址超前
 //     img_rows[9:0]   : 图像行数
 //     img_cols[9:0]   : 图像列数
 //   输出（至 frame_buf_mgr）
@@ -40,6 +42,7 @@ module shift_addr_gen #(
     input  logic [ 4:0] cfg_step,
     input  logic        cfg_wrap_en,
     input  logic        shift_en,
+    input  logic        proceed,
     input  logic [ 9:0] img_rows,
     input  logic [ 9:0] img_cols,
 
@@ -50,24 +53,35 @@ module shift_addr_gen #(
 
     // ============================================================
     // 输出位置计数器（光栅扫描顺序）
+    //
+    // frame_done 寄存器：在帧结束（row/col 同时绕回 0）时置位，
+    // 阻止后续多余递增，使 SAG 与 AO 的 all_done 保持同步。
+    // 当 shift_en=0 时清除，准备下一帧。
     // ============================================================
     logic [9:0] row_cnt, col_cnt;
+    logic       frame_done;
 
     always_ff @(posedge clk or negedge rstn) begin
         if (!rstn) begin
-            row_cnt <= '0;
-            col_cnt <= '0;
-        end else if (shift_en) begin
+            row_cnt    <= '0;
+            col_cnt    <= '0;
+            frame_done <= 1'b0;
+        end else if (shift_en && proceed && !frame_done) begin
             if (col_cnt == img_cols - 1) begin
                 col_cnt <= '0;
                 if (row_cnt == img_rows - 1) begin
-                    row_cnt <= '0;
+                    row_cnt    <= '0;
+                    frame_done <= 1'b1;
                 end else begin
                     row_cnt <= row_cnt + 1'b1;
                 end
             end else begin
                 col_cnt <= col_cnt + 1'b1;
             end
+        end else if (!shift_en) begin
+            row_cnt    <= '0;
+            col_cnt    <= '0;
+            frame_done <= 1'b0;
         end
     end
 

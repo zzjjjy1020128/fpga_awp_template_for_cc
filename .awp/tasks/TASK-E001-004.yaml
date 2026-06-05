@@ -1,7 +1,7 @@
 task_id: "TASK-E001-004"
 title: "AXI-Stream 输入接口 axis_input RTL 实现"
-status: "done"
-agent: "rtl_implementer"
+status: "in_progress"
+agent: "module_owner"
 assigned_to: ""
 created_date: "2026-06-04"
 
@@ -14,9 +14,9 @@ integration_scope: "module"
 
 validation_status:
   L0: "pass"
-  L1a: "pass"
-  L1b: "skip"
-  L1c: "skip"
+  L1a: "pending"
+  L1b: "pending"
+  L1c: "pending"
   L2: "pending"
   L3: "pending"
   L4: "pending"

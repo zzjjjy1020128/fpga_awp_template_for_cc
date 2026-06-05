@@ -1,6 +1,6 @@
 ---
 name: rtl_implementer
-description: FPGA RTL design engineer, writes Verilog/SystemVerilog modules. Implements digital logic from architecture specs.
+description: DEPRECATED in v0.2 for new module-level work. Use module_owner for full-cycle module design + L1a verification. Retained for RTL-only patch fixes and emergency modifications.
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: deepseek-v4-pro
 permissionMode: inherit

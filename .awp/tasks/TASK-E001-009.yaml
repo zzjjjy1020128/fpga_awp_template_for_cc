@@ -1,0 +1,93 @@
+task_id: "TASK-E001-009"
+title: "L1b 数据通路闭环 —— 写通路（axis_input → frame_buf_mgr）"
+status: "review"
+agent: "integration_verifier"
+assigned_to: ""
+created_date: "2026-06-05"
+
+objective: >
+  验证写数据通路（axis_input → frame_buf_mgr）的跨模块时序、握手协议和帧边界行为。
+  重点确认 AXI-Stream 输入通过 raster-scan 正确写入 BRAM，且跨帧状态持久性正确。
+
+target_validation_level: "L1b"
+integration_scope: "datapath"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "pass"
+  L1c: "pending"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-004"
+  - "TASK-E001-007"
+
+scope:
+  allowed_edit_paths:
+    - "tb/"
+    - "sim/"
+    - ".awp/runs/"
+    - ".awp/issues/"
+  forbidden_edit_paths:
+    - "rtl/axis_input.sv"
+    - "rtl/frame_buf_mgr.sv"
+    - "rtl/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+    - "rtl/axis_input.sv"
+    - "rtl/frame_buf_mgr.sv"
+    - ".awp/runs/RUN-E001-SIM-003.md"
+    - ".awp/runs/RUN-E001-SIM-006.md"
+
+acceptance:
+  - "AXI-Stream 输入握手（tvalid/tready）正确传递到 frame_buf_mgr 写端口"
+  - "raster-scan 写地址序列与 axis_input 的行列计数器一致"
+  - "帧边界（tlast/tuser）正确触发 frame_buf_mgr 的写使能复位"
+  - "连续多帧写入 BRAM 数据一致性验证（≥3 帧）"
+  - "写通路 backpressure（tready=0）时数据不丢失"
+  - "capture_en 撤销后写通路正确停摆"
+  - "sw_reset 在帧中途的行为正确"
+
+required_outputs:
+  - "tb/tb_l1b_write_path.sv"
+  - "sim/run_l1b_write_sim.py"
+  - ".awp/runs/RUN-E001-L1B-WRITE-001.md"
+
+handoff:
+  next_task: "TASK-E001-010"
+  handoff_file: ""
+
+risk_level: "high"
+
+notes: >
+  ## 数据通路切片：写通路
+
+  ```
+  s_axis_tdata/tvalid/tready/tlast/tuser
+      → axis_input
+          → write_addr[ADDR_W-1:0]
+          → write_data[DATA_W-1:0]
+          → write_en
+              → frame_buf_mgr (port A)
+                  → BRAM[write_addr] <= write_data
+  ```
+
+  ## 关键验证点
+
+  1. **时序对齐**：axis_input 输出的 write_addr/write_en 与 write_data 的相位关系
+     - write_data 经过 axis_input 内部寄存器后应与 write_addr 同时到达 frame_buf_mgr
+  2. **跨帧状态**：capture_done → 新的 capture_en 之间，frame_buf_mgr 的写指针是否复位
+  3. **tready 反压**：axis_input 的 tready 是否受 frame_buf_mgr 状态影响（当前设计 tready 仅由 capture_en 控制）
+  4. **地址空间**：确认 write_addr 不会溢出 BRAM 深度（受 img_rows × img_cols 约束）

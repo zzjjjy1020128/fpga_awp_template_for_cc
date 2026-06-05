@@ -54,7 +54,9 @@
   },
   "validation_levels": {
     "L0": "static review — 代码审查、lint、CDC 审查",
-    "L1": "simulation — 仿真验证",
+    "L1a": "模块级单元仿真 — 单模块，单帧/单事务",
+    "L1b": "数据通路闭环仿真 — ≥2 个数据通路模块串联，含跨帧测试",
+    "L1c": "全系统集成仿真 — 完整系统，所有接口，多帧/多事务",
     "L2": "synthesis — 综合",
     "L3": "implementation and timing — 实现与时序收敛",
     "L4": "bitstream generation — 比特流生成",

@@ -1,0 +1,103 @@
+task_id: "TASK-E001-010"
+title: "L1b 数据通路闭环 —— 读通路（shift_addr_gen → frame_buf_mgr → axis_output）"
+status: "review"
+agent: "integration_verifier"
+assigned_to: ""
+created_date: "2026-06-05"
+
+objective: >
+  验证读数据通路（shift_addr_gen → frame_buf_mgr → axis_output）的跨模块时序、
+  流水线对齐和帧边界行为。重点确认 shift_addr_gen 的读地址生成正确、
+  BRAM 读延迟（1 cycle）与 zero_fill 的 pipeline 对齐正确、
+  axis_output 的 AXI-Stream 输出顺序与 golden model 一致。
+
+target_validation_level: "L1b"
+integration_scope: "datapath"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "pass"
+  L1c: "pending"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-005"
+  - "TASK-E001-006"
+  - "TASK-E001-007"
+
+scope:
+  allowed_edit_paths:
+    - "tb/"
+    - "sim/"
+    - ".awp/runs/"
+    - ".awp/issues/"
+  forbidden_edit_paths:
+    - "rtl/shift_addr_gen.sv"
+    - "rtl/axis_output.sv"
+    - "rtl/frame_buf_mgr.sv"
+    - "rtl/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+    - "rtl/shift_addr_gen.sv"
+    - "rtl/frame_buf_mgr.sv"
+    - "rtl/axis_output.sv"
+    - "rtl/axil_2d_shift.sv"
+    - ".awp/runs/RUN-E001-SIM-004.md"
+    - ".awp/runs/RUN-E001-SIM-005.md"
+    - ".awp/runs/RUN-E001-SIM-006.md"
+
+acceptance:
+  - "shift_addr_gen 在 shift_en 有效时从 (row=0, col=0) 开始生成读地址"
+  - "BRAM 读数据（read_data）在 read_addr 后的第 2 拍有效（1 cycle BRAM latency + 1 pipeline）"
+  - "zero_fill 信号经 1 级流水线寄存器后与 read_data 对齐到达 axis_output"
+  - "axis_output 输出的像素顺序与 golden model（Matlab/Python reference）一致"
+  - "所有 5 种 shift 模式（NONE/UP/DOWN/LEFT/RIGHT）均通过至少 1 个测试帧"
+  - "wrap 和 zero-fill 两种 padding 模式均正确"
+  - "连续多帧（≥3 帧）输出一致性，帧间状态正确清除"
+  - "backpressure（m_axis_tready=0）暂停输出但正确恢复"
+  - "shift_en 撤销后 axis_output 正确停摆并发出 shift_done"
+
+required_outputs:
+  - "tb/tb_l1b_read_path.sv"
+  - "sim/run_l1b_read_sim.py"
+  - ".awp/runs/RUN-E001-L1B-READ-001.md"
+
+handoff:
+  next_task: "TASK-E001-011"
+  handoff_file: ""
+
+risk_level: "high"
+
+notes: >
+  ## 数据通路切片：读通路
+
+  ```
+  shift_addr_gen
+      → read_addr[ADDR_W-1:0]
+      → zero_fill
+          → [1-stage pipeline reg in top] → zero_fill_d1
+              → frame_buf_mgr (port B)
+                  → read_data[DATA_W-1:0]   (1 cycle latency)
+                      → axis_output
+                          → m_axis_tdata/tvalid/tready/tlast/tuser
+  ```
+
+  ## 关键验证点（来自 L1c 失败经验）
+
+  1. **shift_addr_gen 初始状态**：L1c 失败时 sg_col=3 sg_row=1 而非 (0,0)——需确认单 datapath 场景下初始状态正确
+  2. **BRAM read_data 延迟**：frame_buf_mgr 有 1 cycle 读延迟，
+     read_data 在 read_addr 有效后的第 2 拍才稳定（1 BRAM + 1 pipeline register）
+  3. **zero_fill 对齐**：顶层 axil_2d_shift.sv 中的 zero_fill_d1 寄存器是否正确插入
+  4. **axis_output 跨帧复位**：shift_en 下降沿时 all_done 清零、行列计数器复位

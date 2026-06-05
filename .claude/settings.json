@@ -11,6 +11,56 @@
             "type": "command",
             "command": "python scripts/session_skeleton.py",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python scripts/validate_awp.py --guard session-start",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/validate_awp.py --guard pre-spawn",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/validate_awp.py --sync",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/validate_awp.py --sync",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/validate_awp.py --guard pre-stop",
+            "timeout": 15
           }
         ]
       }

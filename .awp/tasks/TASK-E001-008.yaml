@@ -1,7 +1,7 @@
 task_id: "TASK-E001-008"
 title: "AXI-Lite 2D Shift 顶层模块集成"
-status: "in_progress"
-agent: "rtl_implementer"
+status: "review"
+agent: "integration_verifier"
 assigned_to: ""
 created_date: "2026-06-04"
 
@@ -16,8 +16,8 @@ integration_scope: "system"
 validation_status:
   L0: "pass"
   L1a: "skip"
-  L1b: "pending"
-  L1c: "pending"
+  L1b: "pass"
+  L1c: "pass"
   L2: "pending"
   L3: "pending"
   L4: "pending"
@@ -32,14 +32,18 @@ depends_on:
   - "TASK-E001-005"
   - "TASK-E001-006"
   - "TASK-E001-007"
+  - "TASK-E001-009"
+  - "TASK-E001-010"
+  - "TASK-E001-011"
 
 scope:
   allowed_edit_paths:
     - "rtl/axil_2d_shift.sv"
-    - "tb/tb_axil_2d_shift.sv"
-    # integration_verifier 允许诊断性 RTL 访问（按 agent 定义）：
-    # 发现 DUT bug 时可临时修改子模块验证假设，
-    # 必须在仿真报告中标注所有修改并通知 orchestrator
+    - "tb/"
+    - "sim/"
+    - ".awp/runs/"
+    - ".awp/issues/"
+  forbidden_edit_paths:
     - "rtl/axil_slave_if.sv"
     - "rtl/regs_top.sv"
     - "rtl/ctrl_fsm.sv"
@@ -47,7 +51,6 @@ scope:
     - "rtl/shift_addr_gen.sv"
     - "rtl/axis_output.sv"
     - "rtl/frame_buf_mgr.sv"
-  forbidden_edit_paths:
     - ".awp/workspace_manifest.json"
     - ".awp/schemas/"
     - ".awp/registry/"

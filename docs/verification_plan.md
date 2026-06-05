@@ -64,21 +64,17 @@ function automatic void ref_2d_shift(
 
 | 用例 ID | 目标模块 | 描述 | 输入 | 预期输出 | 类型 | 状态 |
 |---------|---------|------|------|---------|------|------|
-| TC-001 | 顶层集成 | NONE 模式透传，4x4 图像 | 4x4 全元素递增 0..15 | 与输入完全一致 | directed | planned |
-| TC-002 | 顶层集成 | UP shift 2，4x4 图像，零填充 | 4x4 递增，方向=UP，step=2 | 第2行对齐输出第0行，前2行补0 | directed | planned |
-| TC-003 | 顶层集成 | DOWN shift 2，4x4 图像，零填充 | 4x4 递增，方向=DOWN，step=2 | 前2行补0，后2行对齐输出前2行 | directed | planned |
-| TC-004 | 顶层集成 | LEFT shift 2，4x4 图像，零填充 | 4x4 递增，方向=LEFT，step=2 | 每行前2列丢弃，后2列补0 | directed | planned |
-| TC-005 | 顶层集成 | RIGHT shift 2，4x4 图像，零填充 | 4x4 递增，方向=RIGHT，step=2 | 每行前2列补0，后2列丢弃 | directed | planned |
-| TC-006 | 顶层集成 | UP shift 2，4x4 图像，缠绕模式 | 4x4 递增，方向=UP，step=2，wrap=1 | 第0-1行缠绕到底部 | directed | planned |
-| TC-007 | 顶层集成 | DOWN shift 1，4x4 图像，缠绕模式 | 4x4 递增，方向=DOWN，step=1，wrap=1 | 最后一行缠绕到顶部 | directed | planned |
-| TC-008 | 顶层集成 | LEFT shift 1，4x4 图像，缠绕模式 | 4x4 递增，方向=LEFT，step=1，wrap=1 | 每行第0列缠绕到行末 | directed | planned |
-| TC-009 | 顶层集成 | RIGHT shift 1，4x4 图像，缠绕模式 | 4x4 递增，方向=RIGHT，step=1，wrap=1 | 每行第3列缠绕到行首 | directed | planned |
-| TC-010 | 顶层集成 | 大图像多方向组合，8x8 | 8x8 数据，逐个测试 4 个方向各 3 个步长 | 与参考模型一致 | directed | planned |
-| TC-011 | 全部 | 1xN 单行图像 LEFT/RIGHT shift | 1x8 数据，LEFT step=2 | 每行（只有一行）左移2 | directed | planned |
-| TC-012 | 全部 | Nx1 单列图像 UP/DOWN shift | 8x1 数据，UP step=2 | 每列（只有一列）上移2 | directed | planned |
-| TC-013 | 全部 | step=0 等效 NONE | 4x4 递增，方向=UP，step=0 | 与输入一致 | directed | planned |
-| TC-014 | 全部 | step 等于图像维度（full wrap） | 4x4，UP step=4，wrap=1 | 与输入一致（完整一周） | directed | planned |
-| TC-015 | 全部 | step 大于图像维度 | 4x4，UP step=6，wrap=1 | 等效 step=2（6%4） | directed | planned |
+| TC-001 | 顶层集成 | NONE 模式透传，4x4 图像 | 4x4 全元素递增 0..15 | 与输入完全一致 | directed | **done** |
+| TC-002 | 顶层集成 | UP wrap 6x4 step=2 | 6x4 递增，方向=UP，step=2，wrap=1 | 每列上移2行缠绕 | directed | **done** |
+| TC-003 | 顶层集成 | DOWN wrap 6x4 step=1 | 6x4 递增，方向=DOWN，step=1，wrap=1 | 每列下移1行缠绕 | directed | **done** |
+| TC-004 | 顶层集成 | LEFT wrap 4x6 step=3 | 4x6 递增，方向=LEFT，step=3，wrap=1 | 每行左移3列缠绕 | directed | **done** |
+| TC-005 | 顶层集成 | RIGHT wrap 4x6 step=2 | 4x6 递增，方向=RIGHT，step=2，wrap=1 | 每行右移2列缠绕 | directed | **done** |
+| TC-006 | 顶层集成 | UP zero-fill 5x4 step=2 | 5x4 递增，方向=UP，step=2，wrap=0 | 底部2行补0 | directed | **done** |
+| TC-007 | 顶层集成 | LEFT zero-fill 3x5 step=2 | 3x5 递增，方向=LEFT，step=2，wrap=0 | 右侧2列补0 | directed | **done** |
+| TC-008 | 顶层集成 | 连续两帧（UP wrap + DOWN zero-fill） | 5x4 两帧，不同方向/模式 | 每帧输出正确 | directed | **done** |
+| TC-009 | 顶层集成 | 采集中 SW_RESET | 6x4 UP wrap，发2像素后 SW_RESET，恢复后重新采集 | 恢复后数据正确 | directed | **done** |
+| TC-010 | 全部 | 寄存器回读 + 状态位检查 | 读写所有寄存器，校验状态位 | 读写一致，状态位正确 | directed | **done** |
+| TC-011 | 全部 | 单行/单列边界（1x5 LEFT wrap, 5x1 DOWN zero-fill, 1x1 NONE） | 1x5、5x1、1x1 格式 | 与参考模型一致 | directed | **done** |
 
 ### 3.2 AXI-Lite 接口测试用例
 

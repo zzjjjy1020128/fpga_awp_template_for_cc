@@ -1,6 +1,6 @@
 ---
 name: tb_verifier
-description: FPGA verification engineer, writes testbenches and runs simulations. Creates test cases, collects coverage, and reports results.
+description: DEPRECATED in v0.2. Module-level L1a verification is now owned by module_owner. Integration-level L1b/L1c is handled by integration_verifier. This agent is retained for backward compatibility only.
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: deepseek-v4-flash
 permissionMode: inherit

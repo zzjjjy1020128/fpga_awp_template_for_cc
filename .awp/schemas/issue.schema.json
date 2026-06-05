@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FPGA-AWP Issue Schema",
+  "description": "ISS issue 文件的 JSON Schema 定义",
+  "type": "object",
+  "required": ["issue_id", "title", "status", "detected_at_level", "round_count", "max_rounds"],
+  "properties": {
+    "issue_id": {
+      "type": "string",
+      "description": "Issue ID，格式 ISS-{exp}-{seq}",
+      "pattern": "^ISS-[A-Z]\\d{3}-\\d{3}$"
+    },
+    "title": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["open", "in_progress", "blocked", "resolved", "closed"]
+    },
+    "detected_at_level": {
+      "type": "string",
+      "enum": ["L1b", "L1c", "L2", "L3", "L5", "L6"]
+    },
+    "detected_by_task": { "type": "string" },
+    "detected_by_session": { "type": "string" },
+    "suspected_owner_task": { "type": "string" },
+    "suspected_module": { "type": "string" },
+    "round_count": { "type": "integer", "minimum": 1 },
+    "max_rounds": { "type": "integer", "minimum": 1, "default": 3 },
+    "failure_signature": {
+      "type": "object",
+      "properties": {
+        "test_case": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "signal": { "type": "string" },
+        "expected": { "type": "string" },
+        "observed": { "type": "string" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "waveform": { "type": "array", "items": { "type": "string" } },
+        "logs": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "round": { "type": "integer" },
+          "verifier_session": { "type": "string" },
+          "owner_session": { "type": "string" },
+          "reviewer_session": { "type": "string" },
+          "action": { "type": "string" },
+          "result": { "type": "string", "enum": ["pending", "pass", "fail", "blocked"] }
+        }
+      }
+    },
+    "next_action": {
+      "type": "object",
+      "properties": {
+        "role": { "type": "string" },
+        "action": { "type": "string" }
+      }
+    }
+  }
+}

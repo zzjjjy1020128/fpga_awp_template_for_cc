@@ -18,6 +18,15 @@ next_session_role: "orchestrator"
 - **Date**：`<YYYY-MM-DD>`
 - **原因**：`<用户停止 / 上下文满 / compact>`（注：所有 task 已完成时不创建 handoff，直接做 session 记录和复盘）
 
+## Gate Status（必填）
+
+> 列出本次 handoff 涉及的所有 task 的验证状态。**handoff 的"下一步行动"不得跨越未通过的 gate**。
+> 若 L1b=pending 而 L1c=target，handoff 应指明先创建 L1b task，而非直接调试 L1c。
+
+| Task ID | Target Level | 当前最高通过 | L0 | L1a | L1b | L1c | L2+ |
+|---------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| `<TASK-E001-xxx>` | `L1b` | `L1a` | pass | pass | pending | — | — |
+
 ## 已完成
 
 `<本 session 完成了哪些 task，关键产出是什么>`

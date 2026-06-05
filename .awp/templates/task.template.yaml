@@ -5,7 +5,7 @@
 task_id: "<TASK-E001-001>"
 title: "<任务标题>"
 status: "ready"           # ready | in_progress | blocked | review | done
-agent: "rtl_implementer"  # agent name: planner | rtl_implementer | rtl_reviewer | tb_verifier | vivado_integrator | hardware_validator | process_owner
+agent: "module_owner"  # agent name: planner | module_owner | rtl_reviewer | integration_verifier | vivado_integrator | hardware_validator | process_owner
 assigned_to: ""           # agent 标识
 created_date: "<YYYY-MM-DD>"
 

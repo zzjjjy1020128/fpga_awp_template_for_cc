@@ -297,6 +297,7 @@ module axil_2d_shift #(
         .cfg_step       (cfg_step),
         .cfg_wrap_en    (cfg_wrap_en),
         .shift_en       (shift_en),
+        .proceed        (m_axis_tready),
         .img_rows       (img_rows),
         .img_cols       (img_cols),
 

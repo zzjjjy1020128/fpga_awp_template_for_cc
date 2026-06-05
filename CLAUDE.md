@@ -23,7 +23,7 @@
 4. 若系统没有 `make`，直接使用 `python scripts/validate_awp.py` 替代所有 `make` 目标，参数完全一致。
 
 ### Session 记录（强制）
-1. 每次 session 开始后，在 `.awp/sessions/` 中定位 SessionStart hook 自动生成的骨架文件（`SKELETON-*.md`）。
+1. 每次 session 开始后，在 `.awp/sessions/` 中定位 SessionStart hook 自动生成的骨架文件（`SKELETON-*.md`）。SessionStart 同时自动运行 gate-check 和 handoff Gate Status 审计。
 2. **必须在 session 结束前按骨架结构填写完整内容**，并重命名为正式文件名 `SESS-{exp}-OR-{seq}.md`（格式见 `.awp/registry/namespaces.yaml`）。
 3. Session 记录中必须包含 `make validate-awp` 的运行结果和 Gate Check 状态。
 4. 未完成 session 记录的 task 不得进入 handoff。
@@ -114,6 +114,22 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 **L1a → L1b → L1c 必须顺序通过**，不可跳过 L1b 直接进入 L1c。
 数据通路闭环（L1b）应在 3-4 个数据通路模块完成后立即进行。
 
+### validation_status 的 skip 语义
+
+`skip` 仅表示 **该验证级别对当前 task 的 agent 类型不适用**——
+- planner task：L1a+ 为 skip（架构师不做仿真/综合/上板）
+- vivado_integrator task：L0-L1c 可为 skip（综合工程师不做前端验证）
+
+**以下情况 `skip` 无效（必须用 `pending`）**：
+- **rtl_implementer（module scope）+ L1b/L1c**：模块在数据通路闭环和全系统中的正确性尚未确认，`skip` 等于声称"不需要集成验证"，不符合 FPGA 设计方法学。即使模块级 L1a 已 pass，L1b/L1c 仍应为 `pending`，待更高级别 task 确认后由 orchestrator 更新为 `pass`。
+- **tb_verifier（module scope）+ L1b/L1c**：同理。
+
+**L1b/L1c 发现子模块 bug 时的回退规则**：
+- 子模块 task 原本 status=done 且 L1a=pass，但 L1b/L1c 仿真暴露其缺陷时：
+  - 子模块 task 的 L1b 或 L1c 应设为 `fail`（标注失败级别），status 应从 `done` 回退到 `in_progress`
+  - **子模块 RTL 允许修改**——集成验证的目的就是发现单模块测试遗漏的 bug，禁止修改等于鼓励 hack testbench
+  - 修复后重新跑 L1a → L1b → L1c
+
 ## 中文回答规范
 
 - 默认使用中文与用户交流
@@ -142,12 +158,13 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 3. 若不存在 handoff：检查 `.awp/task_board.md` 确认当前项目状态
 4. 向用户汇报恢复结果："检测到上次未完成的 session，已从 HO-xxx 恢复上下文"或"这是新项目的首次 session"
 
-**Handoff 恢复后的 gate re-validation（强制）**：从 handoff 恢复到下一步 task 后，在 spawn 任何子智能体之前，必须：
+**Handoff 恢复后的 gate re-validation（强制）**：从 handoff 恢复到下一步 task 后，在 spawn 任何子智能体之前，必须逐项执行以下检查。**handoff 的叙事不可覆盖 task YAML 中的 formal state**——handoff 说"调试 L1c"但 YAML 写 `L1b: pending` 时，以 YAML 为准。
 
-1. 读取目标 task 的 `validation_status`，确认所有前置验证级别已通过
-2. 若前置级别未通过（如目标 L1c 但 L1b 为 `pending`），**不得直接执行该 task**——先创建前置验证 task（如 L1b 集成验证），将当前 task 设为 `blocked`
-3. 检查 task 合同的 `forbidden_edit_paths` 是否与当前 agent 定义的能力匹配——若合同是旧规范产物（如禁止 integration_verifier 触碰子模块 RTL），以当前 agent 定义为准，更新合同约束
-4. 向用户汇报 gate check 结果后再 spawn
+- [ ] **读 YAML，不信叙事**：读取目标 task 的 `validation_status`，列出每个 level 的 pass/pending/skip。将此列表与 handoff 的 Gate Status 表逐项比对——若 handoff 缺失此表或其值与 YAML 矛盾，以 YAML 为准，并在汇报中标注 "handoff 与 YAML 不一致"
+- [ ] **Gap 硬阻断**：若在 target 以下存在 `pending` 的 level（如 target=L1c 但 L1b=pending），**不得** spawn 子智能体执行当前 task。必须先创建前置验证 task，将当前 task 设为 `blocked`，向用户汇报后再继续
+- [ ] **运行 `python scripts/validate_awp.py --gate-check`**：退出码必须为 0
+- [ ] **Scope 兼容检查**：检查 task 合同的 `forbidden_edit_paths` 是否与当前 agent 定义的能力匹配——若合同是旧规范产物，以当前 agent 定义为准，更新合同约束
+- [ ] **向用户汇报**：汇总以上 4 项结果后再 spawn
 
 ### Spawn 决策规则（G1）
 
@@ -161,16 +178,17 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 |---------|------|------|
 | 启动新 FPGA 项目 | `planner` | 先创建 `project_charter.md` 定义范围/约束/验证目标，再创建 architecture |
 | 架构设计/验证规划 | `planner` | |
-| RTL 设计/修改 | `rtl_implementer` | |
-| RTL 完成后的代码审查 | `rtl_reviewer` | rtl_implementer 完成后自动触发 |
-| 模块级仿真/测试 | `tb_verifier` | 单模块 L1a 验证 |
-| 数据通路闭环仿真 | `integration_verifier` | L1b 验证，≥2 个数据通路模块串联，含跨帧测试 |
+| 模块 RTL 设计 + L1a 验证 | `module_owner` | **v0.2 新角色**：单模块全周期负责（设计 + TB + 仿真 + 自证），L1a 不拆分 agent |
+| L1a 完成后的代码审查 | `rtl_reviewer` | module_owner 产出后自动触发 |
+| 数据通路闭环仿真 | `integration_verifier` | L1b 验证，按数据通路切片（WRITE/READ/CONTROL path），**默认不得修改子模块 RTL** |
 | 全系统集成仿真 | `integration_verifier` | L1c 验证，全系统 + 多帧/多事务 |
+| 集成失败回修 | `module_owner` | L1b/L1c 发现缺陷 → 创建 ISS issue → 交回 module_owner 修复 + L1a 自证 |
 | XDC 约束编写 | `vivado_integrator` | |
 | 约束完成后的审查 | `rtl_reviewer` | vivado_integrator 产出 XDC 后自动触发 |
 | Vivado 工程/综合/实现 | `vivado_integrator` | |
 | 上板验证 | `hardware_validator` | |
 | 流程检查/复盘 | `process_owner` | 所有 task 完成后自动触发 |
+| RTL 纯修复/紧急补丁 | `rtl_implementer` | **deprecated in v0.2**：仅用于非 module_owner 场景的纯 RTL 小修 |
 
 4. **需求是以下管理工作** → orchestrator 自己处理，不 spawn：
    - 任务拆分、task_board 更新、进度汇报
@@ -191,7 +209,7 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 Handoff 是 **session 边界** 机制，不是 agent 边界机制。
 
 - **同一 session 内**：orchestrator spawn sub-agent A → 接收结果 → spawn sub-agent B 时将 A 的产出作为 context 传入。**不需要 handoff**。
-- **Session 结束时**：如果后续 task 尚未完成，orchestrator 必须创建 handoff 文件，记录当前进度、关键文件、已知问题。下一 session 的 orchestrator 读取 handoff 即可继续。
+- **Session 结束时**：如果后续 task 尚未完成，orchestrator 必须创建 handoff 文件，记录当前进度、关键文件、已知问题。**Handoff 必须包含 Gate Status 表**（参照 `.awp/templates/handoff.template.md`），下一 session 的 orchestrator 读取 handoff 即可继续。
 - **Compact 触发时**：视为 session 边界，同样需要 handoff（上下文压缩后原有细节丢失）。
 - **所有 task 已完成**：不需要 handoff，只需完成 session 记录和 retrospective。
 
@@ -211,33 +229,85 @@ Handoff 文件由 orchestrator 在 session 结束前创建。
 | 集成 Testbench（L1b/L1c 的 tb） | **必须** | rtl_reviewer 或 integration_verifier（交叉审查） |
 | Tcl 脚本、board 脚本 | 可选 | orchestrator 判断 |
 
-### 验证失败升级规则（G4）
+### 验证失败升级规则（G4）—— v0.2 issue-centered iteration
 
-子智能体返回 fail 或 validate-awp 不通过时：
+**核心原则**：集成验证失败不是换一个 verifier 继续猜，而是形成 defect ownership。每个失败必须绑定 ISS issue，围绕 issue 进行有限的往返迭代。
 
-1. **首次失败** → spawn 同一 agent 子智能体修复，传递失败原因
-2. **第二次失败** → **切换 agent 类型联合调查**：
-   - `tb_verifier` 失败 → spawn **rtl_implementer** 诊断 DUT（允许阅读 RTL 源码，必要时可修改）
-   - `integration_verifier` 失败 → spawn **rtl_implementer** 联合调查（integration_verifier 已有 RTL 诊断权限，rtl_implementer 侧重修复）
-   - `rtl_implementer` 失败 → spawn **rtl_reviewer** 做深度审查
-   - 其他 agent 失败 → spawn 同一 agent + 对应审查 agent 联合调查
-   - **关键**：仿真失败可能是 DUT bug 而非 TB bug，不要在 TB 层面反复修补
-3. **第三次失败** → **停止**，创建 `ISS-{exp}-{seq}` issue 文件（`.awp/runs/ISS-{exp}-{seq}.md`），参照 `.awp/templates/failure_analysis.template.md` 填写现象/根因/影响/建议修复，向用户报告并等待指示
-4. **Gate violation**（如 L1a 未通过但尝试 L1b）→ 硬阻断，已创建的后续 task 设为 blocked
+#### L1b/L1c 失败处理流程
+
+```
+integration_verifier 发现失败
+  │
+  ├─ 1. 创建 ISS issue（.awp/issues/ISS-{exp}-{seq}.yaml）
+  │     必须包含：失败 case、时间戳、信号 expected vs observed、波形路径、根因假设、suspected_module_owner
+  │
+  ├─ 2. orchestrator 将 issue 分配给 suspected module_owner
+  │
+  ├─ 3. module_owner 修复
+  │     - 优先排查 DUT（这是最常见根因）
+  │     - 排除 DUT 问题后才检查 TB
+  │     - 修复后重跑 L1a 自证
+  │
+  ├─ 4. integration_verifier 重验对应 L1b/L1c
+  │
+  └─ 迭代控制：
+       round 1-2：正常往返
+       round 3：spawn rtl_reviewer 深度审查，或切换 module_owner
+       round > 3：停止迭代，issue status=blocked，请求 human_owner 介入
+```
+
+#### 阻断规则
+
+| 情况 | 动作 |
+|------|------|
+| 未创建 ISS issue 就反复修改 TB 重试 | **硬阻断** |
+| 在 TB 中 workaround 绕过疑似 DUT bug | **硬阻断** |
+| 同一 issue 超过 3 轮仍未解决 | **硬阻断**，转 human_owner |
+| Gate violation（跳级） | **硬阻断** |
+| integration_verifier 擅自修改子模块 RTL | **硬阻断**（除非 human_owner 授权） |
 
 ### Task 粒度决策规则（G5）
 
 拆分 task 时的判断标准：
 
-- **默认**：一个功能模块 = 一个 task
-- **拆分**：模块包含 ≥3 个独立子组件（各自有独立接口）→ 每个子组件一个 task
-- **合并**：多个 trivially simple 模块（如仅连线、简单 mux）→ 合并为一个 task
+- **默认**：一个功能模块 = 一个 task（agent: `module_owner`）
+- **合并**：强耦合、接口不可分割的小模块（如 axil_slave_if + regs_top）→ 合并为一个 task
 - **上限**：单个 task 的 `required_outputs` 不超过 5 个文件
-- **集成验证**：每 3-4 个数据通路模块完成后，**必须创建独立的集成验证 task**（agent: `integration_verifier`，`integration_scope: datapath`，target: `L1b`），验证跨模块时序和跨帧状态持久性后再继续后续模块。全系统集成验证 task（agent: `integration_verifier`，`integration_scope: system`，target: `L1c`）在所有模块完成后创建。
+- **L1b 集成验证**：按**数据通路切片**创建（agent: `integration_verifier`），不可按"每 N 个模块"机械触发。切片原则：每个切片是独立的跨模块协议边界，包含 ≥2 个数据通路模块
+- **L1c 全系统集成**：所有 L1b pass 后创建（agent: `integration_verifier`，`integration_scope: system`，target: `L1c`）
 
-### Issue 记录决策规则（G6）
+### 验证门禁规则（G5-Gate）—— v0.2 硬门禁
 
-- **必须创建 ISS 文件**：阻塞 task 进度、需要跨 agent 协调、验证失败升级到第三次。参照 `.awp/templates/failure_analysis.template.md` 填写。
+验证层级必须顺序通过：**L0 → L1a → L1b → L1c → L2 → L3 → L4 → L5 → L6 → L7**。
+
+| 门禁 | 阻断条件 | 阻断对象 |
+|------|---------|---------|
+| L1b GAP | 有足够模块 ready 但无对应 L1b task | L1c/L2+ task spawn、模块 task done |
+| L1c GAP | L1b 未全部 pass | L2+ task spawn、全系统 task unblock |
+| 越级推进 | 任何跳级行为 | 对应高级别 task spawn |
+
+**GAP 阻断不阻止**：创建 L1b task、执行 L1b、module_owner 修复 issue、rtl_reviewer 审查、process_owner 流程修补。
+
+### Scope 规则（G6）—— v0.2 责任边界
+
+| Agent | 允许编辑 | 禁止编辑 |
+|-------|---------|---------|
+| `module_owner` | 本模块 RTL + 本模块 L1a TB + 本模块文档 | 其他模块 RTL、集成 TB、架构文档 |
+| `module_owner` (fix) | 本模块 RTL + 本模块 L1a TB（即使 status=review） | 其他模块 RTL、集成 TB |
+| `integration_verifier` (L1b) | L1b TB、golden model、run script、ISS issue、failure report | **子模块 RTL**（默认禁止） |
+| `integration_verifier` (L1c) | L1c/system TB、golden model、run script、failure report | **子模块 RTL**（默认禁止） |
+| `rtl_reviewer` | review report、issue 建议 | 默认不直接改 RTL |
+| `human_owner` | 可授权跨边界修改 | 必须记录 issue、patch note、required rerun |
+
+> **核心**：integration_verifier 负责定位和报告，module_owner 负责修复和自证，orchestrator 负责 gate 和 issue lifecycle。
+
+### Issue 记录决策规则（G6-Issue）
+
+- **必须创建 ISS issue 文件**（`.awp/issues/ISS-{exp}-{seq}.yaml`）：
+  - L1b/L1c 仿真失败（无论第几次）
+  - 需要跨 agent 协调的缺陷
+  - 阻塞 task 进度的问题
+  - 验证失败升级到第 3 轮
 - **仅在 session log 中记录即可**：发现即修复的 typo、单行 fix、同 session 内闭环的小问题
 
 ### Task 状态转换规则（G7）
@@ -245,17 +315,20 @@ Handoff 文件由 orchestrator 在 session 结束前创建。
 | 转换 | 触发条件 | 执行者 |
 |------|---------|--------|
 | `ready` → `in_progress` | orchestrator spawn 子智能体开始执行 | orchestrator |
-| `in_progress` → `review` | 子智能体返回产出，需要 review（按 G3 规则） | orchestrator |
+| `in_progress` → `review` | module_owner 完成 L1a 自证，L1b/L1c 待集成确认（`--sync` 自动）；或子智能体返回产出需要 code review（G3） | orchestrator |
 | `in_progress` → `blocked` | 依赖的 task 未完成、Gate violation、等待用户决策 | orchestrator |
 | `blocked` → `in_progress` | 阻塞解除 | orchestrator |
-| `review` → `done` | review 通过 + 验收条件全满足 + required_outputs 完整 + validation_status 达到 target_level | orchestrator |
-| `review` → `in_progress` | review 不通过，需要修改 | orchestrator |
-| `in_progress` → `done` | 不需要 review 的 task（按 G3 可选 review），验收条件满足即可 | orchestrator |
+| `review` → `done` | **全部 applicable level pass**（L1a/L1b/L1c 均为 pass）+ 验收条件全满足 + required_outputs 完整 + 无 open blocking issue | orchestrator |
+| `review` → `in_progress` | 集成验证发现缺陷 → module_owner 回修（关联 ISS issue） | orchestrator |
+| `in_progress` → `done` | 不需要 review 的非 RTL task，验收条件满足即可 | orchestrator |
+| `done` → `review` | **自动修正**：`--sync` 检测到模块 task done 但 L1b/L1c=pending（v0.2 规则：集成验证 pending 不得 done） | sync |
 
-**done 的三条件**（必须同时满足）：
+**done 的 v0.2 准入条件**（必须同时满足，缺一不可）：
 1. `acceptance` 全部通过
 2. `required_outputs` 全部存在且内容完整
-3. `validation_status` 达到 `target_validation_level`
+3. **所有 applicable 的验证 level 均为 pass**：对于 module_owner task，L0/L1a/L1b/L1c 必须全部 pass；L2-L7 可为 pending（由后续 vivado/hardware task 处理）
+4. 无 open status 的 blocking issue 关联本 task
+5. 模块 task 的 L1b/L1c=pending 时 **status 不得为 done** —— `--sync` 自动修正为 `review`
 
 ### 项目完成触发（G8）
 
@@ -293,3 +366,14 @@ Handoff 文件由 orchestrator 在 session 结束前创建。
 - ID 注册表：`.awp/registry/`
 - 校验脚本：`scripts/validate_awp.py`（`make validate-awp`）
 - Session 骨架：`scripts/session_skeleton.py`（SessionStart hook 自动触发）
+- AWP Guard：`python scripts/validate_awp.py --guard <mode>`（hooks 自动触发）
+  - `session-start`：SessionStart 触发，gate + handoff 审计（提醒级）
+  - `pre-spawn`：PreToolUse(Agent) 触发，gate gap 阻断 spawn（阻断级）
+  - `pre-stop`：Stop 触发，handoff/session/gate 完整性检查（提醒级）
+- AWP Sync：`python scripts/validate_awp.py --sync`（PostToolUse(Edit/Write) 自动触发）
+  - 自动修正：GAP task → status=blocked，task_board 重生
+  - 自动触发于每次 Edit/Write 后，保持状态实时同步
+- 静态检查增强：
+  - Review 覆盖检查（G3：所有 RTL task 必须有通过 review）
+  - 文件存在性检查（required_outputs 和 must_read 引用的文件）
+- Hooks 配置：`.claude/settings.json`（SessionStart / PreToolUse / PostToolUse / Stop）

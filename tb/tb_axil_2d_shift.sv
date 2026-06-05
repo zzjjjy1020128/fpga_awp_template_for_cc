@@ -369,23 +369,23 @@ module tb_axil_2d_shift;
   // ====================================================================
   // Receive frame from AXI-Stream Master
   //
-  // Pipeline timing compensation:
-  //   frame_buf_mgr has a 1-cycle read latency. When shift_en is asserted,
-  //   the first read (at state-transition posedge) uses the initial counter
-  //   value (0,0). The counters then advance at the same posedge, causing
-  //   read_data to hold the same value for 2 consecutive cycles (pixel 0
-  //   appears twice).
+  // Pipeline timing (critical, measured from SHIFT state entry):
+  //   Cycle 0 (P0): state=CAPTURE→SHIFT, shift_en=1 (combinatorial from
+  //                  state update). m_axis_tvalid goes high immediately.
+  //                  BUT axis_output's always_ff block already evaluated
+  //                  at this posedge with shift_en=0 (old state), so its
+  //                  counters reset instead of advancing.
+  //   Cycle 1 (P1): axis_output always_ff runs with shift_en=1.
+  //                  Counter advances: col_cnt 0→1 (for normal frame),
+  //                  or all_done=1 (for 1x1 frame).
+  //                  read_data loaded at this posedge uses the OLD read_addr
+  //                  (before counter advance) — first pixel data.
+  //   Cycle 2 (P2): read_data reflects address after 1st advance.
   //
-  //   Additionally, the axis_output sets all_done=1 on the LAST pixel
-  //   transfer, which causes m_axis_tvalid to go low in the same cycle
-  //   the last pixel data is present. We handle this by accepting data
-  //   when either m_axis_tvalid or all_done is asserted.
-  //
-  //   Compensation:
-  //   1. Wait for first m_axis_tvalid (shift_en asserted)
-  //   2. Add one extra @(posedge clk) to skip the duplicate pixel 0
-  //   3. Read rows*cols unique values; accept data on m_axis_tvalid
-  //      OR all_done (last pixel)
+  // Compensation:
+  //   1. Wait for m_axis_tvalid (cycle P0)
+  //   2. Wait 2 extra cycles (P1, P2) for pipeline to settle
+  //   3. Capture rows*cols pixels at subsequent posedges
   // ====================================================================
   // Debug: cycle counter
   integer dbg_cycle;
@@ -408,22 +408,13 @@ module tb_axil_2d_shift;
           disable receive_frame;
         end
       end
-      // Read rows*cols unique pixel values. Accept data when either
-      // tvalid=1 (normal case) or all_done=1 (last pixel's transfer
-      // sets all_done in the same cycle, making tvalid=0 but data valid).
-      // Note: first valid pixel is duplicated due to BRAM 1-cycle read
-      // latency, so we accept rows*cols+1 values and skip the first.
-      frame_out[0] = m_axis_tdata;
-      for (i = 1; i < rows * cols; i = i + 1) begin
-        while (!m_axis_tvalid && !dut.u_axis_output.all_done) begin
-          @(posedge clk);
-          wait_count = wait_count + 1;
-          if (wait_count > 10000) begin
-            $display("FAIL [RECVFRAME] timeout waiting for m_axis_tvalid at pixel %0d", i);
-            m_axis_tready = 0;
-            disable receive_frame;
-          end
-        end
+      // Pipeline delay compensation:
+      //   P0: m_axis_tvalid=1, but axis_output hasn't processed shift_en yet
+      //   P1: axis_output processes shift_en=1 (counter advance happens),
+      //       read_data <= bram[read_addr_pre_advance] = bram[0]
+      //   Now read_data holds the first valid pixel data.
+      @(posedge clk);  // P1: axis_output processes shift_en, read_data loaded
+      for (i = 0; i < rows * cols; i = i + 1) begin
         frame_out[i] = m_axis_tdata;
         if (i < 5) begin
           $display("  DBG_RECV[%0d] cycle=%0d tvalid=%b tdata=0x%0h tready=%b all_done=%b shift_en=%b sg_col=%0d sg_row=%0d ao_col=%0d ao_row=%0d rd_addr=0x%0h rd_data=0x%0h zero=%b",
@@ -497,9 +488,14 @@ module tb_axil_2d_shift;
       s_axis_tlast  = 0;
 
       // Drain output (1 pixel)
+      // Pipeline timing: axis_output always_ff lags shift_en by 1 cycle,
+      // so all_done fires one cycle after shift_en=1. Wait for all_done to
+      // guarantee the pixel has been processed.
       m_axis_tready = 1;
-      wait(m_axis_tvalid || dut.u_axis_output.all_done);
-      @(posedge clk);
+      while (!dut.u_axis_output.all_done) begin
+        @(posedge clk);
+      end
+      @(posedge clk);  // Let all_done_q propagate (tvalid goes low)
       m_axis_tready = 0;
 
       // Wait for done (with short timeout)

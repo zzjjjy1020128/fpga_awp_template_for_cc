@@ -73,6 +73,10 @@ module axis_input #(
 
     // --------------------------------------------------------------------------
     // 写接口（组合逻辑）
+    // write_addr 使用组合逻辑，与 frame_buf_mgr 的 BRAM 直接连接。
+    // 同一时钟沿上，frame_buf_mgr 的写 always_ff 与 axis_input 的计数器
+    // 更新 always_ff 均在 active region 执行，采样写使能前的地址值，
+    // 因此组合逻辑 write_addr 在此处是正确的（写入当前像素的地址）。
     // --------------------------------------------------------------------------
     assign write_data = s_axis_tdata;
     assign write_en   = xfer_valid;
@@ -82,6 +86,9 @@ module axis_input #(
     // 计数器与 capture_done 寄存器
     //
     // 计数器更新规则：
+    //   - capture_en=0 时：计数器复位到 0，确保 SW_RESET 后重新开始采集
+    //     时从地址 0 开始写入，避免因前次部分采集残留的计数器值导致
+    //     写地址偏移。
     //   - tuser=1（帧起始）：重置到 (row=0, col=0)
     //     - 若 tlast 同时有效（单列图像），按 img_rows 判断帧完成或换行
     //     - 否则下一元素为 (0, 1)
@@ -97,7 +104,13 @@ module axis_input #(
         end else begin
             capture_done <= 1'b0;  // 自清除脉冲
 
-            if (xfer_valid) begin
+            if (!capture_en) begin
+                // capture_en=0 时复位计数器，确保下次 capture_en=1 时
+                // 从 (row=0, col=0) 开始写入，与 axis_output 的 !shift_en
+                // 复位行为保持一致。
+                row_cnt <= '0;
+                col_cnt <= '0;
+            end else if (xfer_valid) begin
                 if (s_axis_tuser) begin
                     // ----------------------------------------------------------
                     // 帧起始：重置计数器
