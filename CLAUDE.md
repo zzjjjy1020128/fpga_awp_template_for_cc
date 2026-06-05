@@ -27,6 +27,7 @@
 2. **必须在 session 结束前按骨架结构填写完整内容**，并重命名为正式文件名 `SESS-{exp}-OR-{seq}.md`（格式见 `.awp/registry/namespaces.yaml`）。
 3. Session 记录中必须包含 `make validate-awp` 的运行结果和 Gate Check 状态。
 4. 未完成 session 记录的 task 不得进入 handoff。
+5. validate-awp 会检查 registry（`id_registry.yaml`）是否与实际文件一致；不一致时运行 `--sync` 自动修复。
 
 ### Handoff（session 边界机制）
 
@@ -83,7 +84,7 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
    | Vivado 工程 / Tcl | `vivado` |
    | 上板脚本 / ILA 配置 / 运行记录 | `board` |
    | 项目文档（charter、architecture 等） | `docs` |
-   | Task 合同 / session 记录 / handoff / review / task_board / decisions / registry 条目 | `session` |
+   | Task 合同 / session 记录 / handoff / review / task_board / decisions / registry（自动生成） | `session` |
    | 模板 / Schema / namespace 定义 | `awp` |
    | 根配置 / 脚本 / .claude / 工具链 | `conf` |
 
@@ -369,7 +370,7 @@ integration_verifier 对子模块 RTL 的修改权限分三层：
 - 执行模式：`.awp/execution_modes.md`
 - 编排指南：`.awp/orchestration_guide.md`
 - Workspace 清单：`.awp/workspace_manifest.json`
-- ID 注册表：`.awp/registry/`
+- ID 注册表：`.awp/registry/`（自动生成：`--sync` 从实际文件同步；`validate` 检查一致性）
 - 校验脚本：`scripts/validate_awp.py`（`make validate-awp`）
 - Session 骨架：`scripts/session_skeleton.py`（SessionStart hook 自动触发）
 - AWP Guard：`python scripts/validate_awp.py --guard <mode>`（hooks 自动触发）

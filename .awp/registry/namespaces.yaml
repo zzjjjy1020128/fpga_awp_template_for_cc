@@ -5,6 +5,7 @@ namespaces:
   EXP:
     prefix: "EXP"
     format: "EXP{seq:03d}"
+    pattern: "^EXP\\d{3}$"
     example: "EXP001"
     description: "一个实验项目或验证阶段"
     location: ".awp/tasks/"
@@ -13,6 +14,7 @@ namespaces:
   TASK:
     prefix: "TASK"
     format: "TASK-{exp}-{seq:03d}"
+    pattern: "^TASK-[A-Z]\\d{3}-\\d{3}$"
     example: "TASK-E001-001"
     description: "一个可执行任务"
     location: ".awp/tasks/"
@@ -21,6 +23,7 @@ namespaces:
   SESSION:
     prefix: "SESS"
     format: "SESS-{exp}-OR-{seq:03d}"
+    pattern: "^SESS-[A-Z]\\d{3}-OR-\\d{3}$"
     example: "SESS-E001-OR-001"
     description: "一次 agent session 记录。Session 角色固定为 OR（orchestrator），一个 session 可包含多个 task。"
     location: ".awp/sessions/"
@@ -29,6 +32,7 @@ namespaces:
   HANDOFF:
     prefix: "HO"
     format: "HO-{exp}-{task_seq:03d}-{seq:03d}"
+    pattern: "^HO-[A-Z]\\d{3}-\\d{3}-\\d{3}$"
     example: "HO-E001-001-001"
     description: "一次角色交接记录"
     location: ".awp/handoffs/"
@@ -37,6 +41,7 @@ namespaces:
   REVIEW:
     prefix: "REV"
     format: "REV-{exp}-{task_seq:03d}-{type}-{seq:03d}"
+    pattern: "^REV-[A-Z]\\d{3}-\\d{3}-[A-Z]+-\\d{3}$"
     example: "REV-E001-001-RTL-001"
     description: "一次 review 记录"
     location: ".awp/reviews/"
@@ -45,6 +50,7 @@ namespaces:
   RUN:
     prefix: "RUN"
     format: "RUN-{exp}-{run_type}-{seq:03d}"
+    pattern: "^RUN-[A-Z]\\d{3}-(?:[A-Z0-9]+-)?[A-Z0-9]+-\\d{3}$"
     example: "RUN-E001-SIM-001"
     description: "一次仿真/综合/实现/上板运行"
     location: ".awp/runs/"
@@ -59,6 +65,7 @@ namespaces:
   DECISION:
     prefix: "DEC"
     format: "DEC-{project}-{seq:04d}"
+    pattern: "^DEC-[A-Z]+-\\d{4}$"
     example: "DEC-AWP-0001"
     description: "一条架构/流程/设计决策"
     location: ".awp/decisions.md 或 .awp/decisions/"
@@ -67,6 +74,7 @@ namespaces:
   ISSUE:
     prefix: "ISS"
     format: "ISS-{exp}-{seq:03d}"
+    pattern: "^ISS-[A-Z]\\d{3}-\\d{3}$"
     example: "ISS-E001-001"
     description: "一个问题/缺陷/风险追踪"
     location: ".awp/issues/ 或 .awp/runs/"
@@ -75,6 +83,7 @@ namespaces:
   ARTIFACT:
     prefix: "ART"
     format: "ART-{exp}-{type}-{seq:03d}"
+    pattern: "^ART-[A-Z]\\d{3}-[A-Z]+-\\d{3}$"
     example: "ART-E001-BIT-001"
     description: "一个关键产物（bitstream、report、ILA capture 等）"
     location: "board/ 或 vivado/"

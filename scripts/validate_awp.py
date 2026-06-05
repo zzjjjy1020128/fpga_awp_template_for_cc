@@ -43,7 +43,7 @@ NAMESPACE_PATTERNS = {
     "SESSION": re.compile(r"^SESS-[A-Z]\d{3}-OR-\d{3}$"),
     "HANDOFF": re.compile(r"^HO-[A-Z]\d{3}-\d{3}-\d{3}$"),
     "REVIEW": re.compile(r"^REV-[A-Z]\d{3}-\d{3}-[A-Z]+-\d{3}$"),
-    "RUN": re.compile(r"^RUN-[A-Z]\d{3}-[A-Z]+-\d{3}$"),
+    "RUN": re.compile(r"^RUN-[A-Z]\d{3}-(?:[A-Z0-9]+-)?[A-Z0-9]+-\d{3}$"),
     "DECISION": re.compile(r"^DEC-[A-Z]+-\d{4}$"),
     "ISSUE": re.compile(r"^ISS-[A-Z]\d{3}-\d{3}$"),
     "ARTIFACT": re.compile(r"^ART-[A-Z]\d{3}-[A-Z]+-\d{3}$"),
@@ -119,9 +119,33 @@ def validate_schema_required(data, schema, path=""):
     return errors
 
 
+def load_namespace_patterns():
+    """从 namespaces.yaml 动态加载 pattern 字段，fallback 到硬编码 NAMESPACE_PATTERNS"""
+    ns_data, err = load_yaml_file(".awp/registry/namespaces.yaml")
+    if err or not ns_data:
+        return NAMESPACE_PATTERNS.copy()
+
+    patterns = {}
+    for ns_name, ns_info in ns_data.get("namespaces", {}).items():
+        pattern_str = ns_info.get("pattern")
+        if pattern_str:
+            try:
+                patterns[ns_name] = re.compile(pattern_str)
+            except re.error:
+                pass  # 无效正则，跳过
+
+    # fallback：硬编码中定义但 namespaces.yaml 没有 pattern 的
+    for ns_name, pattern in NAMESPACE_PATTERNS.items():
+        if ns_name not in patterns:
+            patterns[ns_name] = pattern
+
+    return patterns
+
+
 def check_id_format(id_str):
-    """检查 ID 字符串是否符合任一已知 namespace 格式"""
-    for ns, pattern in NAMESPACE_PATTERNS.items():
+    """检查 ID 字符串是否符合任一已知 namespace 格式（动态加载 patterns）"""
+    patterns = load_namespace_patterns()
+    for ns, pattern in patterns.items():
         if pattern.match(id_str):
             return ns
     return None
@@ -641,6 +665,7 @@ def cmd_validate():
     all_errors.extend(validate_issue_files())
     all_errors.extend(validate_integration_scope())
     all_errors.extend(validate_dependency_ripple())
+    all_errors.extend(validate_registry_consistency())
 
     if all_errors:
         print(f"\n[FAIL] {len(all_errors)} validation error(s):\n")
@@ -651,6 +676,245 @@ def cmd_validate():
     else:
         print("[PASS] All validations passed.\n")
         return 0
+
+
+def sync_registry():
+    """从实际文件自动生成 id_registry.yaml 和 relations.yaml"""
+    entities = {}   # id -> {id, type, title, status, created}
+    rels = []       # [{from, to, type}]
+
+    # --- 1. Tasks ---
+    for t in collect_tasks():
+        tid = t.get("task_id", "")
+        if not tid:
+            continue
+        entities[tid] = {
+            "id": tid, "type": "TASK",
+            "title": t.get("title", ""),
+            "status": "active" if t.get("status") != "done" else "closed",
+            "created": t.get("created_date", ""),
+        }
+        for dep in t.get("depends_on", []) or []:
+            rels.append({"from": tid, "to": dep, "type": "depends_on"})
+
+    # --- 2. Reviews ---
+    reviews_dir = ROOT / ".awp" / "reviews"
+    if reviews_dir.exists():
+        for f in sorted(reviews_dir.glob("REV-*.md")):
+            rid = f.stem
+            try:
+                content = _read_file_robust(f)
+            except Exception:
+                continue
+            fm = extract_frontmatter(content)
+            task_ref = fm.get("task_id", "") if fm else ""
+            review_type = rid.split("-")[3] if len(rid.split("-")) >= 4 else ""
+            entities[rid] = {
+                "id": rid, "type": "REVIEW",
+                "title": f"Review of {task_ref} ({review_type})" if task_ref else f"Review {rid}",
+                "status": "closed" if fm and fm.get("result") in ("pass", "pass_with_notes") else "active",
+                "created": fm.get("date", "") if fm else "",
+            }
+            if task_ref:
+                rels.append({"from": rid, "to": task_ref, "type": "reviews"})
+
+    # --- 3. Runs ---
+    runs_dir = ROOT / ".awp" / "runs"
+    if runs_dir.exists():
+        for f in sorted(runs_dir.glob("RUN-*.md")):
+            rid = f.stem
+            try:
+                content = _read_file_robust(f)
+            except Exception:
+                continue
+            task_ref = ""
+            date_str = ""
+            title_str = ""
+            for line in content.split("\n"):
+                if line.startswith("- **Task**:"):
+                    task_ref = line.split(":")[-1].strip().strip("`")
+                elif line.startswith("- **Date**:"):
+                    date_str = line.split(":")[-1].strip()
+                elif line.startswith("# ") and not title_str:
+                    title_str = line[2:].strip()
+            entities[rid] = {
+                "id": rid, "type": "RUN",
+                "title": title_str or rid,
+                "status": "active",
+                "created": date_str,
+            }
+            if task_ref:
+                rels.append({"from": rid, "to": task_ref, "type": "runs_for"})
+
+    # --- 4. Sessions ---
+    sessions_dir = ROOT / ".awp" / "sessions"
+    if sessions_dir.exists():
+        for f in sorted(sessions_dir.glob("SESS-*.md")):
+            sid = f.stem
+            try:
+                content = _read_file_robust(f)
+            except Exception:
+                continue
+            first_line = ""
+            for line in content.split("\n"):
+                if line.startswith("# ") and not first_line:
+                    first_line = line[2:].strip()
+                    break
+            entities[sid] = {
+                "id": sid, "type": "SESSION",
+                "title": first_line or sid,
+                "status": "closed",
+                "created": _extract_file_date(f),
+            }
+
+    # --- 5. Handoffs ---
+    handoff_dir = ROOT / ".awp" / "handoffs"
+    if handoff_dir.exists():
+        for f in sorted(handoff_dir.glob("HO-*.md")):
+            hid = f.stem
+            try:
+                content = _read_file_robust(f)
+            except Exception:
+                continue
+            fm = extract_frontmatter(content)
+            h_id = fm.get("handoff_id", hid) if fm else hid
+            from_sess = fm.get("from_session", "") if fm else ""
+            entities[h_id] = {
+                "id": h_id, "type": "HANDOFF",
+                "title": f"Handoff {h_id}",
+                "status": fm.get("status", "active") if fm else "active",
+                "created": fm.get("date", "") if fm else _extract_file_date(f),
+            }
+            if from_sess:
+                rels.append({"from": h_id, "to": from_sess, "type": "from_session"})
+
+    # --- 6. EXP ---
+    exps_seen = set()
+    for eid, einfo in list(entities.items()):
+        # 从 ID 中提取 EXP 部分：如 TASK-E001-001 → E001
+        parts = eid.split("-")
+        if len(parts) >= 2 and parts[1].startswith(("E", "EXP")):
+            exp_part = parts[1]
+            if exp_part.startswith("EXP"):
+                exp_part = exp_part  # already has prefix
+            exp_id = f"EXP{exp_part.lstrip('E')}" if not exp_part.startswith("EXP") else exp_part
+            if exp_id not in exps_seen:
+                exps_seen.add(exp_id)
+                entities[exp_id] = {
+                    "id": exp_id, "type": "EXP",
+                    "title": f"Experiment {exp_part}",
+                    "status": "active",
+                    "created": "",
+                }
+            rels.append({"from": eid, "to": exp_id, "type": "belongs_to"})
+
+    # --- 7. Write files ---
+    header = "# AUTO-GENERATED by validate_awp.py --sync. Do not edit manually.\n"
+    id_list = sorted(entities.values(), key=lambda x: (x["type"], x["id"]))
+    reg_content = header + yaml.dump({"ids": id_list}, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    (ROOT / ".awp" / "registry" / "id_registry.yaml").write_text(reg_content, encoding="utf-8")
+
+    rels_sorted = sorted(rels, key=lambda x: (x["from"], x["to"]))
+    rel_content = header + yaml.dump({"relations": rels_sorted}, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    (ROOT / ".awp" / "registry" / "relations.yaml").write_text(rel_content, encoding="utf-8")
+
+    return len(entities), len(rels)
+
+
+def _read_file_robust(filepath):
+    """读取文件，尝试 utf-8 后 fallback 到 gbk（Windows 中文环境）"""
+    try:
+        return filepath.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return filepath.read_text(encoding="gbk", errors="replace")
+
+
+def _extract_file_date(f):
+    """从文件 mtime 提取日期字符串"""
+    try:
+        from datetime import date
+        return date.fromtimestamp(f.stat().st_mtime).isoformat()
+    except Exception:
+        return ""
+
+
+def validate_registry_consistency():
+    """检查 registry 与实际文件的一致性"""
+    errors = []
+    reg_file = ROOT / ".awp" / "registry" / "id_registry.yaml"
+    if not reg_file.exists():
+        return errors  # 首次运行，registry 尚未生成
+
+    reg_data, err = load_yaml_file(".awp/registry/id_registry.yaml")
+    if err or not reg_data:
+        errors.append("Cannot load id_registry.yaml")
+        return errors
+
+    reg_ids = {}
+    for entry in reg_data.get("ids", []) or []:
+        eid = entry.get("id", "")
+        if eid:
+            reg_ids[eid] = entry
+
+    # 收集实际文件中的实体 ID
+    actual_ids = set()
+
+    # Tasks
+    for t in collect_tasks():
+        tid = t.get("task_id", "")
+        if tid:
+            actual_ids.add(tid)
+
+    # Reviews
+    reviews_dir = ROOT / ".awp" / "reviews"
+    if reviews_dir.exists():
+        for f in reviews_dir.glob("REV-*.md"):
+            actual_ids.add(f.stem)
+
+    # Runs
+    runs_dir = ROOT / ".awp" / "runs"
+    if runs_dir.exists():
+        for f in runs_dir.glob("RUN-*.md"):
+            actual_ids.add(f.stem)
+
+    # Sessions
+    sessions_dir = ROOT / ".awp" / "sessions"
+    if sessions_dir.exists():
+        for f in sessions_dir.glob("SESS-*.md"):
+            actual_ids.add(f.stem)
+
+    # Handoffs
+    handoff_dir = ROOT / ".awp" / "handoffs"
+    if handoff_dir.exists():
+        for f in handoff_dir.glob("HO-*.md"):
+            actual_ids.add(f.stem)
+
+    # EXP (derived)
+    for eid in list(actual_ids):
+        parts = eid.split("-")
+        if len(parts) >= 2 and parts[1].startswith(("E", "EXP")):
+            exp_id = "EXP" + parts[1].lstrip("E")
+            actual_ids.add(exp_id)
+
+    # 检查缺失实体
+    missing = actual_ids - set(reg_ids.keys())
+    if missing:
+        errors.append(
+            f"Registry missing {len(missing)} entity(s): "
+            f"{', '.join(sorted(list(missing))[:5])}{'...' if len(missing) > 5 else ''}. "
+            f"Run --sync to auto-register."
+        )
+
+    # 检查幽灵实体
+    orphan = set(reg_ids.keys()) - actual_ids
+    if orphan:
+        errors.append(
+            f"Registry has {len(orphan)} orphan entity(s): "
+            f"{', '.join(sorted(list(orphan))[:5])}{'...' if len(orphan) > 5 else ''}. "
+            f"Run --sync to clean up."
+        )
+
+    return errors
 
 
 def cmd_sync():
@@ -745,7 +1009,11 @@ def cmd_sync():
             yaml_path.write_text(content, encoding="utf-8")
             fixes.append(f"{tid}: L1b/L1c skip -> pending (module tasks must not skip integration levels)")
 
-    # 4. 重生 task board
+    # 4. 同步 registry
+    n_entities, n_rels = sync_registry()
+    fixes.append(f"Registry synced: {n_entities} entities, {n_rels} relations")
+
+    # 5. 重生 task board
     if fixes or True:
         board_ok = cmd_gen_task_board() == 0
         if board_ok:

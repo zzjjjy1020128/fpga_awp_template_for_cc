@@ -64,8 +64,7 @@ python scripts/validate_awp.py --gate-check
 1. 复制 `.awp/templates/handoff.template.md` 结构
 2. 填写：已完成 task 列表、未完成 task 列表、关键文件路径、已知问题、下一步行动
 3. 写入 `.awp/handoffs/HO-{exp}-{task_seq}-{seq}.md`
-4. 在 `.awp/registry/id_registry.yaml` 中注册 handoff ID
-5. 在 `.awp/registry/relations.yaml` 中添加 handoff 关联的 task 关系
+4. 运行 `python scripts/validate_awp.py --sync` 自动注册 handoff ID 及关系
 
 ## Step 8: 更新 Task Board
 
