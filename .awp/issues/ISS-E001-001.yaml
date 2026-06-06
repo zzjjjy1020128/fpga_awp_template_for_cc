@@ -5,7 +5,7 @@ status: "resolved"
 detected_at_level: "L1a"
 detected_by_task: "TASK-E001-004"
 detected_by_session: "SESS-E001-OR-001"
-detected_in_run: "RUN-E001-L1B-WRITE-001"
+detected_in_run: "RUN-E001-L1B-WRITE-001, RUN-E001-L1B-READ-001"
 
 suspected_owner_task: "TASK-E001-004"
 suspected_module: "axis_input"

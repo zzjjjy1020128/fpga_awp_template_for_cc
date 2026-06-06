@@ -1,0 +1,46 @@
+issue_id: "ISS-E001-004"
+title: "Original L1c simulation failure (RUN-E001-SIM-007) — historical record"
+status: "resolved"
+
+detected_at_level: "L1c"
+detected_by_task: "TASK-E001-008"
+detected_by_session: "SESS-E001-OR-001"
+detected_in_run: "RUN-E001-SIM-007"
+
+suspected_owner_task: "TASK-E001-004"
+suspected_module: "axis_input, shift_addr_gen"
+
+round_count: 2
+max_rounds: 3
+
+failure_signature:
+  test_case: "TC01-TC07 (all failed), TC08-TC11 (not run)"
+  timestamp: "N/A"
+  signal: "sg_col=3 sg_row=1, tdata=0xxx"
+  expected: "sg_col=0 sg_row=0, valid data"
+  observed: "counters not resetting between frames, tready stuck, BRAM read X"
+
+evidence:
+  logs:
+    - ".awp/runs/RUN-E001-SIM-007.md"
+  notes:
+    - "Root causes: (1) axis_input counters not reset on !capture_en"
+    - "(2) shift_addr_gen counters not reset on !shift_en"
+    - "(3) TB pipeline delay 2→1 fix"
+    - "(4) TB drain synchronization fix"
+    - "All resolved in subsequent L1c re-run (247/247 PASS)"
+    - "RUN-E001-SIM-007 report status is stale — simulation passed after fixes"
+
+attempts:
+  - round: 1
+    verifier_session: "SESS-E001-OR-001"
+    action: "Identified root causes in axis_input, shift_addr_gen, TB"
+    result: "pass"
+  - round: 2
+    verifier_session: "SESS-E001-OR-001"
+    action: "L1c re-run passed 247/247"
+    result: "pass"
+
+next_action:
+  role: "none"
+  action: "Resolved. HISTORICAL: original L1c failure predates v0.2 issue mechanism."

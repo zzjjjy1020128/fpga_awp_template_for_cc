@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
 ------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
-| Date         : Sat Jun  6 10:02:12 2026
+| Date         : Sat Jun  6 11:58:20 2026
 | Host         : laptop_zjy running 64-bit major release  (build 9200)
 | Command      : report_timing_summary -file D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/vivado/timing_summary.rpt
 | Design       : axil_2d_shift
@@ -51,7 +51,7 @@ Table of Contents
 2. checking constant_clock (0)
 3. checking pulse_width_clock (0)
 4. checking unconstrained_internal_endpoints (0)
-5. checking no_input_delay (0)
+5. checking no_input_delay (48)
 6. checking no_output_delay (0)
 7. checking multiple_clock (0)
 8. checking generated_clocks (0)
@@ -82,9 +82,9 @@ Table of Contents
  There are 0 pins that are not constrained for maximum delay due to constant clock.
 
 
-5. checking no_input_delay (0)
-------------------------------
- There are 0 input ports with no input delay specified.
+5. checking no_input_delay (48)
+-------------------------------
+ There are 48 input ports with no input delay specified. (HIGH)
 
  There are 0 input ports with no input delay but user has a false path constraint.
 
@@ -136,7 +136,7 @@ Table of Contents
 
     WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
     -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-    -31.682     -398.678                     38                  630        0.132        0.000                      0                  630        4.500        0.000                       0                   200  
+    -25.908     -513.596                     46                  497        0.132        0.000                      0                  497        4.500        0.000                       0                   236  
 
 
 Timing constraints are not met.
@@ -159,7 +159,7 @@ clk    {0.000 5.000}      10.000          100.000
 
 Clock             WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
 -----             -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-clk               -31.682     -398.678                     38                  566        0.132        0.000                      0                  566        4.500        0.000                       0                   200  
+clk               -25.908     -513.596                     46                  497        0.132        0.000                      0                  497        4.500        0.000                       0                   236  
 
 
 ------------------------------------------------------------------------------------------------
@@ -176,9 +176,8 @@ From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS
 | -----------------------
 ------------------------------------------------------------------------------------------------
 
-Path Group         From Clock         To Clock               WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
-----------         ----------         --------               -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
-**async_default**  clk                clk                      6.957        0.000                      0                   64        1.977        0.000                      0                   64  
+Path Group    From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------    ----------    --------          -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
 
 
 ------------------------------------------------------------------------------------------------
@@ -191,7 +190,7 @@ Path Group         From Clock         To Clock               WNS(ns)      TNS(ns
 From Clock:  clk
   To Clock:  clk
 
-Setup :           38  Failing Endpoints,  Worst Slack      -31.682ns,  Total Violation     -398.678ns
+Setup :           46  Failing Endpoints,  Worst Slack      -25.908ns,  Total Violation     -513.596ns
 Hold  :            0  Failing Endpoints,  Worst Slack        0.132ns,  Total Violation        0.000ns
 PW    :            0  Failing Endpoints,  Worst Slack        4.500ns,  Total Violation        0.000ns
 ---------------------------------------------------------------------------------------------------
@@ -199,16 +198,16 @@ PW    :            0  Failing Endpoints,  Worst Slack        4.500ns,  Total Vio
 
 Max Delay Paths
 --------------------------------------------------------------------------------------
-Slack (VIOLATED) :        -31.682ns  (required time - arrival time)
-  Source:                 u_regs_top/img_rows_r_reg[4]/C
+Slack (VIOLATED) :        -25.908ns  (required time - arrival time)
+  Source:                 u_regs_top/img_cols_r_reg[3]/C
                             (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
-  Destination:            u_frame_buf_mgr/bram_reg/ADDRBWRADDR[10]
-                            (rising edge-triggered cell RAMB36E1 clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_shift_addr_gen/calc_col_r_reg[9]/D
+                            (rising edge-triggered cell FDCE clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
   Path Group:             clk
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            10.000ns  (clk rise@10.000ns - clk rise@0.000ns)
-  Data Path Delay:        40.935ns  (logic 19.402ns (47.397%)  route 21.533ns (52.603%))
-  Logic Levels:           64  (CARRY4=37 DSP48E1=1 LUT2=2 LUT3=11 LUT4=2 LUT5=2 LUT6=9)
+  Data Path Delay:        35.772ns  (logic 15.686ns (43.850%)  route 20.086ns (56.150%))
+  Logic Levels:           65  (CARRY4=36 LUT2=2 LUT3=12 LUT5=2 LUT6=13)
   Clock Path Skew:        -0.145ns (DCD - SCD + CPR)
     Destination Clock Delay (DCD):    2.128ns = ( 12.128 - 10.000 ) 
     Source Clock Delay      (SCD):    2.456ns
@@ -227,178 +226,178 @@ Slack (VIOLATED) :        -31.682ns  (required time - arrival time)
                          IBUF (Prop_ibuf_I_O)         0.972     0.972 r  clk_IBUF_inst/O
                          net (fo=1, unplaced)         0.800     1.771    clk_IBUF
                          BUFG (Prop_bufg_I_O)         0.101     1.872 r  clk_IBUF_BUFG_inst/O
-                         net (fo=200, unplaced)       0.584     2.456    u_regs_top/clk_IBUF_BUFG
-                         FDRE                                         r  u_regs_top/img_rows_r_reg[4]/C
+                         net (fo=236, unplaced)       0.584     2.456    u_regs_top/clk_IBUF_BUFG
+                         FDRE                                         r  u_regs_top/img_cols_r_reg[3]/C
   -------------------------------------------------------------------    -------------------
-                         FDRE (Prop_fdre_C_Q)         0.478     2.934 f  u_regs_top/img_rows_r_reg[4]/Q
-                         net (fo=57, unplaced)        0.827     3.761    u_regs_top/img_rows_r_reg[9]_1[4]
-                         LUT4 (Prop_lut4_I1_O)        0.295     4.056 f  u_regs_top/write_addr_i_16/O
-                         net (fo=10, unplaced)        0.492     4.548    u_regs_top/write_addr_i_16_n_0
-                         LUT6 (Prop_lut6_I0_O)        0.124     4.672 r  u_regs_top/i___9_carry_i_9__0/O
-                         net (fo=15, unplaced)        0.502     5.174    u_regs_top/i___9_carry_i_9__0_n_0
-                         LUT5 (Prop_lut5_I0_O)        0.124     5.298 r  u_regs_top/i___9_carry_i_8__2/O
-                         net (fo=1, unplaced)         0.665     5.963    u_shift_addr_gen/i__carry_i_30__0_2[0]
+                         FDRE (Prop_fdre_C_Q)         0.478     2.934 f  u_regs_top/img_cols_r_reg[3]/Q
+                         net (fo=54, unplaced)        1.049     3.983    u_regs_top/img_cols_r_reg[15]_0[3]
+                         LUT6 (Prop_lut6_I0_O)        0.295     4.278 r  u_regs_top/i___9_carry_i_9/O
+                         net (fo=11, unplaced)        0.495     4.773    u_regs_top/i___9_carry_i_9_n_0
+                         LUT6 (Prop_lut6_I2_O)        0.124     4.897 r  u_regs_top/i___9_carry_i_1/O
+                         net (fo=11, unplaced)        0.495     5.392    u_regs_top/img_cols_r_reg[8]_0
+                         LUT2 (Prop_lut2_I1_O)        0.124     5.516 r  u_regs_top/i___9_carry__0_i_4/O
+                         net (fo=2, unplaced)         0.460     5.976    u_regs_top/img_cols_r_reg[8]_7[0]
+                         LUT6 (Prop_lut6_I0_O)        0.124     6.100 r  u_regs_top/i___9_carry__0_i_8/O
+                         net (fo=1, unplaced)         0.000     6.100    u_shift_addr_gen/i__carry_i_25_1[0]
                          CARRY4 (Prop_carry4_S[0]_CO[3])
-                                                      0.637     6.600 r  u_shift_addr_gen/calc_row2_inferred__1/i___9_carry/CO[3]
-                         net (fo=1, unplaced)         0.009     6.609    u_shift_addr_gen/calc_row2_inferred__1/i___9_carry_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117     6.726 r  u_shift_addr_gen/calc_row2_inferred__1/i___9_carry__0/CO[3]
-                         net (fo=1, unplaced)         0.000     6.726    u_shift_addr_gen/calc_row2_inferred__1/i___9_carry__0_n_0
+                                                      0.513     6.613 r  u_shift_addr_gen/calc_col2_inferred__1/i___9_carry__0/CO[3]
+                         net (fo=1, unplaced)         0.000     6.613    u_shift_addr_gen/calc_col2_inferred__1/i___9_carry__0_n_0
                          CARRY4 (Prop_carry4_CI_CO[2])
-                                                      0.252     6.978 r  u_shift_addr_gen/calc_row2_inferred__1/i___9_carry__1/CO[2]
-                         net (fo=13, unplaced)        0.502     7.480    u_regs_top/i__carry_i_30__0[0]
-                         LUT3 (Prop_lut3_I0_O)        0.310     7.790 r  u_regs_top/i__carry_i_48__0/O
-                         net (fo=1, unplaced)         0.000     7.790    u_shift_addr_gen/i__carry_i_15_0[0]
+                                                      0.252     6.865 r  u_shift_addr_gen/calc_col2_inferred__1/i___9_carry__1/CO[2]
+                         net (fo=13, unplaced)        0.502     7.367    u_regs_top/i__carry_i_30[0]
+                         LUT3 (Prop_lut3_I0_O)        0.310     7.677 r  u_regs_top/i__carry_i_48/O
+                         net (fo=1, unplaced)         0.000     7.677    u_shift_addr_gen/i__carry_i_15_0[0]
                          CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.533     8.323 r  u_shift_addr_gen/i__carry_i_30__0/CO[3]
-                         net (fo=1, unplaced)         0.009     8.332    u_shift_addr_gen/i__carry_i_30__0_n_0
+                                                      0.533     8.210 r  u_shift_addr_gen/i__carry_i_30/CO[3]
+                         net (fo=1, unplaced)         0.009     8.219    u_shift_addr_gen/i__carry_i_30_n_0
                          CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117     8.449 r  u_shift_addr_gen/i__carry_i_25__0/CO[3]
-                         net (fo=1, unplaced)         0.000     8.449    u_shift_addr_gen/i__carry_i_25__0_n_0
+                                                      0.117     8.336 r  u_shift_addr_gen/i__carry_i_25/CO[3]
+                         net (fo=1, unplaced)         0.000     8.336    u_shift_addr_gen/i__carry_i_25_n_0
                          CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117     8.566 r  u_shift_addr_gen/i__carry_i_24__0/CO[3]
-                         net (fo=13, unplaced)        0.968     9.534    u_regs_top/i__carry_i_15[0]
-                         LUT3 (Prop_lut3_I0_O)        0.124     9.658 r  u_regs_top/i__carry_i_33__0/O
-                         net (fo=1, unplaced)         0.000     9.658    u_shift_addr_gen/i__carry_i_9__2_0[0]
+                                                      0.117     8.453 r  u_shift_addr_gen/i__carry_i_24/CO[3]
+                         net (fo=13, unplaced)        0.968     9.421    u_regs_top/i__carry_i_15[0]
+                         LUT3 (Prop_lut3_I0_O)        0.124     9.545 r  u_regs_top/i__carry_i_33/O
+                         net (fo=1, unplaced)         0.000     9.545    u_shift_addr_gen/i__carry_i_9__1_0[0]
                          CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.533    10.191 r  u_shift_addr_gen/i__carry_i_15/CO[3]
-                         net (fo=1, unplaced)         0.009    10.200    u_shift_addr_gen/i__carry_i_15_n_0
+                                                      0.533    10.078 r  u_shift_addr_gen/i__carry_i_15/CO[3]
+                         net (fo=1, unplaced)         0.009    10.087    u_shift_addr_gen/i__carry_i_15_n_0
                          CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    10.317 r  u_shift_addr_gen/i__carry_i_19__0/CO[3]
-                         net (fo=1, unplaced)         0.000    10.317    u_shift_addr_gen/i__carry_i_19__0_n_0
+                                                      0.117    10.204 r  u_shift_addr_gen/i__carry_i_19/CO[3]
+                         net (fo=1, unplaced)         0.000    10.204    u_shift_addr_gen/i__carry_i_19_n_0
                          CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    10.434 r  u_shift_addr_gen/i__carry_i_14__0/CO[3]
-                         net (fo=13, unplaced)        0.968    11.402    u_regs_top/i__carry_i_9__2[0]
-                         LUT3 (Prop_lut3_I0_O)        0.124    11.526 r  u_regs_top/i__carry_i_18__0/O
-                         net (fo=1, unplaced)         0.000    11.526    u_shift_addr_gen/i__carry_i_3__5[0]
+                                                      0.117    10.321 r  u_shift_addr_gen/i__carry_i_14/CO[3]
+                         net (fo=13, unplaced)        0.968    11.289    u_regs_top/i__carry_i_9__1[0]
+                         LUT3 (Prop_lut3_I0_O)        0.124    11.413 r  u_regs_top/i__carry_i_18/O
+                         net (fo=1, unplaced)         0.000    11.413    u_shift_addr_gen/i__carry_i_3__5[0]
+                         CARRY4 (Prop_carry4_S[1]_O[2])
+                                                      0.578    11.991 r  u_shift_addr_gen/i__carry_i_9__1/O[2]
+                         net (fo=4, unplaced)         0.929    12.920    u_regs_top/i__carry_i_12__1[1]
+                         LUT6 (Prop_lut6_I1_O)        0.301    13.221 r  u_regs_top/i__carry__0_i_13/O
+                         net (fo=5, unplaced)         0.447    13.668    u_regs_top/img_cols_r_reg[1]_0
+                         LUT5 (Prop_lut5_I2_O)        0.124    13.792 r  u_regs_top/i__carry__0_i_22/O
+                         net (fo=2, unplaced)         0.460    14.252    u_regs_top/i__carry__0_i_22_n_0
+                         LUT5 (Prop_lut5_I0_O)        0.124    14.376 r  u_regs_top/i__carry__0_i_16/O
+                         net (fo=2, unplaced)         0.460    14.836    u_shift_addr_gen/i__carry__0_i_6_0
+                         LUT6 (Prop_lut6_I5_O)        0.124    14.960 f  u_shift_addr_gen/i__carry__0_i_9/O
+                         net (fo=3, unplaced)         0.467    15.427    u_shift_addr_gen/i__carry__0_i_9_n_0
+                         LUT3 (Prop_lut3_I1_O)        0.124    15.551 r  u_shift_addr_gen/i__carry__0_i_1__1/O
+                         net (fo=1, unplaced)         0.473    16.024    u_shift_addr_gen/i__carry__0_i_1__1_n_0
+                         CARRY4 (Prop_carry4_DI[3]_CO[3])
+                                                      0.396    16.420 r  u_shift_addr_gen/calc_col1_inferred__1/i__carry__0/CO[3]
+                         net (fo=1, unplaced)         0.000    16.420    u_shift_addr_gen/calc_col1_inferred__1/i__carry__0_n_0
+                         CARRY4 (Prop_carry4_CI_O[1])
+                                                      0.337    16.757 r  u_shift_addr_gen/calc_col1_inferred__1/i__carry__1/O[1]
+                         net (fo=6, unplaced)         0.344    17.101    u_regs_top/O[1]
+                         LUT6 (Prop_lut6_I2_O)        0.306    17.407 r  u_regs_top/calc_col0__9_carry_i_9/O
+                         net (fo=11, unplaced)        0.495    17.902    u_regs_top/calc_col0__9_carry_i_9_n_0
+                         LUT6 (Prop_lut6_I2_O)        0.124    18.026 r  u_regs_top/calc_col0__9_carry_i_1/O
+                         net (fo=11, unplaced)        0.495    18.521    u_regs_top/img_cols_r_reg[8]_1
+                         LUT2 (Prop_lut2_I1_O)        0.124    18.645 r  u_regs_top/calc_col0__9_carry__0_i_4/O
+                         net (fo=2, unplaced)         0.460    19.105    u_regs_top/img_cols_r_reg[8]_9[0]
+                         LUT6 (Prop_lut6_I0_O)        0.124    19.229 r  u_regs_top/calc_col0__9_carry__0_i_8/O
+                         net (fo=1, unplaced)         0.000    19.229    u_shift_addr_gen/calc_col_r_reg[9]_i_183_1[0]
+                         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.513    19.742 r  u_shift_addr_gen/calc_col0__9_carry__0/CO[3]
+                         net (fo=1, unplaced)         0.000    19.742    u_shift_addr_gen/calc_col0__9_carry__0_n_0
+                         CARRY4 (Prop_carry4_CI_CO[2])
+                                                      0.252    19.994 r  u_shift_addr_gen/calc_col0__9_carry__1/CO[2]
+                         net (fo=13, unplaced)        0.502    20.496    u_shift_addr_gen/calc_col0__9_carry__1_n_1
+                         LUT3 (Prop_lut3_I0_O)        0.310    20.806 r  u_shift_addr_gen/calc_col_r[9]_i_217/O
+                         net (fo=1, unplaced)         0.000    20.806    u_shift_addr_gen/calc_col_r[9]_i_217_n_0
                          CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.533    12.059 r  u_shift_addr_gen/i__carry_i_9__2/CO[3]
-                         net (fo=1, unplaced)         0.009    12.068    u_shift_addr_gen/i__carry_i_9__2_n_0
+                                                      0.533    21.339 r  u_shift_addr_gen/calc_col_r_reg[9]_i_188/CO[3]
+                         net (fo=1, unplaced)         0.009    21.348    u_shift_addr_gen/calc_col_r_reg[9]_i_188_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    21.465 r  u_shift_addr_gen/calc_col_r_reg[9]_i_183/CO[3]
+                         net (fo=1, unplaced)         0.000    21.465    u_shift_addr_gen/calc_col_r_reg[9]_i_183_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    21.582 r  u_shift_addr_gen/calc_col_r_reg[9]_i_182/CO[3]
+                         net (fo=13, unplaced)        0.968    22.550    u_shift_addr_gen/calc_col_r_reg[9]_i_182_n_0
+                         LUT3 (Prop_lut3_I0_O)        0.124    22.674 r  u_shift_addr_gen/calc_col_r[9]_i_195/O
+                         net (fo=1, unplaced)         0.000    22.674    u_shift_addr_gen/calc_col_r[9]_i_195_n_0
+                         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.533    23.207 r  u_shift_addr_gen/calc_col_r_reg[9]_i_160/CO[3]
+                         net (fo=1, unplaced)         0.009    23.216    u_shift_addr_gen/calc_col_r_reg[9]_i_160_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    23.333 r  u_shift_addr_gen/calc_col_r_reg[9]_i_155/CO[3]
+                         net (fo=1, unplaced)         0.000    23.333    u_shift_addr_gen/calc_col_r_reg[9]_i_155_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    23.450 r  u_shift_addr_gen/calc_col_r_reg[9]_i_154/CO[3]
+                         net (fo=13, unplaced)        0.968    24.418    u_shift_addr_gen/calc_col_r_reg[9]_i_154_n_0
+                         LUT3 (Prop_lut3_I0_O)        0.124    24.542 r  u_shift_addr_gen/calc_col_r[9]_i_167/O
+                         net (fo=1, unplaced)         0.000    24.542    u_shift_addr_gen/calc_col_r[9]_i_167_n_0
+                         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.533    25.075 r  u_shift_addr_gen/calc_col_r_reg[9]_i_132/CO[3]
+                         net (fo=1, unplaced)         0.009    25.084    u_shift_addr_gen/calc_col_r_reg[9]_i_132_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    25.201 r  u_shift_addr_gen/calc_col_r_reg[9]_i_127/CO[3]
+                         net (fo=1, unplaced)         0.000    25.201    u_shift_addr_gen/calc_col_r_reg[9]_i_127_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    25.318 r  u_shift_addr_gen/calc_col_r_reg[9]_i_126/CO[3]
+                         net (fo=13, unplaced)        0.968    26.286    u_shift_addr_gen/calc_col_r_reg[9]_i_126_n_0
+                         LUT3 (Prop_lut3_I0_O)        0.124    26.410 r  u_shift_addr_gen/calc_col_r[9]_i_139/O
+                         net (fo=1, unplaced)         0.000    26.410    u_shift_addr_gen/calc_col_r[9]_i_139_n_0
+                         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.533    26.943 r  u_shift_addr_gen/calc_col_r_reg[9]_i_104/CO[3]
+                         net (fo=1, unplaced)         0.009    26.952    u_shift_addr_gen/calc_col_r_reg[9]_i_104_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    27.069 r  u_shift_addr_gen/calc_col_r_reg[9]_i_99/CO[3]
+                         net (fo=1, unplaced)         0.000    27.069    u_shift_addr_gen/calc_col_r_reg[9]_i_99_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    27.186 r  u_shift_addr_gen/calc_col_r_reg[9]_i_98/CO[3]
+                         net (fo=13, unplaced)        0.968    28.154    u_shift_addr_gen/calc_col_r_reg[9]_i_98_n_0
+                         LUT3 (Prop_lut3_I0_O)        0.124    28.278 r  u_shift_addr_gen/calc_col_r[9]_i_111/O
+                         net (fo=1, unplaced)         0.000    28.278    u_shift_addr_gen/calc_col_r[9]_i_111_n_0
+                         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.533    28.811 r  u_shift_addr_gen/calc_col_r_reg[9]_i_76/CO[3]
+                         net (fo=1, unplaced)         0.009    28.820    u_shift_addr_gen/calc_col_r_reg[9]_i_76_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    28.937 r  u_shift_addr_gen/calc_col_r_reg[9]_i_71/CO[3]
+                         net (fo=1, unplaced)         0.000    28.937    u_shift_addr_gen/calc_col_r_reg[9]_i_71_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    29.054 r  u_shift_addr_gen/calc_col_r_reg[9]_i_70/CO[3]
+                         net (fo=13, unplaced)        0.968    30.022    u_shift_addr_gen/calc_col_r_reg[9]_i_70_n_0
+                         LUT3 (Prop_lut3_I0_O)        0.124    30.146 r  u_shift_addr_gen/calc_col_r[9]_i_83/O
+                         net (fo=1, unplaced)         0.000    30.146    u_shift_addr_gen/calc_col_r[9]_i_83_n_0
+                         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.533    30.679 r  u_shift_addr_gen/calc_col_r_reg[9]_i_49/CO[3]
+                         net (fo=1, unplaced)         0.009    30.688    u_shift_addr_gen/calc_col_r_reg[9]_i_49_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    30.805 r  u_shift_addr_gen/calc_col_r_reg[9]_i_44/CO[3]
+                         net (fo=1, unplaced)         0.000    30.805    u_shift_addr_gen/calc_col_r_reg[9]_i_44_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    30.922 r  u_shift_addr_gen/calc_col_r_reg[9]_i_43/CO[3]
+                         net (fo=13, unplaced)        0.968    31.890    u_shift_addr_gen/calc_col_r_reg[9]_i_43_n_0
+                         LUT3 (Prop_lut3_I0_O)        0.124    32.014 r  u_shift_addr_gen/calc_col_r[6]_i_26/O
+                         net (fo=1, unplaced)         0.000    32.014    u_shift_addr_gen/calc_col_r[6]_i_26_n_0
+                         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.533    32.547 r  u_shift_addr_gen/calc_col_r_reg[6]_i_16/CO[3]
+                         net (fo=1, unplaced)         0.009    32.556    u_shift_addr_gen/calc_col_r_reg[6]_i_16_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    32.673 r  u_shift_addr_gen/calc_col_r_reg[9]_i_23/CO[3]
+                         net (fo=1, unplaced)         0.000    32.673    u_shift_addr_gen/calc_col_r_reg[9]_i_23_n_0
+                         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117    32.790 r  u_shift_addr_gen/calc_col_r_reg[9]_i_22/CO[3]
+                         net (fo=13, unplaced)        0.968    33.758    u_shift_addr_gen/calc_col_r_reg[9]_i_22_n_0
+                         LUT3 (Prop_lut3_I0_O)        0.124    33.882 r  u_shift_addr_gen/calc_col_r[2]_i_15/O
+                         net (fo=1, unplaced)         0.000    33.882    u_shift_addr_gen/calc_col_r[2]_i_15_n_0
+                         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.533    34.415 r  u_shift_addr_gen/calc_col_r_reg[2]_i_7/CO[3]
+                         net (fo=1, unplaced)         0.009    34.424    u_shift_addr_gen/calc_col_r_reg[2]_i_7_n_0
                          CARRY4 (Prop_carry4_CI_O[2])
-                                                      0.256    12.324 r  u_shift_addr_gen/i__carry__0_i_10/O[2]
-                         net (fo=3, unplaced)         0.470    12.794    u_regs_top/i__carry__1_i_4__0[2]
-                         LUT2 (Prop_lut2_I1_O)        0.301    13.095 f  u_regs_top/i__carry__0_i_16__0/O
-                         net (fo=1, unplaced)         1.111    14.206    u_regs_top/i__carry__0_i_16__0_n_0
-                         LUT6 (Prop_lut6_I0_O)        0.124    14.330 f  u_regs_top/i__carry__0_i_9__0/O
-                         net (fo=4, unplaced)         0.473    14.803    u_regs_top/img_rows_r_reg[5]_0
-                         LUT5 (Prop_lut5_I4_O)        0.124    14.927 r  u_regs_top/i__carry__1_i_6__0/O
-                         net (fo=2, unplaced)         0.460    15.387    u_shift_addr_gen/i__carry__1_i_2__3_0
-                         LUT4 (Prop_lut4_I1_O)        0.124    15.511 r  u_shift_addr_gen/i__carry__1_i_4__0/O
-                         net (fo=2, unplaced)         0.460    15.971    u_shift_addr_gen/i__carry__1_i_4__0_n_0
-                         LUT6 (Prop_lut6_I4_O)        0.124    16.095 r  u_shift_addr_gen/i__carry__1_i_3__3/O
-                         net (fo=1, unplaced)         0.000    16.095    u_shift_addr_gen/i__carry__1_i_3__3_n_0
-                         CARRY4 (Prop_carry4_S[0]_O[1])
-                                                      0.427    16.522 r  u_shift_addr_gen/calc_row1_inferred__1/i__carry__1/O[1]
-                         net (fo=6, unplaced)         0.344    16.866    u_regs_top/calc_row0__9_carry[1]
-                         LUT6 (Prop_lut6_I3_O)        0.306    17.172 r  u_regs_top/calc_row0__9_carry_i_9/O
-                         net (fo=15, unplaced)        0.502    17.674    u_regs_top/calc_row0__9_carry_i_9_n_0
-                         LUT6 (Prop_lut6_I0_O)        0.124    17.798 r  u_regs_top/calc_row0__9_carry_i_8/O
-                         net (fo=1, unplaced)         0.665    18.463    u_shift_addr_gen/read_addr_i_566_2[0]
-                         CARRY4 (Prop_carry4_S[0]_CO[3])
-                                                      0.637    19.100 r  u_shift_addr_gen/calc_row0__9_carry/CO[3]
-                         net (fo=1, unplaced)         0.009    19.109    u_shift_addr_gen/calc_row0__9_carry_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    19.226 r  u_shift_addr_gen/calc_row0__9_carry__0/CO[3]
-                         net (fo=1, unplaced)         0.000    19.226    u_shift_addr_gen/calc_row0__9_carry__0_n_0
-                         CARRY4 (Prop_carry4_CI_CO[2])
-                                                      0.252    19.478 r  u_shift_addr_gen/calc_row0__9_carry__1/CO[2]
-                         net (fo=13, unplaced)        0.502    19.980    u_shift_addr_gen/calc_row0__9_carry__1_n_1
-                         LUT3 (Prop_lut3_I0_O)        0.310    20.290 r  u_shift_addr_gen/read_addr_i_623/O
-                         net (fo=1, unplaced)         0.000    20.290    u_shift_addr_gen/read_addr_i_623_n_0
-                         CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.533    20.823 r  u_shift_addr_gen/read_addr_i_566/CO[3]
-                         net (fo=1, unplaced)         0.009    20.832    u_shift_addr_gen/read_addr_i_566_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    20.949 r  u_shift_addr_gen/read_addr_i_561/CO[3]
-                         net (fo=1, unplaced)         0.000    20.949    u_shift_addr_gen/read_addr_i_561_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    21.066 r  u_shift_addr_gen/read_addr_i_560/CO[3]
-                         net (fo=13, unplaced)        0.968    22.034    u_shift_addr_gen/read_addr_i_560_n_0
-                         LUT3 (Prop_lut3_I0_O)        0.124    22.158 r  u_shift_addr_gen/read_addr_i_573/O
-                         net (fo=1, unplaced)         0.000    22.158    u_shift_addr_gen/read_addr_i_573_n_0
-                         CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.533    22.691 r  u_shift_addr_gen/read_addr_i_510/CO[3]
-                         net (fo=1, unplaced)         0.009    22.700    u_shift_addr_gen/read_addr_i_510_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    22.817 r  u_shift_addr_gen/read_addr_i_505/CO[3]
-                         net (fo=1, unplaced)         0.000    22.817    u_shift_addr_gen/read_addr_i_505_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    22.934 r  u_shift_addr_gen/read_addr_i_504/CO[3]
-                         net (fo=13, unplaced)        0.968    23.902    u_shift_addr_gen/read_addr_i_504_n_0
-                         LUT3 (Prop_lut3_I0_O)        0.124    24.026 r  u_shift_addr_gen/read_addr_i_517/O
-                         net (fo=1, unplaced)         0.000    24.026    u_shift_addr_gen/read_addr_i_517_n_0
-                         CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.533    24.559 r  u_shift_addr_gen/read_addr_i_454/CO[3]
-                         net (fo=1, unplaced)         0.009    24.568    u_shift_addr_gen/read_addr_i_454_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    24.685 r  u_shift_addr_gen/read_addr_i_449/CO[3]
-                         net (fo=1, unplaced)         0.000    24.685    u_shift_addr_gen/read_addr_i_449_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    24.802 r  u_shift_addr_gen/read_addr_i_448/CO[3]
-                         net (fo=13, unplaced)        0.968    25.770    u_shift_addr_gen/read_addr_i_448_n_0
-                         LUT3 (Prop_lut3_I0_O)        0.124    25.894 r  u_shift_addr_gen/read_addr_i_461/O
-                         net (fo=1, unplaced)         0.000    25.894    u_shift_addr_gen/read_addr_i_461_n_0
-                         CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.533    26.427 r  u_shift_addr_gen/read_addr_i_398/CO[3]
-                         net (fo=1, unplaced)         0.009    26.436    u_shift_addr_gen/read_addr_i_398_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    26.553 r  u_shift_addr_gen/read_addr_i_393/CO[3]
-                         net (fo=1, unplaced)         0.000    26.553    u_shift_addr_gen/read_addr_i_393_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    26.670 r  u_shift_addr_gen/read_addr_i_392/CO[3]
-                         net (fo=13, unplaced)        0.968    27.638    u_shift_addr_gen/read_addr_i_392_n_0
-                         LUT3 (Prop_lut3_I0_O)        0.124    27.762 r  u_shift_addr_gen/read_addr_i_405/O
-                         net (fo=1, unplaced)         0.000    27.762    u_shift_addr_gen/read_addr_i_405_n_0
-                         CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.533    28.295 r  u_shift_addr_gen/read_addr_i_342/CO[3]
-                         net (fo=1, unplaced)         0.009    28.304    u_shift_addr_gen/read_addr_i_342_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    28.421 r  u_shift_addr_gen/read_addr_i_337/CO[3]
-                         net (fo=1, unplaced)         0.000    28.421    u_shift_addr_gen/read_addr_i_337_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    28.538 r  u_shift_addr_gen/read_addr_i_336/CO[3]
-                         net (fo=13, unplaced)        0.968    29.506    u_shift_addr_gen/read_addr_i_336_n_0
-                         LUT3 (Prop_lut3_I0_O)        0.124    29.630 r  u_shift_addr_gen/read_addr_i_349/O
-                         net (fo=1, unplaced)         0.000    29.630    u_shift_addr_gen/read_addr_i_349_n_0
-                         CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.533    30.163 r  u_shift_addr_gen/read_addr_i_278/CO[3]
-                         net (fo=1, unplaced)         0.009    30.172    u_shift_addr_gen/read_addr_i_278_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    30.289 r  u_shift_addr_gen/read_addr_i_273/CO[3]
-                         net (fo=1, unplaced)         0.000    30.289    u_shift_addr_gen/read_addr_i_273_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    30.406 r  u_shift_addr_gen/read_addr_i_272/CO[3]
-                         net (fo=13, unplaced)        0.968    31.374    u_shift_addr_gen/read_addr_i_272_n_0
-                         LUT3 (Prop_lut3_I0_O)        0.124    31.498 r  u_shift_addr_gen/read_addr_i_292/O
-                         net (fo=1, unplaced)         0.000    31.498    u_shift_addr_gen/read_addr_i_292_n_0
-                         CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.533    32.031 r  u_shift_addr_gen/read_addr_i_193/CO[3]
-                         net (fo=1, unplaced)         0.009    32.040    u_shift_addr_gen/read_addr_i_193_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    32.157 r  u_shift_addr_gen/read_addr_i_175/CO[3]
-                         net (fo=1, unplaced)         0.000    32.157    u_shift_addr_gen/read_addr_i_175_n_0
-                         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.117    32.274 r  u_shift_addr_gen/read_addr_i_174/CO[3]
-                         net (fo=13, unplaced)        0.968    33.242    u_shift_addr_gen/read_addr_i_174_n_0
-                         LUT3 (Prop_lut3_I0_O)        0.124    33.366 r  u_shift_addr_gen/read_addr_i_211/O
-                         net (fo=1, unplaced)         0.000    33.366    u_shift_addr_gen/read_addr_i_211_n_0
-                         CARRY4 (Prop_carry4_S[1]_O[3])
-                                                      0.643    34.009 f  u_shift_addr_gen/read_addr_i_112/O[3]
-                         net (fo=4, unplaced)         0.642    34.651    u_regs_top/read_addr_30[2]
-                         LUT2 (Prop_lut2_I1_O)        0.307    34.958 r  u_regs_top/read_addr_i_199/O
-                         net (fo=1, unplaced)         0.665    35.623    u_regs_top/read_addr_i_199_n_0
-                         LUT6 (Prop_lut6_I1_O)        0.124    35.747 r  u_regs_top/read_addr_i_101/O
-                         net (fo=6, unplaced)         0.934    36.681    u_regs_top/read_addr_i_101_n_0
-                         LUT6 (Prop_lut6_I4_O)        0.124    36.805 r  u_regs_top/read_addr_i_83/O
-                         net (fo=1, unplaced)         0.449    37.254    u_shift_addr_gen/read_addr_10
-                         LUT6 (Prop_lut6_I2_O)        0.124    37.378 r  u_shift_addr_gen/read_addr_i_24/O
-                         net (fo=1, unplaced)         0.449    37.827    u_regs_top/read_addr_15
-                         LUT6 (Prop_lut6_I4_O)        0.124    37.951 r  u_regs_top/read_addr_i_1/O
-                         net (fo=1, unplaced)         0.800    38.751    u_shift_addr_gen/A[7]
-                         DSP48E1 (Prop_dsp48e1_A[9]_P[7])
-                                                      3.841    42.592 r  u_shift_addr_gen/read_addr/P[7]
-                         net (fo=1, unplaced)         0.800    43.392    u_frame_buf_mgr/bram_reg_2[7]
-                         RAMB36E1                                     r  u_frame_buf_mgr/bram_reg/ADDRBWRADDR[10]
+                                                      0.256    34.680 r  u_shift_addr_gen/calc_col_r_reg[6]_i_10/O[2]
+                         net (fo=6, unplaced)         0.937    35.617    u_regs_top/calc_col_r_reg[6]_0[2]
+                         LUT6 (Prop_lut6_I3_O)        0.301    35.918 r  u_regs_top/calc_col_r[9]_i_29/O
+                         net (fo=3, unplaced)         0.467    36.385    u_regs_top/calc_col_r[9]_i_29_n_0
+                         LUT6 (Prop_lut6_I1_O)        0.124    36.509 r  u_regs_top/calc_col_r[9]_i_30/O
+                         net (fo=1, unplaced)         0.449    36.958    u_regs_top/calc_col_r[9]_i_30_n_0
+                         LUT6 (Prop_lut6_I5_O)        0.124    37.082 r  u_regs_top/calc_col_r[9]_i_12/O
+                         net (fo=1, unplaced)         0.449    37.531    u_shift_addr_gen/calc_col_r_reg[9]_1
+                         LUT6 (Prop_lut6_I2_O)        0.124    37.655 r  u_shift_addr_gen/calc_col_r[9]_i_7/O
+                         net (fo=1, unplaced)         0.449    38.104    u_regs_top/calc_col_r_reg[9]_1
+                         LUT6 (Prop_lut6_I5_O)        0.124    38.228 r  u_regs_top/calc_col_r[9]_i_2/O
+                         net (fo=1, unplaced)         0.000    38.228    u_shift_addr_gen/D[8]
+                         FDCE                                         r  u_shift_addr_gen/calc_col_r_reg[9]/D
   -------------------------------------------------------------------    -------------------
 
                          (clock clk rise edge)       10.000    10.000 r  
@@ -407,17 +406,16 @@ Slack (VIOLATED) :        -31.682ns  (required time - arrival time)
                          IBUF (Prop_ibuf_I_O)         0.838    10.838 r  clk_IBUF_inst/O
                          net (fo=1, unplaced)         0.760    11.598    clk_IBUF
                          BUFG (Prop_bufg_I_O)         0.091    11.689 r  clk_IBUF_BUFG_inst/O
-                         net (fo=200, unplaced)       0.439    12.128    u_frame_buf_mgr/clk_IBUF_BUFG
-                         RAMB36E1                                     r  u_frame_buf_mgr/bram_reg/CLKBWRCLK
+                         net (fo=236, unplaced)       0.439    12.128    u_shift_addr_gen/clk_IBUF_BUFG
+                         FDCE                                         r  u_shift_addr_gen/calc_col_r_reg[9]/C
                          clock pessimism              0.184    12.311    
                          clock uncertainty           -0.035    12.276    
-                         RAMB36E1 (Setup_ramb36e1_CLKBWRCLK_ADDRBWRADDR[10])
-                                                     -0.566    11.710    u_frame_buf_mgr/bram_reg
+                         FDCE (Setup_fdce_C_D)        0.044    12.320    u_shift_addr_gen/calc_col_r_reg[9]
   -------------------------------------------------------------------
-                         required time                         11.710    
-                         arrival time                         -43.392    
+                         required time                         12.320    
+                         arrival time                         -38.228    
   -------------------------------------------------------------------
-                         slack                                -31.682    
+                         slack                                -25.908    
 
 
 
@@ -448,7 +446,7 @@ Slack (MET) :             0.132ns  (arrival time - required time)
                          IBUF (Prop_ibuf_I_O)         0.200     0.200 r  clk_IBUF_inst/O
                          net (fo=1, unplaced)         0.337     0.538    clk_IBUF
                          BUFG (Prop_bufg_I_O)         0.026     0.564 r  clk_IBUF_BUFG_inst/O
-                         net (fo=200, unplaced)       0.114     0.678    u_axil_slave_if/clk_IBUF_BUFG
+                         net (fo=236, unplaced)       0.114     0.678    u_axil_slave_if/clk_IBUF_BUFG
                          FDRE                                         r  u_axil_slave_if/wdata_q_reg[10]/C
   -------------------------------------------------------------------    -------------------
                          FDRE (Prop_fdre_C_Q)         0.147     0.825 r  u_axil_slave_if/wdata_q_reg[10]/Q
@@ -464,7 +462,7 @@ Slack (MET) :             0.132ns  (arrival time - required time)
                          IBUF (Prop_ibuf_I_O)         0.389     0.389 r  clk_IBUF_inst/O
                          net (fo=1, unplaced)         0.355     0.744    clk_IBUF
                          BUFG (Prop_bufg_I_O)         0.029     0.773 r  clk_IBUF_BUFG_inst/O
-                         net (fo=200, unplaced)       0.259     1.032    u_axil_slave_if/clk_IBUF_BUFG
+                         net (fo=236, unplaced)       0.259     1.032    u_axil_slave_if/clk_IBUF_BUFG
                          FDRE                                         r  u_axil_slave_if/wdata_reg[10]/C
                          clock pessimism             -0.210     0.823    
                          FDRE (Hold_fdre_C_D)         0.099     0.922    u_axil_slave_if/wdata_reg[10]
@@ -487,132 +485,8 @@ Sources:            { clk }
 
 Check Type        Corner  Lib Pin             Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location  Pin
 Min Period        n/a     RAMB36E1/CLKARDCLK  n/a            2.944         10.000      7.056                u_frame_buf_mgr/bram_reg/CLKARDCLK
-Low Pulse Width   Slow    FDRE/C              n/a            0.500         5.000       4.500                zero_fill_d1_reg/C
-High Pulse Width  Slow    FDRE/C              n/a            0.500         5.000       4.500                zero_fill_d1_reg/C
-
-
-
----------------------------------------------------------------------------------------------------
-Path Group:  **async_default**
-From Clock:  clk
-  To Clock:  clk
-
-Setup :            0  Failing Endpoints,  Worst Slack        6.957ns,  Total Violation        0.000ns
-Hold  :            0  Failing Endpoints,  Worst Slack        1.977ns,  Total Violation        0.000ns
----------------------------------------------------------------------------------------------------
-
-
-Max Delay Paths
---------------------------------------------------------------------------------------
-Slack (MET) :             6.957ns  (required time - arrival time)
-  Source:                 rstn
-                            (input port clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
-  Destination:            u_axis_output/all_done_q_reg/CLR
-                            (recovery check against rising-edge clock clk  {rise@0.000ns fall@5.000ns period=10.000ns})
-  Path Group:             **async_default**
-  Path Type:              Recovery (Max at Slow Process Corner)
-  Requirement:            10.000ns  (clk rise@10.000ns - clk rise@0.000ns)
-  Data Path Delay:        2.783ns  (logic 1.096ns (39.365%)  route 1.688ns (60.635%))
-  Logic Levels:           2  (IBUF=1 LUT1=1)
-  Input Delay:            2.000ns
-  Clock Path Skew:        2.128ns (DCD - SCD + CPR)
-    Destination Clock Delay (DCD):    2.128ns = ( 12.128 - 10.000 ) 
-    Source Clock Delay      (SCD):    0.000ns
-    Clock Pessimism Removal (CPR):    0.000ns
-  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
-    Total System Jitter     (TSJ):    0.071ns
-    Total Input Jitter      (TIJ):    0.000ns
-    Discrete Jitter          (DJ):    0.000ns
-    Phase Error              (PE):    0.000ns
-
-    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
-  -------------------------------------------------------------------    -------------------
-                         (clock clk rise edge)        0.000     0.000 r  
-                         input delay                  2.000     2.000    
-                                                      0.000     2.000 r  rstn (IN)
-                         net (fo=0)                   0.000     2.000    rstn
-                         IBUF (Prop_ibuf_I_O)         0.972     2.972 r  rstn_IBUF_inst/O
-                         net (fo=11, unplaced)        0.800     3.771    u_regs_top/rstn_IBUF
-                         LUT1 (Prop_lut1_I0_O)        0.124     3.895 f  u_regs_top/FSM_sequential_wstate[1]_i_1/O
-                         net (fo=165, unplaced)       0.888     4.783    u_axis_output/all_done_q_reg_0
-                         FDCE                                         f  u_axis_output/all_done_q_reg/CLR
-  -------------------------------------------------------------------    -------------------
-
-                         (clock clk rise edge)       10.000    10.000 r  
-                                                      0.000    10.000 r  clk (IN)
-                         net (fo=0)                   0.000    10.000    clk
-                         IBUF (Prop_ibuf_I_O)         0.838    10.838 r  clk_IBUF_inst/O
-                         net (fo=1, unplaced)         0.760    11.598    clk_IBUF
-                         BUFG (Prop_bufg_I_O)         0.091    11.689 r  clk_IBUF_BUFG_inst/O
-                         net (fo=200, unplaced)       0.439    12.128    u_axis_output/clk_IBUF_BUFG
-                         FDCE                                         r  u_axis_output/all_done_q_reg/C
-                         clock pessimism              0.000    12.128    
-                         clock uncertainty           -0.035    12.092    
-                         FDCE (Recov_fdce_C_CLR)     -0.352    11.740    u_axis_output/all_done_q_reg
-  -------------------------------------------------------------------
-                         required time                         11.740    
-                         arrival time                          -4.783    
-  -------------------------------------------------------------------
-                         slack                                  6.957    
-
-
-
-
-
-Min Delay Paths
---------------------------------------------------------------------------------------
-Slack (MET) :             1.977ns  (arrival time - required time)
-  Source:                 rstn
-                            (input port clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
-  Destination:            u_axis_output/all_done_q_reg/CLR
-                            (removal check against rising-edge clock clk  {rise@0.000ns fall@5.000ns period=10.000ns})
-  Path Group:             **async_default**
-  Path Type:              Removal (Min at Fast Process Corner)
-  Requirement:            0.000ns  (clk rise@0.000ns - clk rise@0.000ns)
-  Data Path Delay:        0.957ns  (logic 0.245ns (25.652%)  route 0.711ns (74.348%))
-  Logic Levels:           2  (IBUF=1 LUT1=1)
-  Input Delay:            2.000ns
-  Clock Path Skew:        1.032ns (DCD - SCD - CPR)
-    Destination Clock Delay (DCD):    1.032ns
-    Source Clock Delay      (SCD):    0.000ns
-    Clock Pessimism Removal (CPR):    -0.000ns
-  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
-    Total System Jitter     (TSJ):    0.071ns
-    Total Input Jitter      (TIJ):    0.000ns
-    Discrete Jitter          (DJ):    0.000ns
-    Phase Error              (PE):    0.000ns
-
-    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
-  -------------------------------------------------------------------    -------------------
-                         (clock clk rise edge)        0.000     0.000 r  
-                         input delay                  2.000     2.000    
-                                                      0.000     2.000 r  rstn (IN)
-                         net (fo=0)                   0.000     2.000    rstn
-                         IBUF (Prop_ibuf_I_O)         0.200     2.200 r  rstn_IBUF_inst/O
-                         net (fo=11, unplaced)        0.337     2.538    u_regs_top/rstn_IBUF
-                         LUT1 (Prop_lut1_I0_O)        0.045     2.583 f  u_regs_top/FSM_sequential_wstate[1]_i_1/O
-                         net (fo=165, unplaced)       0.374     2.957    u_axis_output/all_done_q_reg_0
-                         FDCE                                         f  u_axis_output/all_done_q_reg/CLR
-  -------------------------------------------------------------------    -------------------
-
-                         (clock clk rise edge)        0.000     0.000 r  
-                                                      0.000     0.000 r  clk (IN)
-                         net (fo=0)                   0.000     0.000    clk
-                         IBUF (Prop_ibuf_I_O)         0.389     0.389 r  clk_IBUF_inst/O
-                         net (fo=1, unplaced)         0.355     0.744    clk_IBUF
-                         BUFG (Prop_bufg_I_O)         0.029     0.773 r  clk_IBUF_BUFG_inst/O
-                         net (fo=200, unplaced)       0.259     1.032    u_axis_output/clk_IBUF_BUFG
-                         FDCE                                         r  u_axis_output/all_done_q_reg/C
-                         clock pessimism              0.000     1.032    
-                         clock uncertainty            0.035     1.068    
-                         FDCE (Remov_fdce_C_CLR)     -0.088     0.980    u_axis_output/all_done_q_reg
-  -------------------------------------------------------------------
-                         required time                         -0.980    
-                         arrival time                           2.957    
-  -------------------------------------------------------------------
-                         slack                                  1.977    
-
-
+Low Pulse Width   Slow    FDRE/C              n/a            0.500         5.000       4.500                shift_en_dly_reg[0]/C
+High Pulse Width  Slow    FDRE/C              n/a            0.500         5.000       4.500                shift_en_dly_reg[0]/C
 
 
 

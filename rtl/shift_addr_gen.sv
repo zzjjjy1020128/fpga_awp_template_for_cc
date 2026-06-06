@@ -13,6 +13,15 @@
 //   LEFT : row * IMG_COLS + ((col + step) % IMG_COLS)
 //   RIGHT: row * IMG_COLS + ((col - step + IMG_COLS) % IMG_COLS)
 //
+// 流水线说明：
+//   本模块在地址计算路径中插入了 2 级流水线寄存器，用于拆分 54 级
+//   组合逻辑"取模运算 + DSP48E1 乘法 + 加法"路径，以满足 100MHz 时序。
+//   流水线划分：
+//     第 1 级：在方向选择（CASE 语句）输出后寄存 calc_row/calc_col/is_zero
+//     第 2 级：在乘加运算（read_addr = calc_row * img_cols + calc_col）
+//              输出后寄存 read_addr/zero_fill
+//   因此 read_addr/zero_fill 比内部 row_cnt/col_cnt 晚 2 个时钟周期。
+//
 // 接口说明：
 //   参数
 //     MAX_ROWS : 最大行数（默认 64）
@@ -27,8 +36,8 @@
 //     img_rows[9:0]   : 图像行数
 //     img_cols[9:0]   : 图像列数
 //   输出（至 frame_buf_mgr）
-//     read_addr[11:0] : BRAM 读地址（组合逻辑输出）
-//     zero_fill       : 补零标志（wrap_en=0 且越界时为 1）
+//     read_addr[11:0] : BRAM 读地址（流水线输出，比计数器晚 2 拍）
+//     zero_fill       : 补零标志（流水线输出，比计数器晚 2 拍）
 
 module shift_addr_gen #(
     parameter  MAX_ROWS = 64,
@@ -48,7 +57,8 @@ module shift_addr_gen #(
 
     // 输出接口
     output logic [11:0] read_addr,
-    output logic        zero_fill
+    output logic        zero_fill,
+    output logic        pipe_valid        // 流水线有效：stage2 输出有效时置位（比 shift_en 晚 2 拍）
 );
 
     // ============================================================
@@ -87,6 +97,9 @@ module shift_addr_gen #(
 
     // ============================================================
     // 地址计算（组合逻辑）
+    //
+    // 输出 calc_row / calc_col / is_zero 由方向选择（CASE 语句）
+    // 组合产生，结果送入第 1 级流水线寄存器。
     // ============================================================
     logic [9:0] step;
     logic [9:0] calc_row;
@@ -150,8 +163,82 @@ module shift_addr_gen #(
         endcase
     end
 
-    // 读地址 = calc_row * IMG_COLS + calc_col
-    assign read_addr = calc_row * img_cols + calc_col;
-    assign zero_fill = is_zero;
+    // ============================================================
+    // 流水线第 1 级：寄存 CASE 输出 calc_row / calc_col / is_zero
+    //
+    // 拆分点 1：将方向计算（加法/减法/取模/比较）与后续的乘加
+    // （DSP48E1 乘法 + 加法）分离。此寄存器之前的组合逻辑包含
+    // 所有方向算法的取模/比较 CARRY4 链，约 25-30 级。
+    // ============================================================
+    logic [9:0] calc_row_r;
+    logic [9:0] calc_col_r;
+    logic       is_zero_r;
+
+    always_ff @(posedge clk or negedge rstn) begin
+        if (!rstn) begin
+            calc_row_r <= '0;
+            calc_col_r <= '0;
+            is_zero_r  <= 1'b0;
+        end else if (shift_en && proceed) begin
+            calc_row_r <= calc_row;
+            calc_col_r <= calc_col;
+            is_zero_r  <= is_zero;
+        end else if (!shift_en) begin
+            calc_row_r <= '0;
+            calc_col_r <= '0;
+            is_zero_r  <= 1'b0;
+        end
+    end
+
+    // ============================================================
+    // 流水线有效标志（shift register，2 级匹配 stage1+stage2 延迟）
+    //
+    // pipe_valid[0] 在第 1 个 shift_en 有效周期置位,
+    // pipe_valid[1] 在第 2 个周期置位（等于 stage2 输出有效）。
+    // ============================================================
+    logic [1:0] pipe_valid_d;
+
+    always_ff @(posedge clk or negedge rstn) begin
+        if (!rstn)
+            pipe_valid_d <= 2'b00;
+        else if (shift_en && proceed)
+            pipe_valid_d <= {pipe_valid_d[0], 1'b1};
+        else if (!shift_en)
+            pipe_valid_d <= 2'b00;
+    end
+    assign pipe_valid = pipe_valid_d[1];
+
+    // ============================================================
+    // 乘加运算（组合逻辑）
+    //
+    // read_addr  = calc_row * IMG_COLS + calc_col
+    // zero_fill  = is_zero
+    //
+    // 此组合路径主要消耗在 DSP48E1 乘法 + 最终加法，约 15-20 级。
+    // ============================================================
+    logic [11:0] read_addr_cmb;
+    logic        zero_fill_cmb;
+
+    assign read_addr_cmb = calc_row_r * img_cols + calc_col_r;
+    assign zero_fill_cmb = is_zero_r;
+
+    // ============================================================
+    // 流水线第 2 级：寄存输出 read_addr / zero_fill
+    //
+    // 让乘加路径在第 2 级寄存器前闭合。两级流水线将原 54 级
+    // 组合路径拆分为约 30 级 + 15 级，使 100MHz 时序可收敛。
+    // ============================================================
+    always_ff @(posedge clk or negedge rstn) begin
+        if (!rstn) begin
+            read_addr <= '0;
+            zero_fill <= 1'b0;
+        end else if (shift_en && proceed) begin
+            read_addr <= read_addr_cmb;
+            zero_fill <= zero_fill_cmb;
+        end else if (!shift_en) begin
+            read_addr <= '0;
+            zero_fill <= 1'b0;
+        end
+    end
 
 endmodule

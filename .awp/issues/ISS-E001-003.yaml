@@ -5,33 +5,36 @@ status: "open"
 detected_at_level: "L3"
 detected_by_task: "TASK-E001-013"
 detected_by_session: "PLACEHOLDER_SESSION"
-detected_in_run: "RUN-E001-IMPL-001"
+detected_in_run: "RUN-E001-IMPL-001, RUN-E001-IMPL-002"
 
 suspected_owner_task: "TASK-E001-005"
 suspected_module: "shift_addr_gen"
 
-round_count: 1
+round_count: 3
 max_rounds: 3
 
 failure_signature:
-  test_case: "100 MHz timing closure (opt_design + place_design + route_design)"
-  timestamp: "2026-06-06 10:06:27"
+  test_case: "100 MHz timing closure after 2-stage pipeline insertion (opt_design + place_design + route_design)"
+  timestamp: "2026-06-06 11:59:21"
   signal: "WNS (setup)"
   expected: ">= 0.000 ns (timing met)"
-  observed: "-28.321 ns (47 failing endpoints, TNS = -565.214 ns)"
+  observed: "-22.577 ns (TNS = -639.805 ns, WHS = 0.105 ns)"
 
 evidence:
   logs:
     - ".awp/runs/RUN-E001-IMPL-001.md"
-    - "vivado/axil_2d_shift.runs/impl_1/post_route_timing_summary.rpt"
-    - "vivado/axil_2d_shift.runs/impl_1/worst_setup_paths.rpt"
+    - ".awp/runs/RUN-E001-IMPL-002.md"
+    - "vivado/axil_2d_shift.runs/synth_1/axil_2d_shift.dcp"
   notes:
-    - "Worst path: u_regs_top/img_cols_r_reg[0]/C → u_frame_buf_mgr/bram_reg/ADDRBWRADDR[5]"
-    - "Path delay: 37.707 ns (logic 43.1%, route 56.9%) — 3.77x clock period"
-    - "Logic levels: 54 (CARRY4=31, DSP48E1=1, LUT2=2, LUT3=7, LUT4=2, LUT5=1, LUT6=10)"
-    - "Improvement from synthesis WNS=-31.682 to routed WNS=-28.321 was only 10.6%, far below expected 70%+"
-    - "Root cause is structural: shift_addr_gen computes multi-cycle address in single clock with cascaded CARRY4 chains"
-    - "WHS=0.138 ns (PASS), no hold violations"
+    - "Round 3 (pipeline attempt) WNS=-22.577 ns, improved from -28.321 ns by +5.744 ns (20.3%), but still failing"
+    - "Worst path changed: u_regs_top/img_cols_r_reg[3]/C → u_shift_addr_gen/calc_col_r_reg[9]/D"
+    - "Path delay (post-synth): 35.772 ns (logic 43.85%, route 56.15%)"
+    - "Logic levels: 65 (CARRY4=36, LUT2=2, LUT3=12, LUT5=2, LUT6=13)"
+    - "Pipeline registers were placed AFTER CASE output, but CARRY4 chain inside modulo operation was not broken"
+    - "The modulo operation (col_cnt + step) % img_cols contains 36 CARRY4 levels"
+    - "Post-synth WNS=-25.908, post-route WNS=-22.577 (implementation improved only 12.7%)"
+    - "Register count increased from 197 to 233 (+36 due to pipeline)"
+    - "WHS=0.105 ns (PASS), no hold violations"
 
 attempts:
   - round: 1
@@ -39,21 +42,41 @@ attempts:
     action: "Standard implementation flow (opt_design + place_design + route_design) with Vivado 2022.2 default strategy"
     result: "fail (WNS = -28.321 ns)"
 
+  - round: 2
+    verifier_session: "SESS-E001-OR-003"
+    action: "Add 2-stage pipeline in shift_addr_gen: stage 1 registers CASE outputs (calc_row/calc_col/is_zero), stage 2 registers read_addr/zero_fill after multiply-add. Updated TB to account for 2-cycle output latency (wait_cycles(2) after shift_en assertion). 1233 L1a assertions all pass."
+    result: "pass (L1a simulation)"
+
+  - round: 3
+    verifier_session: "SESS-E001-OR-003"
+    action: "Synthesis + implementation re-run after pipeline insertion. Created RUN-E001-SYNTH-002.md and RUN-E001-IMPL-002.md."
+    result: "fail (WNS = -22.577 ns, 20.3% improvement but still 2.26x clock period)"
+
 next_action:
-  role: "TASK-E001-005 (shift_addr_gen module_owner)"
-  action: "Add pipeline registers in shift_addr_gen to break long combinational path"
+  role: "TASK-E001-005 (shift_addr_gen module_owner, round 3 escalation)"
+  action: "Restructure modulo operation with inter-stage pipeline registers inside the CASE branches, or replace single-cycle modulo with multi-cycle subtract-and-compare state machine"
+  escalate: true
+  escalation_reason: "Round 3 completed without timing closure. Pipeline after CASE was insufficient; the modulo CARRY4 chain inside CASE must be broken. Max rounds reached — per G4 rules, current agent (vivado_integrator) halts. Requires rtl_implementer intervention or human_owner decision."
 
 suggested_fixes:
   - priority: 1
-    description: "Insert 2-3 pipeline stages in shift_addr_gen address computation chain"
+    description: "Pipeline INSIDE the modulo operation — break (col_cnt + step) % img_cols into 2-cycle"
     details:
-      - "Add pipeline registers between calc_col2/calc_col1/calc_col0 adder tree stages"
-      - "Use DSP48E1 internal pipeline registers (AREG/BREG/PREG attributes)"
-      - "Register the final read_addr output before feeding to frame_buf_mgr BRAM"
-    expected_improvement: "Reduce max logic levels from 54 to ~18-20, enabling ~50-60 MHz path timing"
+      - "Cycle 1: compute col_cnt + step (10-bit addition), register result"
+      - "Cycle 2: compare with img_cols, subtract img_cols if >=, output result (implements modulo)"
+      - "Same approach for row operations and wrap_en=0 comparison paths"
+      - "This splits 36 CARRY4 levels into ~18 + ~18 logic levels"
+    expected_improvement: "Max logic levels reduced from 65 to ~30-35, enabling 100 MHz timing"
   - priority: 2
-    description: "BRAM output register in frame_buf_mgr"
+    description: "Replace modulo with counter-based wrap logic"
     details:
-      - "Add output register on BRAM data output (DOA/DOB)"
-      - "This helps BRAM → logic timing on the read data path (not the address path)"
-    expected_improvement: "Minor improvement on address-to-data path"
+      - "Instead of computing (cnt + step) % max, maintain separate wrap counters"
+      - "Pre-compute boundary-crossing conditions at config write time"
+      - "Use simple add/compare/mux per cycle, no modulo operator"
+    expected_improvement: "Eliminates CARRY4 chains from modulo, total logic ~15 levels"
+  - priority: 3
+    description: "Temporary: relax clock to 25 MHz (40 ns period)"
+    details:
+      - "Change XDC constraint to create_clock -period 40.000"
+      - "Allows immediate L3 pass for rest of flow, revisit pipeline later"
+    expected_improvement: "Immediate timing closure at 25 MHz (3x margin)"

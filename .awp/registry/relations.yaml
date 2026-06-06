@@ -7,7 +7,7 @@ relations:
   to: SESS-E001-OR-001
   type: from_session
 - from: ISS-E001-001
-  to: RUN-E001-L1B-WRITE-001
+  to: RUN-E001-L1B-WRITE-001, RUN-E001-L1B-READ-001
   type: detected_in
 - from: ISS-E001-001
   to: TASK-E001-004
@@ -25,13 +25,22 @@ relations:
   to: TASK-E001-005
   type: detected_by
 - from: ISS-E001-003
-  to: RUN-E001-IMPL-001
+  to: RUN-E001-IMPL-001, RUN-E001-IMPL-002
   type: detected_in
 - from: ISS-E001-003
   to: TASK-E001-005
   type: assigned_to
 - from: ISS-E001-003
   to: TASK-E001-013
+  type: detected_by
+- from: ISS-E001-004
+  to: RUN-E001-SIM-007
+  type: detected_in
+- from: ISS-E001-004
+  to: TASK-E001-004
+  type: assigned_to
+- from: ISS-E001-004
+  to: TASK-E001-008
   type: detected_by
 - from: REV-E001-001-ARCH-001
   to: EXP001
@@ -88,6 +97,9 @@ relations:
   to: TASK-E001-007
   type: reviews
 - from: RUN-E001-IMPL-001
+  to: EXP001
+  type: belongs_to
+- from: RUN-E001-IMPL-002
   to: EXP001
   type: belongs_to
 - from: RUN-E001-L1B-CONTROL-001
@@ -157,6 +169,9 @@ relations:
   to: TASK-E001-008
   type: runs_for
 - from: RUN-E001-SYNTH-001
+  to: EXP001
+  type: belongs_to
+- from: RUN-E001-SYNTH-002
   to: EXP001
   type: belongs_to
 - from: SESS-E001-OR-001

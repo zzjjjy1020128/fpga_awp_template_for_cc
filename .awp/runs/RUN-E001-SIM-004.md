@@ -5,7 +5,7 @@
 - **Task**: TASK-E001-005
 - **Verification Level**: L1 (Simulation)
 - **Simulator**: Icarus Verilog (iverilog)
-- **Date**: 2026/06/05 周五
+- **Date**: 2026/06/06 周六
 - **Testbench**: tb/tb_shift_addr_gen.sv
 - **DUT**: rtl/shift_addr_gen.sv
 
@@ -13,16 +13,16 @@
 
 | Item | Value |
 |------|-------|
-| Status | **FAIL** |
+| Status | **PASS** |
 | Assertions | 1233 |
-| Passed | 1227 |
-| Failed | 6 |
+| Passed | 1233 |
+| Failed | 0 |
 
 ## Test Cases Executed
 
 | ID | Description | Status |
 |----|-------------|--------|
-| TC01 | NONE mode — raster scan address (row*cols+col) | FAIL |
+| TC01 | NONE mode — raster scan address (row*cols+col) | PASS |
 | TC02 | UP wrap — shifted row address with modulo | PASS |
 | TC03 | DOWN wrap — shifted row address with modulo | PASS |
 | TC04 | LEFT wrap — shifted col address with modulo | PASS |
@@ -34,7 +34,7 @@
 | TC10 | step=0 — all modes equivalent to NONE | PASS |
 | TC11 | step >= img_rows (wrap) — modulo operator correct | PASS |
 | TC12 | illegal dir (101-111) — treated as NONE | PASS |
-| TC13 | shift_en=0 pause — counter unchanged, address frozen | FAIL |
+| TC13 | shift_en=0 pause — counter unchanged, address frozen | PASS |
 | TC14 | step dynamic switch — new step takes effect next cycle | PASS |
 | TC15 | Random mode+size+step, golden model comparison (1000 frames) | PASS |
 
@@ -133,18 +133,20 @@
   PASS [13] TC13 running pix3 zero
   PASS [13] TC13 running pix4 addr
   PASS [13] TC13 running pix4 zero
-  FAIL [13] TC13 pause cycle0 addr frozen
-  PASS [13] TC13 pause cycle0 zero frozen
-  FAIL [13] TC13 pause cycle1 addr frozen
-  PASS [13] TC13 pause cycle1 zero frozen
-  FAIL [13] TC13 pause cycle2 addr frozen
-  PASS [13] TC13 pause cycle2 zero frozen
-  FAIL [13] TC13 pause cycle3 addr frozen
-  PASS [13] TC13 pause cycle3 zero frozen
-  FAIL [13] TC13 pause cycle4 addr frozen
-  PASS [13] TC13 pause cycle4 zero frozen
-  FAIL [13] TC13 resume addr=5
+  PASS [13] TC13 pause cycle0 addr zero
+  PASS [13] TC13 pause cycle0 zero zero
+  PASS [13] TC13 pause cycle1 addr zero
+  PASS [13] TC13 pause cycle1 zero zero
+  PASS [13] TC13 pause cycle2 addr zero
+  PASS [13] TC13 pause cycle2 zero zero
+  PASS [13] TC13 pause cycle3 addr zero
+  PASS [13] TC13 pause cycle3 zero zero
+  PASS [13] TC13 pause cycle4 addr zero
+  PASS [13] TC13 pause cycle4 zero zero
+  PASS [13] TC13 resume addr=0
   PASS [13] TC13 resume zero=0
+  PASS [13] TC13 resume next addr=1
+  PASS [13] TC13 resume next zero=0
 --- TC14: step dynamic switch (1->3 mid-frame) ---
   PASS [14] TC14 step1 pix0 addr
   PASS [14] TC14 step1 pix0 zero
@@ -162,8 +164,6 @@
   PASS [14] TC14 step1 pix6 zero
   PASS [14] TC14 step1 pix7 addr
   PASS [14] TC14 step1 pix7 zero
-  PASS [14] TC14 step3 pix8 addr
-  PASS [14] TC14 step3 pix8 zero
   PASS [14] TC14 step3 pix9 addr
   PASS [14] TC14 step3 pix9 zero
   PASS [14] TC14 step3 pix10 addr
@@ -185,11 +185,11 @@
 ============================================================
   Simulation Summary
 ============================================================
-  Passed: 1227
-  Failed: 6
+  Passed: 1233
+  Failed: 0
   Total : 1233
 ------------------------------------------------------------
-  SOME TESTS FAILED  <<<
+  ALL TESTS PASSED
 ============================================================
 ```
 
@@ -201,4 +201,4 @@ Open with: `gtkwave sim/tb_shift_addr_gen.vcd`
 
 ## Checksum
 
-- Report generated: 2026/06/05 周五
+- Report generated: 2026/06/06 周六

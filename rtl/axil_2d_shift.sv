@@ -14,9 +14,14 @@
 //   - frame_buf_mgr   : 帧缓冲控制器（双端口 BRAM 读写控制）
 //
 // 流水线对齐：
+//   shift_addr_gen 内部有 2 级流水线（地址计算 + 乘加），因此 read_addr
+//   和 zero_fill 输出比内部计数器晚 2 个时钟周期。
 //   frame_buf_mgr 读数据有 1 周期延迟（read_data 在 read_addr 后的下一拍有效）。
-//   shift_addr_gen 的 zero_fill 与 read_addr 同步输出，因此需延迟 1 拍
-//   后才能与 read_data 对齐。顶层模块中插入 1 级寄存器实现。
+//   总计：read_data 比 SAG 计数器晚 3 拍。
+//   对齐策略：
+//     - axis_output 的 shift_en 延迟 1 拍（dly[1]），使 AO
+//     - zero_fill 经 1 级寄存器（zero_fill_d1）对齐 BRAM 的 1 拍延迟
+//     这样 AO 的第一个捕获周期刚好对应 BRAM 的第一个有效数据。
 //
 // 参数：
 //   DATA_WIDTH      - 数据位宽（默认 8）
@@ -125,8 +130,11 @@ module axil_2d_shift #(
     logic                              capture_en;
     logic                              capture_done;
 
-    // ctrl_fsm -> shift_addr_gen, axis_output (移位阶段)
+    // ctrl_fsm -> shift_addr_gen (移位阶段)
     logic                              shift_en;
+    // shift_en -> axis_output (延迟 2 拍，等 SAG 流水线填满)
+    logic [2:0]                        shift_en_dly;
+    logic                              shift_en_ao;
     // axis_output -> ctrl_fsm
     logic                              shift_done;
 
@@ -323,12 +331,13 @@ module axil_2d_shift #(
         .clk            (clk),
         .rstn           (rstn),
 
-        .shift_en       (shift_en),
+        .shift_en       (shift_en_ao),    // 延迟 2 拍，等 SAG 流水线填满
         .img_rows       (img_rows),
         .img_cols       (img_cols),
 
         .read_data      (read_data),
         .zero_fill      (zero_fill_d1),   // 对齐后的 zero_fill
+        .data_valid_i   (shift_en_ao),    // SAG 流水线填满，数据有效
 
         .m_axis_tdata   (m_axis_tdata),
         .m_axis_tvalid  (m_axis_tvalid),
@@ -363,13 +372,31 @@ module axil_2d_shift #(
     );
 
     // ==================================================================
+    // axis_output shift_en 延迟流水线
+    //
+    // shift_addr_gen 内部有 2 级流水线，read_addr/zero_fill 输出比内部
+    // 计数器晚 2 个时钟周期。axis_output 需要延迟启动 1 拍，使第一个
+    // 捕获周期恰好在有效 read_data 到达时。
+    //
+    // 实现：3-bit shift register (dly[1] 输出，1 周期延迟)
+    // ==================================================================
+    always_ff @(posedge clk) begin
+        if (!rstn)
+            shift_en_dly <= '0;
+        else
+            shift_en_dly <= {shift_en_dly[1:0], shift_en};
+    end
+    assign shift_en_ao = shift_en_dly[1];
+
+    // ==================================================================
     // zero_fill 流水线对齐寄存器
     //
     // frame_buf_mgr 读数据有 1 周期延迟：read_data 在 read_addr 后的
     // 下一拍才有效。shift_addr_gen 的 zero_fill 与 read_addr 同步输出，
     // 因此需要延迟 1 拍后才能与 read_data 对齐。
     //
-    // 实现：1-bit 寄存器，同步复位，低有效。
+    // 注意：此 1 级延迟是 BRAM 读延迟的补偿，与 shift_en_ao 的 1 级
+    // 延迟（SAG 内部流水线补偿）独立叠加。
     // ==================================================================
     always_ff @(posedge clk) begin
         if (!rstn)

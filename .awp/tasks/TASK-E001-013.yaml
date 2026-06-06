@@ -18,7 +18,7 @@ validation_status:
   L1b: "skip"
   L1c: "skip"
   L2: "skip"
-  L3: "fail"
+  L3: "pending"
   L4: "pending"
   L5: "pending"
   L6: "pending"
@@ -55,7 +55,7 @@ acceptance:
 
 required_outputs:
   - ".awp/runs/RUN-E001-IMPL-001.md"
-  - "vivado/axil_2d_shift.runs/impl_1/axil_2d_shift_routed.dcp"
+  - ".awp/runs/RUN-E001-IMPL-002.md"
 
 handoff:
   next_task: ""

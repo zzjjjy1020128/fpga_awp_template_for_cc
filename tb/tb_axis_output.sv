@@ -102,6 +102,7 @@ module tb_axis_output;
         .img_cols      (img_cols),
         .read_data     (read_data),
         .zero_fill     (zero_fill),
+        .data_valid_i  (1'b1),     // L1a: no pipeline, data always valid
         .m_axis_tdata  (m_axis_tdata),
         .m_axis_tvalid (m_axis_tvalid),
         .m_axis_tready (m_axis_tready),

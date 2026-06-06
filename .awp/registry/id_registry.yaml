@@ -26,6 +26,11 @@ ids:
     ns
   status: open
   created: PLACEHOLDE
+- id: ISS-E001-004
+  type: ISSUE
+  title: Original L1c simulation failure (RUN-E001-SIM-007) — historical record
+  status: resolved
+  created: SESS-E001-
 - id: REV-E001-001-ARCH-001
   type: REVIEW
   title: Review of TASK-E001-001 (ARCH)
@@ -76,6 +81,11 @@ ids:
   title: RUN-E001-IMPL-001.md - axil_2d_shift L3 实现报告
   status: active
   created: ''
+- id: RUN-E001-IMPL-002
+  type: RUN
+  title: RUN-E001-IMPL-002.md - axil_2d_shift L3 实现报告（第二次）
+  status: active
+  created: ''
 - id: RUN-E001-L1B-CONTROL-001
   type: RUN
   title: 'RUN-E001-L1B-CONTROL-001: L1b 控制通路集成仿真'
@@ -85,7 +95,7 @@ ids:
   type: RUN
   title: 'RUN-E001-L1B-READ-001: L1b 读通路集成仿真'
   status: active
-  created: 2026/06/05
+  created: 2026/06/06
 - id: RUN-E001-L1B-WRITE-001
   type: RUN
   title: 'RUN-E001-L1B-WRITE-001: L1b 写通路集成仿真'
@@ -110,7 +120,7 @@ ids:
   type: RUN
   title: 'RUN-E001-SIM-004: shift_addr_gen 2D Shift Address Generator Simulation'
   status: active
-  created: 2026/06/05 周五
+  created: 2026/06/06 周六
 - id: RUN-E001-SIM-005
   type: RUN
   title: 'RUN-E001-SIM-005: axis_output AXI4-Stream Output Interface Simulation'
@@ -125,7 +135,7 @@ ids:
   type: RUN
   title: 'RUN-E001-SIM-007: axil_2d_shift Full-System Integration Simulation'
   status: active
-  created: '2026-06-05'
+  created: '2026-06-06'
 - id: RUN-E001-SIM-008
   type: RUN
   title: 'RUN-E001-SIM-008: axil_2d_shift L1c Full-System Integration Simulation'
@@ -134,6 +144,11 @@ ids:
 - id: RUN-E001-SYNTH-001
   type: RUN
   title: RUN-E001-SYNTH-001.md - axil_2d_shift L2 综合报告
+  status: active
+  created: ''
+- id: RUN-E001-SYNTH-002
+  type: RUN
+  title: RUN-E001-SYNTH-002.md - axil_2d_shift L2 综合报告（第二次）
   status: active
   created: ''
 - id: SESS-E001-OR-001

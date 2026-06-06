@@ -55,6 +55,7 @@ module axis_output #(
     // 数据输入
     input  logic [DATA_WIDTH-1:0] read_data,
     input  logic                   zero_fill,
+    input  logic                   data_valid_i,   // SAG 流水线有效（经 BRAM 延迟对齐）
 
     // AXI-Stream Master 接口
     output logic [DATA_WIDTH-1:0] m_axis_tdata,
@@ -114,7 +115,7 @@ module axis_output #(
                 row_cnt  <= '0;
                 col_cnt  <= '0;
                 all_done <= 1'b0;
-            end else if (m_axis_tready && !all_done) begin
+            end else if (m_axis_tready && data_valid_i && !all_done) begin
                 // 握手成功，按光栅扫描顺序推进
                 if (col_cnt == img_cols - 1) begin
                     col_cnt <= '0;
@@ -142,7 +143,7 @@ module axis_output #(
     // - m_axis_tlast:  使用延迟 1 拍的 col_cnt_q，对齐 BRAM 读延迟
     // - m_axis_tuser:  使用延迟 1 拍的 row_cnt_q/col_cnt_q，对齐 BRAM 读延迟
     // ============================================================
-    assign m_axis_tvalid = shift_en && !all_done_q;
+    assign m_axis_tvalid = shift_en && data_valid_i && !all_done_q;
     assign m_axis_tdata  = zero_fill ? {DATA_WIDTH{1'b0}} : read_data;
     assign m_axis_tlast  = shift_en && !all_done_q && (col_cnt_q == img_cols - 1);
     assign m_axis_tuser  = shift_en && !all_done_q && (row_cnt_q == '0 && col_cnt_q == '0);

@@ -638,7 +638,7 @@ def validate_issue_coverage():
     if not failed_runs:
         return errors
 
-    # 收集已存在的 issue 指向的 run
+    # 收集已存在的 issue 指向的 run（支持逗号分隔的多引用）
     issue_run_map = {}
     if issues_dir.exists():
         for f in sorted(issues_dir.glob("ISS-*.yaml")):
@@ -646,7 +646,10 @@ def validate_issue_coverage():
             if data:
                 run_ref = data.get("detected_in_run", "")
                 if run_ref:
-                    issue_run_map[run_ref] = f.stem
+                    for rid in run_ref.split(","):
+                        rid = rid.strip()
+                        if rid:
+                            issue_run_map[rid] = f.stem
 
     # 检查每个 FAIL run 是否有 issue
     for run_id in failed_runs:
@@ -667,6 +670,87 @@ def validate_issue_coverage():
                     errors.append(f"{f.stem}: open but no suspected_owner_task assigned")
                 if data.get("round_count", 0) > data.get("max_rounds", 3):
                     errors.append(f"{f.stem}: round_count exceeds max_rounds, should be blocked")
+
+    return errors
+
+
+def validate_port_connectivity():
+    """检查 SystemVerilog 模块端口在所有实例化点是否完整连接。
+    防止 sub-agent 添加端口后遗漏某些实例化点的连接。
+    """
+    errors = []
+    rtl_dir = ROOT / "rtl"
+    tb_dir = ROOT / "tb"
+    if not rtl_dir.exists():
+        return errors
+
+    # 1. 收集所有模块的端口定义: module_name -> {input_ports, output_ports}
+    module_inputs = {}
+    for sv_file in sorted(rtl_dir.glob("*.sv")):
+        try:
+            content = sv_file.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            try:
+                content = sv_file.read_text(encoding="gbk", errors="replace")
+            except Exception:
+                continue
+        # 提取 module 声明和端口列表
+        m = re.search(r'module\s+(\w+)\s*#?\s*\(.*?\)\s*\(\s*(.*?)\s*\)\s*;', content, re.DOTALL)
+        if not m:
+            continue
+        mod_name = m.group(1)
+        port_block = m.group(2)
+        # 只收集 input 端口（output 可以不连）
+        input_ports = set()
+        for line in port_block.split(","):
+            line = re.sub(r'//.*$', '', line).strip()
+            pm = re.search(r'(\w+)\s*$', line)
+            if pm and re.search(r'\binput\b', line):
+                input_ports.add(pm.group(1))
+        if input_ports:
+            module_inputs[mod_name] = input_ports
+
+    if not module_inputs:
+        return errors
+
+    # 2. 收集所有文件中的模块实例化，检查 input 端口连接
+    all_files = list(rtl_dir.glob("*.sv")) + list(tb_dir.glob("*.sv"))
+    for sv_file in sorted(all_files):
+        try:
+            content = sv_file.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            try:
+                content = sv_file.read_text(encoding="gbk", errors="replace")
+            except Exception:
+                continue
+
+        for mod_name, defined_inputs in module_inputs.items():
+            # 跳过模块自身的定义文件
+            if sv_file.stem == mod_name:
+                continue
+            # 找所有该模块的实例化
+            inst_pattern = re.compile(
+                r'\b' + re.escape(mod_name) + r'\s*(?:#\s*\(.*?\))?\s*(\w+)\s*\(\s*(.*?)\s*\)\s*;',
+                re.DOTALL
+            )
+            for inst_m in inst_pattern.finditer(content):
+                inst_name = inst_m.group(1)
+                conn_block = inst_m.group(2)
+                # 提取连接的端口名: .portname(...) 或 .portname(signal)
+                connected = set(re.findall(r'\.(\w+)\s*\(', conn_block))
+                # 隐式连接: .portname  (无括号)
+                connected.update(re.findall(r'\.(\w+)\s*,', conn_block))
+                # 检查缺失
+                missing = defined_inputs - connected
+                # 排除常见不需要显式连接的端口（如 outputs 未驱动、L1b TB 部分连接等）
+                # regex 解析可能有假阳性（如 .port 出现在字符串或注释中）
+                if missing:
+                    rel = str(sv_file.relative_to(ROOT))
+                    errors.append(
+                        f"{rel}: port-check: {mod_name} instance '{inst_name}' "
+                        f"may be missing connection(s): {', '.join(sorted(missing))}. "
+                        f"Verify manually — regex may have false positives."
+                    )
 
     return errors
 
@@ -730,6 +814,7 @@ def cmd_validate():
     # all_errors.extend(validate_dependency_ripple())
     all_errors.extend(validate_registry_consistency())
     all_errors.extend(validate_issue_coverage())
+    all_errors.extend(validate_port_connectivity())
 
     if all_errors:
         print(f"\n[FAIL] {len(all_errors)} validation error(s):\n")

@@ -14,9 +14,9 @@ integration_scope: "module"
 
 validation_status:
   L0: "pass"
-  L1a: "pending"
-  L1b: "pending"
-  L1c: "pending"
+  L1a: "pass"
+  L1b: "pass"
+  L1c: "pass"
   L2: "pending"
   L3: "pending"
   L4: "pending"
