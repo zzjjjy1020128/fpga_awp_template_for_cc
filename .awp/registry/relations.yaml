@@ -102,6 +102,12 @@ relations:
 - from: RUN-E001-IMPL-002
   to: EXP001
   type: belongs_to
+- from: RUN-E001-IMPL-003
+  to: EXP001
+  type: belongs_to
+- from: RUN-E001-IMPL-004
+  to: EXP001
+  type: belongs_to
 - from: RUN-E001-L1B-CONTROL-001
   to: EXP001
   type: belongs_to
@@ -172,6 +178,12 @@ relations:
   to: EXP001
   type: belongs_to
 - from: RUN-E001-SYNTH-002
+  to: EXP001
+  type: belongs_to
+- from: RUN-E001-SYNTH-003
+  to: EXP001
+  type: belongs_to
+- from: RUN-E001-SYNTH-004
   to: EXP001
   type: belongs_to
 - from: SESS-E001-OR-001

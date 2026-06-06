@@ -86,6 +86,16 @@ ids:
   title: RUN-E001-IMPL-002.md - axil_2d_shift L3 实现报告（第二次）
   status: active
   created: ''
+- id: RUN-E001-IMPL-003
+  type: RUN
+  title: RUN-E001-IMPL-003.md - axil_2d_shift L3 实现报告（第三次）
+  status: active
+  created: ''
+- id: RUN-E001-IMPL-004
+  type: RUN
+  title: RUN-E001-IMPL-004.md — axil_2d_shift L3 实现报告（第四次，最终重跑）
+  status: active
+  created: ''
 - id: RUN-E001-L1B-CONTROL-001
   type: RUN
   title: 'RUN-E001-L1B-CONTROL-001: L1b 控制通路集成仿真'
@@ -149,6 +159,16 @@ ids:
 - id: RUN-E001-SYNTH-002
   type: RUN
   title: RUN-E001-SYNTH-002.md - axil_2d_shift L2 综合报告（第二次）
+  status: active
+  created: ''
+- id: RUN-E001-SYNTH-003
+  type: RUN
+  title: RUN-E001-SYNTH-003.md - axil_2d_shift L2 综合报告（第三次）
+  status: active
+  created: ''
+- id: RUN-E001-SYNTH-004
+  type: RUN
+  title: RUN-E001-SYNTH-004.md — axil_2d_shift L2 综合报告（第四次，最终重跑）
   status: active
   created: ''
 - id: SESS-E001-OR-001

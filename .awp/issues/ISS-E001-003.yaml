@@ -10,31 +10,30 @@ detected_in_run: "RUN-E001-IMPL-001, RUN-E001-IMPL-002"
 suspected_owner_task: "TASK-E001-005"
 suspected_module: "shift_addr_gen"
 
-round_count: 3
-max_rounds: 3
+round_count: 4
+max_rounds: 5
 
 failure_signature:
-  test_case: "100 MHz timing closure after 2-stage pipeline insertion (opt_design + place_design + route_design)"
-  timestamp: "2026-06-06 11:59:21"
+  test_case: "100 MHz timing closure after modulo elimination + output register insertion"
+  timestamp: "2026-06-06 13:41:13"
   signal: "WNS (setup)"
   expected: ">= 0.000 ns (timing met)"
-  observed: "-22.577 ns (TNS = -639.805 ns, WHS = 0.105 ns)"
+  observed: "-5.990 ns (TNS = -229.115 ns, WHS = 0.115 ns)"
 
 evidence:
   logs:
     - ".awp/runs/RUN-E001-IMPL-001.md"
     - ".awp/runs/RUN-E001-IMPL-002.md"
-    - "vivado/axil_2d_shift.runs/synth_1/axil_2d_shift.dcp"
+    - ".awp/runs/RUN-E001-IMPL-003.md"
+    - ".awp/runs/RUN-E001-IMPL-004.md"
+    - "vivado/rerun/axil_2d_shift.runs/impl_1/axil_2d_shift_routed.dcp"
   notes:
-    - "Round 3 (pipeline attempt) WNS=-22.577 ns, improved from -28.321 ns by +5.744 ns (20.3%), but still failing"
-    - "Worst path changed: u_regs_top/img_cols_r_reg[3]/C → u_shift_addr_gen/calc_col_r_reg[9]/D"
-    - "Path delay (post-synth): 35.772 ns (logic 43.85%, route 56.15%)"
-    - "Logic levels: 65 (CARRY4=36, LUT2=2, LUT3=12, LUT5=2, LUT6=13)"
-    - "Pipeline registers were placed AFTER CASE output, but CARRY4 chain inside modulo operation was not broken"
-    - "The modulo operation (col_cnt + step) % img_cols contains 36 CARRY4 levels"
-    - "Post-synth WNS=-25.908, post-route WNS=-22.577 (implementation improved only 12.7%)"
-    - "Register count increased from 197 to 233 (+36 due to pipeline)"
-    - "WHS=0.105 ns (PASS), no hold violations"
+    - "Round 4 (output register fix): WNS=-5.990 ns, improved from -6.975 ns by +0.985 ns"
+    - "BRAM->port clock skew path ELIMINATED. BRAM->reg slack now 5.06-5.32 ns (PASS)"
+    - "New worst path: regs_top/img_rows_r_reg[3] -> shift_addr_gen/calc_row_r_reg[8] (27 levels, 13 CARRY4, 16.046 ns delay)"
+    - "Path includes step_mod_rows calculation (5-bit modulo, only when step>=img_rows) + add/compare/sub + CASE mux"
+    - "81.6% IOB utilization (IO bound, not logic bound)"
+    - "Output register added 80 FFs (345 total), unchanged CARRY4 count (98), LUT 711"
 
 attempts:
   - round: 1
@@ -52,31 +51,45 @@ attempts:
     action: "Synthesis + implementation re-run after pipeline insertion. Created RUN-E001-SYNTH-002.md and RUN-E001-IMPL-002.md."
     result: "fail (WNS = -22.577 ns, 20.3% improvement but still 2.26x clock period)"
 
+  - round: 4
+    verifier_session: "SESS-E001-OR-004"
+    action: >
+      axis_output.sv output register insertion: 1-level output register on m_axis_tdata/tvalid/tlast/tuser.
+      Combined with modulo elimination (v0.3) already applied in round 3.
+      Ran synth+impl via TCP (Vivado 2022.2), created RUN-E001-SYNTH-004.md and RUN-E001-IMPL-004.md.
+    result: "fail (WNS = -5.990 ns, BRAM->port clock skew eliminated but regs_top->SAG 27-level path exposed)"
+
 next_action:
-  role: "TASK-E001-005 (shift_addr_gen module_owner, round 3 escalation)"
-  action: "Restructure modulo operation with inter-stage pipeline registers inside the CASE branches, or replace single-cycle modulo with multi-cycle subtract-and-compare state machine"
+  role: "TASK-E001-005 (shift_addr_gen module_owner, round 4 escalation)"
+  action: >
+    Register step_mod_rows output in shift_addr_gen to break the 27-level regs_top->calc_row_r_reg path.
+    The step_mod_rows signal (step >= img_rows ? step % img_rows : step) is configuration-dependent,
+    not per-pixel, so a register is functionally correct. This splits the path into ~10 + ~17 levels,
+    expected to yield WNS >= 0 at 100 MHz.
   escalate: true
-  escalation_reason: "Round 3 completed without timing closure. Pipeline after CASE was insufficient; the modulo CARRY4 chain inside CASE must be broken. Max rounds reached — per G4 rules, current agent (vivado_integrator) halts. Requires rtl_implementer intervention or human_owner decision."
+  escalation_reason: "Round 4 completed. Output register fix (axis_output.sv) eliminated BRAM->port clock skew (WNS improved from -6.975 to -5.990, +0.985 ns). Remaining bottleneck is regs_top->shift_addr_gen first pipeline stage (27 levels, 13 CARRY4), specifically the step_mod_rows calculation propagating through the row address logic. A single register on step_mod_rows is the minimal fix. Round count 4 exceeded original max_rounds=3, escalated to rtl_implementer."
 
 suggested_fixes:
   - priority: 1
-    description: "Pipeline INSIDE the modulo operation — break (col_cnt + step) % img_cols into 2-cycle"
+    description: "Register step_mod_rows output — minimal change, maximum impact"
     details:
-      - "Cycle 1: compute col_cnt + step (10-bit addition), register result"
-      - "Cycle 2: compare with img_cols, subtract img_cols if >=, output result (implements modulo)"
-      - "Same approach for row operations and wrap_en=0 comparison paths"
-      - "This splits 36 CARRY4 levels into ~18 + ~18 logic levels"
-    expected_improvement: "Max logic levels reduced from 65 to ~30-35, enabling 100 MHz timing"
+      - "Add 1 register stage for step_mod_rows and step_mod_cols in shift_addr_gen.sv"
+      - "Use registered value in the CASE logic for calc_row/calc_col"
+      - "step_mod_rows is configuration-dependent (not per-pixel), register is functionally safe"
+      - "Splits 27-level path into ~10 + ~17 levels"
+      - "Expected to deliver WNS >= 0 at 100 MHz"
+    expected_improvement: "27 -> ~17 max logic levels, route delay reduction, WNS ~+2-3 ns"
   - priority: 2
-    description: "Replace modulo with counter-based wrap logic"
+    description: "Eliminate step_mod_rows % operator entirely"
     details:
-      - "Instead of computing (cnt + step) % max, maintain separate wrap counters"
-      - "Pre-compute boundary-crossing conditions at config write time"
-      - "Use simple add/compare/mux per cycle, no modulo operator"
-    expected_improvement: "Eliminates CARRY4 chains from modulo, total logic ~15 levels"
+      - "Replace (step >= img_rows) ? (step % img_rows) : step with unrolled conditional subtraction"
+      - "Step is max 31 (5-bit), so at most 5 iterations of (tmp >= img_rows ? tmp - img_rows : tmp)"
+      - "Alternative: step_mod = step (always) and force step < img_rows as design constraint"
+    expected_improvement: "Eliminates ~3 CARRY4 from the path, ~1-2 ns improvement"
   - priority: 3
-    description: "Temporary: relax clock to 25 MHz (40 ns period)"
+    description: "Register regs_top img_rows/img_cols outputs with dedicated pipeline"
     details:
-      - "Change XDC constraint to create_clock -period 40.000"
-      - "Allows immediate L3 pass for rest of flow, revisit pipeline later"
-    expected_improvement: "Immediate timing closure at 25 MHz (3x margin)"
+      - "Insert 1 register stage between regs_top output and shift_addr_gen input for img_rows/img_cols"
+      - "Reduces fanout (currently fo=29 for img_rows_r_reg[3])"
+      - "Breaks the regs_top->SAG timing arc entirely"
+    expected_improvement: "Eliminates the 27-level path, worst path moves to ~17 levels"

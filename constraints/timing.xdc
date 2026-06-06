@@ -13,3 +13,16 @@ set_input_delay -clock clk 2.0 [list [remove_from_list [all_inputs] [get_ports c
 
 # 输出延迟约束（相对于 clk 的 2.0ns 输出延迟）
 set_output_delay -clock clk 2.0 [all_outputs]
+
+# IOB 寄存器打包：将输出寄存器放入 IOB 逻辑
+# 消除 fabric 到 OBUF 的长路径延迟和 clock skew 影响
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_rdata_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_rresp_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_rvalid_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_bvalid_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_bresp_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tdata_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tvalid_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tlast_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tuser_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axis_tready_reg*"}]

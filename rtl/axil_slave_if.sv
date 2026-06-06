@@ -25,19 +25,19 @@ module axil_slave_if #(
     output reg                         s_axil_wready,
 
     // AXI4-Lite Slave - Write Response Channel
-    output wire [1:0]                  s_axil_bresp,
-    output wire                        s_axil_bvalid,
+    output reg  [1:0]                  s_axil_bresp,
+    output reg                         s_axil_bvalid,
     input  wire                        s_axil_bready,
 
     // AXI4-Lite Slave - Read Address Channel
     input  wire [AXIL_ADDR_WIDTH-1:0]  s_axil_araddr,
     input  wire                        s_axil_arvalid,
-    output wire                        s_axil_arready,
+    output reg                         s_axil_arready,
 
     // AXI4-Lite Slave - Read Data Channel
-    output wire [AXIL_DATA_WIDTH-1:0]  s_axil_rdata,
-    output wire [1:0]                  s_axil_rresp,
-    output wire                        s_axil_rvalid,
+    output reg  [AXIL_DATA_WIDTH-1:0]  s_axil_rdata,
+    output reg  [1:0]                  s_axil_rresp,
+    output reg                         s_axil_rvalid,
     input  wire                        s_axil_rready,
 
     // Internal interface to regs_top
@@ -66,8 +66,23 @@ module axil_slave_if #(
   // Write response
   reg [1:0] bresp_q;
 
-  wire aw_hsk = s_axil_awvalid & s_axil_awready;
-  wire w_hsk  = s_axil_wvalid  & s_axil_wready;
+  // Combinational ready signals (used by FSM next-state logic)
+  reg awready_comb;
+  reg wready_comb;
+
+  always @(*) begin
+    awready_comb = 1'b0;
+    wready_comb  = 1'b0;
+    case (wstate)
+      W_IDLE: begin awready_comb = 1'b1; wready_comb = 1'b1; end
+      W_AW:   begin awready_comb = 1'b0; wready_comb = 1'b1; end
+      W_W:    begin awready_comb = 1'b1; wready_comb = 1'b0; end
+      W_RESP: begin awready_comb = 1'b0; wready_comb = 1'b0; end
+    endcase
+  end
+
+  wire aw_hsk = s_axil_awvalid & awready_comb;
+  wire w_hsk  = s_axil_wvalid  & wready_comb;
 
   // Combinational bypass: when current-cycle handshake is valid, use bus
   // signals directly instead of the registered (previous-cycle) value.
@@ -92,19 +107,7 @@ module axil_slave_if #(
     endcase
   end
 
-  // Write FSM outputs: AW ready, W ready
-  always @(*) begin
-    s_axil_awready = 1'b0;
-    s_axil_wready  = 1'b0;
-    case (wstate)
-      W_IDLE: begin s_axil_awready = 1'b1; s_axil_wready = 1'b1; end
-      W_AW:   begin s_axil_awready = 1'b0; s_axil_wready = 1'b1; end
-      W_W:    begin s_axil_awready = 1'b1; s_axil_wready = 1'b0; end
-      W_RESP: begin s_axil_awready = 1'b0; s_axil_wready = 1'b0; end
-    endcase
-  end
-
-  // Write state + captured data + response
+  // Write state + captured data + response + registered ready outputs
   always @(posedge clk) begin
     if (!rstn) begin
       wstate  <= W_IDLE;
@@ -112,8 +115,18 @@ module axil_slave_if #(
       wdata_q  <= '0;
       wstrb_q  <= '0;
       bresp_q  <= 2'b00;
+      s_axil_awready <= 1'b1;  // W_IDLE after reset
+      s_axil_wready  <= 1'b1;
     end else begin
       wstate  <= wstate_n;
+
+      // Registered ready outputs track the new state immediately
+      case (wstate_n)
+        W_IDLE: begin s_axil_awready <= 1'b1; s_axil_wready <= 1'b1; end
+        W_AW:   begin s_axil_awready <= 1'b0; s_axil_wready <= 1'b1; end
+        W_W:    begin s_axil_awready <= 1'b1; s_axil_wready <= 1'b0; end
+        W_RESP: begin s_axil_awready <= 1'b0; s_axil_wready <= 1'b0; end
+      endcase
 
       // Capture AW on handshake
       if (aw_hsk)
@@ -158,9 +171,16 @@ module axil_slave_if #(
     end
   end
 
-  // B channel outputs
-  assign s_axil_bresp  = bresp_q;
-  assign s_axil_bvalid = (wstate == W_RESP);
+  // B channel outputs (sync reset for IOB packing)
+  always_ff @(posedge clk) begin
+      if (!rstn) begin
+          s_axil_bvalid <= 1'b0;
+          s_axil_bresp  <= 2'b00;
+      end else begin
+          s_axil_bvalid <= (wstate == W_RESP);
+          s_axil_bresp  <= bresp_q;
+      end
+  end
 
   // ---------------------------------------------------------------------------
   // Read transaction state machine
@@ -171,41 +191,66 @@ module axil_slave_if #(
   reg        rstate;
   reg [AXIL_ADDR_WIDTH-1:0] araddr_q;
 
-  // Read FSM
+  // Read FSM next-state (combinational)
+  reg rstate_n;
+  always @(*) begin
+    rstate_n = rstate;
+    case (rstate)
+      R_IDLE:   if (s_axil_arvalid) rstate_n = R_ACTIVE;
+      R_ACTIVE: if (s_axil_rready)  rstate_n = R_IDLE;
+    endcase
+  end
+
+  // Read FSM (registered) + registered arready
   always @(posedge clk) begin
     if (!rstn) begin
       rstate   <= R_IDLE;
       araddr_q <= '0;
       rd_strobe <= 16'd0;
+      s_axil_arready <= 1'b1;  // R_IDLE after reset
     end else begin
-      case (rstate)
+      rstate <= rstate_n;
+      s_axil_arready <= (rstate_n == R_IDLE);  // registered, reflects next state
+
+      case (rstate)  // use old rstate for command capture/rd_strobe (unchanged)
         R_IDLE: begin
           if (s_axil_arvalid) begin
             araddr_q  <= s_axil_araddr;
             rd_strobe <= (s_axil_araddr[7:2] < 6'd16)
                          ? (16'd1 << s_axil_araddr[7:2])
                          : 16'd0;
-            rstate    <= R_ACTIVE;
           end
         end
         R_ACTIVE: begin
           if (s_axil_rready) begin
             rd_strobe <= 16'd0;
-            rstate    <= R_IDLE;
           end
         end
       endcase
     end
   end
 
-  // AR ready
-  assign s_axil_arready = (rstate == R_IDLE);
+  // R channel outputs (sync reset for IOB packing)
+  logic                  rvalid_comb;
+  logic [1:0]            rresp_comb;
+  logic [31:0]           rdata_comb;
 
-  // R channel outputs (combinational from registered state & captured address)
-  assign s_axil_rvalid = (rstate == R_ACTIVE);
-  assign s_axil_rresp  = (rstate == R_ACTIVE)
+  assign rvalid_comb = (rstate == R_ACTIVE);
+  assign rresp_comb  = (rstate == R_ACTIVE)
                            ? ((araddr_q[7:2] < 6'd16) ? 2'b00 : 2'b10)
                            : 2'b00;
-  assign s_axil_rdata  = (rstate == R_ACTIVE) ? rdata : 32'd0;
+  assign rdata_comb  = (rstate == R_ACTIVE) ? rdata : 32'd0;
+
+  always_ff @(posedge clk) begin
+      if (!rstn) begin
+          s_axil_rvalid <= 1'b0;
+          s_axil_rresp  <= 2'b00;
+          s_axil_rdata  <= 32'd0;
+      end else begin
+          s_axil_rvalid <= rvalid_comb;
+          s_axil_rresp  <= rresp_comb;
+          s_axil_rdata  <= rdata_comb;
+      end
+  end
 
 endmodule : axil_slave_if

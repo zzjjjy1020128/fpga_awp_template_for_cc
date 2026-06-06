@@ -61,10 +61,13 @@ module axis_input #(
     logic       xfer_valid;
 
     // --------------------------------------------------------------------------
-    // AXI-Stream 就绪
+    // AXI-Stream 就绪（寄存输出以满足 100MHz 时序）
     // capture_en=0 时 tready=0，不接收数据
     // --------------------------------------------------------------------------
-    assign s_axis_tready = capture_en;
+    always_ff @(posedge clk or negedge rstn) begin
+        if (!rstn) s_axis_tready <= 1'b0;
+        else       s_axis_tready <= capture_en;
+    end
 
     // --------------------------------------------------------------------------
     // 有效传输指示

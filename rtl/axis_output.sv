@@ -135,17 +135,34 @@ module axis_output #(
     end
 
     // ============================================================
-    // 输出组合逻辑
+    // 输出组合逻辑 + 1 级输出寄存器
     //
-    // - m_axis_tvalid: 使用延迟 1 拍的 all_done_q，确保最后一个像素
-    //   的数据输出时 tvalid 仍为高
-    // - m_axis_tdata:  zero_fill=1 时强制输出 0，否则透传 read_data
-    // - m_axis_tlast:  使用延迟 1 拍的 col_cnt_q，对齐 BRAM 读延迟
-    // - m_axis_tuser:  使用延迟 1 拍的 row_cnt_q/col_cnt_q，对齐 BRAM 读延迟
+    // 组合信号 then 经寄存器输出，断开 BRAM→port 长路径：
+    //   BRAM → reg（内部路径，slack 充裕）
+    //   reg → port（极短路径，满足 100MHz + set_output_delay）
     // ============================================================
-    assign m_axis_tvalid = shift_en && data_valid_i && !all_done_q;
-    assign m_axis_tdata  = zero_fill ? {DATA_WIDTH{1'b0}} : read_data;
-    assign m_axis_tlast  = shift_en && !all_done_q && (col_cnt_q == img_cols - 1);
-    assign m_axis_tuser  = shift_en && !all_done_q && (row_cnt_q == '0 && col_cnt_q == '0);
+    logic [DATA_WIDTH-1:0] tdata_comb;
+    logic                  tvalid_comb;
+    logic                  tlast_comb;
+    logic                  tuser_comb;
+
+    assign tdata_comb  = zero_fill ? {DATA_WIDTH{1'b0}} : read_data;
+    assign tvalid_comb = shift_en && data_valid_i && !all_done_q;
+    assign tlast_comb  = shift_en && !all_done_q && (col_cnt_q == img_cols - 1);
+    assign tuser_comb  = shift_en && !all_done_q && (row_cnt_q == '0 && col_cnt_q == '0);
+
+    always_ff @(posedge clk or negedge rstn) begin
+        if (!rstn) begin
+            m_axis_tdata  <= '0;
+            m_axis_tvalid <= 1'b0;
+            m_axis_tlast  <= 1'b0;
+            m_axis_tuser  <= 1'b0;
+        end else begin
+            m_axis_tdata  <= tdata_comb;
+            m_axis_tvalid <= tvalid_comb;
+            m_axis_tlast  <= tlast_comb;
+            m_axis_tuser  <= tuser_comb;
+        end
+    end
 
 endmodule

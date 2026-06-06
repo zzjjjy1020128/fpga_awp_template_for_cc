@@ -1,0 +1,296 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
+| Date         : Sat Jun  6 13:28:22 2026
+| Host         : laptop_zjy running 64-bit major release  (build 9200)
+| Command      : report_timing -nworst 5 -setup -path_type full_clock -max_paths 5 -input_pins -file D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/vivado/rerun/axil_2d_shift.runs/impl_1/worst_setup_paths.rpt
+| Design       : axil_2d_shift
+| Device       : 7z020-clg400
+| Speed File   : -1  PRODUCTION 1.12 2019-11-22
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (VIOLATED) :        -6.975ns  (required time - arrival time)
+  Source:                 u_frame_buf_mgr/bram_reg/CLKBWRCLK
+                            (rising edge-triggered cell RAMB36E1 clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            m_axis_tdata[2]
+                            (output port clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk
+  Path Type:              Max at Slow Process Corner
+  Requirement:            10.000ns  (clk rise@10.000ns - clk rise@0.000ns)
+  Data Path Delay:        9.843ns  (logic 5.231ns (53.141%)  route 4.612ns (46.859%))
+  Logic Levels:           2  (LUT2=1 OBUF=1)
+  Output Delay:           2.000ns
+  Clock Path Skew:        -5.097ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.000ns = ( 10.000 - 10.000 ) 
+    Source Clock Delay      (SCD):    5.097ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk rise edge)        0.000     0.000 r  
+    U7                                                0.000     0.000 r  clk (IN)
+                         net (fo=0)                   0.000     0.000    clk
+    U7                                                                r  clk_IBUF_inst/I
+    U7                   IBUF (Prop_ibuf_I_O)         1.058     1.058 r  clk_IBUF_inst/O
+                         net (fo=1, routed)           2.171     3.229    clk_IBUF
+    BUFGCTRL_X0Y0                                                     r  clk_IBUF_BUFG_inst/I
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.101     3.330 r  clk_IBUF_BUFG_inst/O
+                         net (fo=268, routed)         1.766     5.097    u_frame_buf_mgr/clk_IBUF_BUFG
+    RAMB36_X3Y8          RAMB36E1                                     r  u_frame_buf_mgr/bram_reg/CLKBWRCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X3Y8          RAMB36E1 (Prop_ramb36e1_CLKBWRCLK_DOBDO[2])
+                                                      2.454     7.551 r  u_frame_buf_mgr/bram_reg/DOBDO[2]
+                         net (fo=1, routed)           2.112     9.662    u_axis_output/DOBDO[2]
+    SLICE_X20Y22                                                      r  u_axis_output/m_axis_tdata_OBUF[2]_inst_i_1/I0
+    SLICE_X20Y22         LUT2 (Prop_lut2_I0_O)        0.124     9.786 r  u_axis_output/m_axis_tdata_OBUF[2]_inst_i_1/O
+                         net (fo=1, routed)           2.501    12.287    m_axis_tdata_OBUF[2]
+    V10                                                               r  m_axis_tdata_OBUF[2]_inst/I
+    V10                  OBUF (Prop_obuf_I_O)         2.653    14.940 r  m_axis_tdata_OBUF[2]_inst/O
+                         net (fo=0)                   0.000    14.940    m_axis_tdata[2]
+    V10                                                               r  m_axis_tdata[2] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk rise edge)       10.000    10.000 r  
+                         clock pessimism              0.000    10.000    
+                         clock uncertainty           -0.035     9.965    
+                         output delay                -2.000     7.965    
+  -------------------------------------------------------------------
+                         required time                          7.965    
+                         arrival time                         -14.940    
+  -------------------------------------------------------------------
+                         slack                                 -6.975    
+
+Slack (VIOLATED) :        -6.975ns  (required time - arrival time)
+  Source:                 u_frame_buf_mgr/bram_reg/CLKBWRCLK
+                            (rising edge-triggered cell RAMB36E1 clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            m_axis_tdata[2]
+                            (output port clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk
+  Path Type:              Max at Slow Process Corner
+  Requirement:            10.000ns  (clk rise@10.000ns - clk rise@0.000ns)
+  Data Path Delay:        9.843ns  (logic 5.231ns (53.141%)  route 4.612ns (46.859%))
+  Logic Levels:           2  (LUT2=1 OBUF=1)
+  Output Delay:           2.000ns
+  Clock Path Skew:        -5.097ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.000ns = ( 10.000 - 10.000 ) 
+    Source Clock Delay      (SCD):    5.097ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk rise edge)        0.000     0.000 r  
+    U7                                                0.000     0.000 r  clk (IN)
+                         net (fo=0)                   0.000     0.000    clk
+    U7                                                                r  clk_IBUF_inst/I
+    U7                   IBUF (Prop_ibuf_I_O)         1.058     1.058 r  clk_IBUF_inst/O
+                         net (fo=1, routed)           2.171     3.229    clk_IBUF
+    BUFGCTRL_X0Y0                                                     r  clk_IBUF_BUFG_inst/I
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.101     3.330 r  clk_IBUF_BUFG_inst/O
+                         net (fo=268, routed)         1.766     5.097    u_frame_buf_mgr/clk_IBUF_BUFG
+    RAMB36_X3Y8          RAMB36E1                                     r  u_frame_buf_mgr/bram_reg/CLKBWRCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X3Y8          RAMB36E1 (Prop_ramb36e1_CLKBWRCLK_DOBDO[2])
+                                                      2.454     7.551 f  u_frame_buf_mgr/bram_reg/DOBDO[2]
+                         net (fo=1, routed)           2.112     9.662    u_axis_output/DOBDO[2]
+    SLICE_X20Y22                                                      f  u_axis_output/m_axis_tdata_OBUF[2]_inst_i_1/I0
+    SLICE_X20Y22         LUT2 (Prop_lut2_I0_O)        0.124     9.786 f  u_axis_output/m_axis_tdata_OBUF[2]_inst_i_1/O
+                         net (fo=1, routed)           2.501    12.287    m_axis_tdata_OBUF[2]
+    V10                                                               f  m_axis_tdata_OBUF[2]_inst/I
+    V10                  OBUF (Prop_obuf_I_O)         2.653    14.940 f  m_axis_tdata_OBUF[2]_inst/O
+                         net (fo=0)                   0.000    14.940    m_axis_tdata[2]
+    V10                                                               f  m_axis_tdata[2] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk rise edge)       10.000    10.000 r  
+                         clock pessimism              0.000    10.000    
+                         clock uncertainty           -0.035     9.965    
+                         output delay                -2.000     7.965    
+  -------------------------------------------------------------------
+                         required time                          7.965    
+                         arrival time                         -14.940    
+  -------------------------------------------------------------------
+                         slack                                 -6.975    
+
+Slack (VIOLATED) :        -6.666ns  (required time - arrival time)
+  Source:                 u_frame_buf_mgr/bram_reg/CLKBWRCLK
+                            (rising edge-triggered cell RAMB36E1 clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            m_axis_tdata[3]
+                            (output port clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk
+  Path Type:              Max at Slow Process Corner
+  Requirement:            10.000ns  (clk rise@10.000ns - clk rise@0.000ns)
+  Data Path Delay:        9.533ns  (logic 5.232ns (54.887%)  route 4.301ns (45.113%))
+  Logic Levels:           2  (LUT2=1 OBUF=1)
+  Output Delay:           2.000ns
+  Clock Path Skew:        -5.097ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.000ns = ( 10.000 - 10.000 ) 
+    Source Clock Delay      (SCD):    5.097ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk rise edge)        0.000     0.000 r  
+    U7                                                0.000     0.000 r  clk (IN)
+                         net (fo=0)                   0.000     0.000    clk
+    U7                                                                r  clk_IBUF_inst/I
+    U7                   IBUF (Prop_ibuf_I_O)         1.058     1.058 r  clk_IBUF_inst/O
+                         net (fo=1, routed)           2.171     3.229    clk_IBUF
+    BUFGCTRL_X0Y0                                                     r  clk_IBUF_BUFG_inst/I
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.101     3.330 r  clk_IBUF_BUFG_inst/O
+                         net (fo=268, routed)         1.766     5.097    u_frame_buf_mgr/clk_IBUF_BUFG
+    RAMB36_X3Y8          RAMB36E1                                     r  u_frame_buf_mgr/bram_reg/CLKBWRCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X3Y8          RAMB36E1 (Prop_ramb36e1_CLKBWRCLK_DOBDO[3])
+                                                      2.454     7.551 r  u_frame_buf_mgr/bram_reg/DOBDO[3]
+                         net (fo=1, routed)           0.875     8.426    u_axis_output/DOBDO[3]
+    SLICE_X49Y40                                                      r  u_axis_output/m_axis_tdata_OBUF[3]_inst_i_1/I0
+    SLICE_X49Y40         LUT2 (Prop_lut2_I0_O)        0.124     8.550 r  u_axis_output/m_axis_tdata_OBUF[3]_inst_i_1/O
+                         net (fo=1, routed)           3.426    11.976    m_axis_tdata_OBUF[3]
+    V11                                                               r  m_axis_tdata_OBUF[3]_inst/I
+    V11                  OBUF (Prop_obuf_I_O)         2.654    14.630 r  m_axis_tdata_OBUF[3]_inst/O
+                         net (fo=0)                   0.000    14.630    m_axis_tdata[3]
+    V11                                                               r  m_axis_tdata[3] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk rise edge)       10.000    10.000 r  
+                         clock pessimism              0.000    10.000    
+                         clock uncertainty           -0.035     9.965    
+                         output delay                -2.000     7.965    
+  -------------------------------------------------------------------
+                         required time                          7.965    
+                         arrival time                         -14.630    
+  -------------------------------------------------------------------
+                         slack                                 -6.666    
+
+Slack (VIOLATED) :        -6.666ns  (required time - arrival time)
+  Source:                 u_frame_buf_mgr/bram_reg/CLKBWRCLK
+                            (rising edge-triggered cell RAMB36E1 clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            m_axis_tdata[3]
+                            (output port clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk
+  Path Type:              Max at Slow Process Corner
+  Requirement:            10.000ns  (clk rise@10.000ns - clk rise@0.000ns)
+  Data Path Delay:        9.533ns  (logic 5.232ns (54.887%)  route 4.301ns (45.113%))
+  Logic Levels:           2  (LUT2=1 OBUF=1)
+  Output Delay:           2.000ns
+  Clock Path Skew:        -5.097ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.000ns = ( 10.000 - 10.000 ) 
+    Source Clock Delay      (SCD):    5.097ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk rise edge)        0.000     0.000 r  
+    U7                                                0.000     0.000 r  clk (IN)
+                         net (fo=0)                   0.000     0.000    clk
+    U7                                                                r  clk_IBUF_inst/I
+    U7                   IBUF (Prop_ibuf_I_O)         1.058     1.058 r  clk_IBUF_inst/O
+                         net (fo=1, routed)           2.171     3.229    clk_IBUF
+    BUFGCTRL_X0Y0                                                     r  clk_IBUF_BUFG_inst/I
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.101     3.330 r  clk_IBUF_BUFG_inst/O
+                         net (fo=268, routed)         1.766     5.097    u_frame_buf_mgr/clk_IBUF_BUFG
+    RAMB36_X3Y8          RAMB36E1                                     r  u_frame_buf_mgr/bram_reg/CLKBWRCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X3Y8          RAMB36E1 (Prop_ramb36e1_CLKBWRCLK_DOBDO[3])
+                                                      2.454     7.551 f  u_frame_buf_mgr/bram_reg/DOBDO[3]
+                         net (fo=1, routed)           0.875     8.426    u_axis_output/DOBDO[3]
+    SLICE_X49Y40                                                      f  u_axis_output/m_axis_tdata_OBUF[3]_inst_i_1/I0
+    SLICE_X49Y40         LUT2 (Prop_lut2_I0_O)        0.124     8.550 f  u_axis_output/m_axis_tdata_OBUF[3]_inst_i_1/O
+                         net (fo=1, routed)           3.426    11.976    m_axis_tdata_OBUF[3]
+    V11                                                               f  m_axis_tdata_OBUF[3]_inst/I
+    V11                  OBUF (Prop_obuf_I_O)         2.654    14.630 f  m_axis_tdata_OBUF[3]_inst/O
+                         net (fo=0)                   0.000    14.630    m_axis_tdata[3]
+    V11                                                               f  m_axis_tdata[3] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk rise edge)       10.000    10.000 r  
+                         clock pessimism              0.000    10.000    
+                         clock uncertainty           -0.035     9.965    
+                         output delay                -2.000     7.965    
+  -------------------------------------------------------------------
+                         required time                          7.965    
+                         arrival time                         -14.630    
+  -------------------------------------------------------------------
+                         slack                                 -6.666    
+
+Slack (VIOLATED) :        -6.635ns  (required time - arrival time)
+  Source:                 u_frame_buf_mgr/bram_reg/CLKBWRCLK
+                            (rising edge-triggered cell RAMB36E1 clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            m_axis_tdata[5]
+                            (output port clocked by clk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk
+  Path Type:              Max at Slow Process Corner
+  Requirement:            10.000ns  (clk rise@10.000ns - clk rise@0.000ns)
+  Data Path Delay:        9.502ns  (logic 5.273ns (55.490%)  route 4.229ns (44.510%))
+  Logic Levels:           2  (LUT2=1 OBUF=1)
+  Output Delay:           2.000ns
+  Clock Path Skew:        -5.097ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.000ns = ( 10.000 - 10.000 ) 
+    Source Clock Delay      (SCD):    5.097ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk rise edge)        0.000     0.000 r  
+    U7                                                0.000     0.000 r  clk (IN)
+                         net (fo=0)                   0.000     0.000    clk
+    U7                                                                r  clk_IBUF_inst/I
+    U7                   IBUF (Prop_ibuf_I_O)         1.058     1.058 r  clk_IBUF_inst/O
+                         net (fo=1, routed)           2.171     3.229    clk_IBUF
+    BUFGCTRL_X0Y0                                                     r  clk_IBUF_BUFG_inst/I
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.101     3.330 r  clk_IBUF_BUFG_inst/O
+                         net (fo=268, routed)         1.766     5.097    u_frame_buf_mgr/clk_IBUF_BUFG
+    RAMB36_X3Y8          RAMB36E1                                     r  u_frame_buf_mgr/bram_reg/CLKBWRCLK
+  -------------------------------------------------------------------    -------------------
+    RAMB36_X3Y8          RAMB36E1 (Prop_ramb36e1_CLKBWRCLK_DOBDO[5])
+                                                      2.454     7.551 r  u_frame_buf_mgr/bram_reg/DOBDO[5]
+                         net (fo=1, routed)           1.191     8.742    u_axis_output/DOBDO[5]
+    SLICE_X39Y34                                                      r  u_axis_output/m_axis_tdata_OBUF[5]_inst_i_1/I0
+    SLICE_X39Y34         LUT2 (Prop_lut2_I0_O)        0.124     8.866 r  u_axis_output/m_axis_tdata_OBUF[5]_inst_i_1/O
+                         net (fo=1, routed)           3.039    11.904    m_axis_tdata_OBUF[5]
+    Y12                                                               r  m_axis_tdata_OBUF[5]_inst/I
+    Y12                  OBUF (Prop_obuf_I_O)         2.695    14.599 r  m_axis_tdata_OBUF[5]_inst/O
+                         net (fo=0)                   0.000    14.599    m_axis_tdata[5]
+    Y12                                                               r  m_axis_tdata[5] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk rise edge)       10.000    10.000 r  
+                         clock pessimism              0.000    10.000    
+                         clock uncertainty           -0.035     9.965    
+                         output delay                -2.000     7.965    
+  -------------------------------------------------------------------
+                         required time                          7.965    
+                         arrival time                         -14.599    
+  -------------------------------------------------------------------
+                         slack                                 -6.635    
+
+
+
+

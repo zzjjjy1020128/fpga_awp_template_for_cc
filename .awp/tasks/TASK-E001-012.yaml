@@ -68,7 +68,7 @@ acceptance:
   - "综合报告输出到 .awp/runs/RUN-E001-SYNTH-001.md"
 
 required_outputs:
-  - "vivado/axil_2d_shift.xpr"
+  - "vivado/rerun/axil_2d_shift.xpr"
   - "constraints/timing.xdc"
   - ".awp/runs/RUN-E001-SYNTH-001.md"
 
@@ -88,7 +88,7 @@ notes: >
   ## Vivado 工程结构
 
   ```
-  vivado/axil_2d_shift.xpr
+  vivado/rerun/axil_2d_shift.xpr
   constraints/timing.xdc
   ```
 
