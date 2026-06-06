@@ -14,7 +14,6 @@
 ## In Progress
 
 - [ ] [TASK-E001-005](.awp/tasks/TASK-E001-005.yaml) | rtl_implementer | 移位地址生成器 shift_addr_gen RTL 实现
-- [ ] [TASK-E001-013](.awp/tasks/TASK-E001-013.yaml) | vivado_integrator | L3 Vivado 实现与时序收敛 —— axil_2d_shift
 
 ## Blocked
 
@@ -22,7 +21,7 @@
 
 ## Review
 
-- [ ] [TASK-E001-012](.awp/tasks/TASK-E001-012.yaml) | vivado_integrator | L2 Vivado 综合 —— axil_2d_shift 顶层模块
+- [ ] *（暂无）*
 
 ## Done
 
@@ -36,6 +35,8 @@
 - [ ] [TASK-E001-009](.awp/tasks/TASK-E001-009.yaml) | integration_verifier | L1b 数据通路闭环 —— 写通路（axis_input → frame_buf_mgr）
 - [ ] [TASK-E001-010](.awp/tasks/TASK-E001-010.yaml) | integration_verifier | L1b 数据通路闭环 —— 读通路（shift_addr_gen → frame_buf_mgr → axis_output）
 - [ ] [TASK-E001-011](.awp/tasks/TASK-E001-011.yaml) | integration_verifier | L1b 数据通路闭环 —— 控制通路（axil_slave_if + regs_top → ctrl_fsm → datapath stubs）
+- [ ] [TASK-E001-012](.awp/tasks/TASK-E001-012.yaml) | vivado_integrator | L2 Vivado 综合 —— axil_2d_shift 顶层模块
+- [ ] [TASK-E001-013](.awp/tasks/TASK-E001-013.yaml) | vivado_integrator | L3 Vivado 实现与时序收敛 —— axil_2d_shift
 
 ## Retrospective Items
 

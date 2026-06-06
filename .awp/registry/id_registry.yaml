@@ -24,7 +24,7 @@ ids:
   type: ISSUE
   title: L3 timing closure failure — shift_addr_gen 54 logic levels, WNS = -28.321
     ns
-  status: open
+  status: resolved
   created: PLACEHOLDE
 - id: ISS-E001-004
   type: ISSUE
@@ -234,10 +234,10 @@ ids:
 - id: TASK-E001-012
   type: TASK
   title: L2 Vivado 综合 —— axil_2d_shift 顶层模块
-  status: active
+  status: closed
   created: '2026-06-06'
 - id: TASK-E001-013
   type: TASK
   title: L3 Vivado 实现与时序收敛 —— axil_2d_shift
-  status: active
+  status: closed
   created: '2026-06-06'

@@ -1,6 +1,6 @@
 task_id: "TASK-E001-012"
 title: "L2 Vivado 综合 —— axil_2d_shift 顶层模块"
-status: "review"
+status: "done"
 agent: "vivado_integrator"
 assigned_to: ""
 created_date: "2026-06-06"

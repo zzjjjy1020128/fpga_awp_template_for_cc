@@ -1,6 +1,6 @@
 issue_id: "ISS-E001-003"
 title: "L3 timing closure failure — shift_addr_gen 54 logic levels, WNS = -28.321 ns"
-status: "open"
+status: "resolved"
 
 detected_at_level: "L3"
 detected_by_task: "TASK-E001-013"
