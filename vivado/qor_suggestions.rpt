@@ -1,14 +1,14 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
-----------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2022.2 (win64) Build 3671981 Fri Oct 14 05:00:03 MDT 2022
-| Date         : Sat Jun  6 11:58:20 2026
+| Date         : Sat Jun  6 15:01:01 2026
 | Host         : laptop_zjy running 64-bit major release  (build 9200)
-| Command      : report_qor_suggestions -file D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/vivado/qor_suggestions.rpt
+| Command      : report_qor_suggestions -file D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/vivado/rerun/qor_suggestions.rpt
 | Design       : axil_2d_shift
 | Device       : xc7z020
 | Design State : Synthesized
 | ML Models    : v2020.1.0
-----------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------
 
 Report QoR Suggestions
 
@@ -16,9 +16,7 @@ Table of Contents
 -----------------
 1. QoR Suggestions Report Summary
 2. ML Strategies
-3. QoR Suggestions - Timing
-4. QoR Suggestions - XDC
-5. QoR Suggestions - Netlist
+3. QoR Suggestions - Netlist
 
 1. QoR Suggestions Report Summary
 ---------------------------------
@@ -26,10 +24,6 @@ Table of Contents
 +------------------+----------------+-----------+--------------+----------------+-----------+-------------+----------------------+------------------------------------------------------------------------------------------+-------------+
 |       Name       |       Id       |   Status  | Generated At | Applicable For | Automatic |    Scope    | Incremental Friendly |                                        Description                                       |    Source   |
 +------------------+----------------+-----------+--------------+----------------+-----------+-------------+----------------------+------------------------------------------------------------------------------------------+-------------+
-| RQS_TIMING-201-1 | RQS_TIMING-201 | Generated | synth_design | synth_design   | No        | GLOBALSCOPE | No                   | BRAMs should be pipelined for better timing. Refer to UG 906 Appendix B for information  | Current Run |
-|                  |                |           |              |                |           |             |                      | on how to fix this check.                                                                |             |
-| RQS_XDC-1-1      | RQS_XDC-1      | Generated | synth_design | synth_design   | No        | GLOBALSCOPE | No                   | Paths above Max Net/LUT budgeting. Review paths and either reduce logic delays, add      | Current Run |
-|                  |                |           |              |                |           |             |                      | pipelining or increase path requirements.                                                |             |
 | RQS_NETLIST-10-1 | RQS_NETLIST-10 | Generated | synth_design | synth_design   | Yes       | GLOBALSCOPE | No                   | Rebalance timing paths by forward and backward retiming.                                 | Current Run |
 +------------------+----------------+-----------+--------------+----------------+-----------+-------------+----------------------+------------------------------------------------------------------------------------------+-------------+
 * By default the number of failing paths is limited to 100. Use the -max_paths options to override.
@@ -46,52 +40,28 @@ Table of Contents
 ** The design is not compatible for suggesting strategy, as it was not run using vivado implementation default or vivado implementation explore strategy.
 
 
-3. QoR Suggestions - Timing
----------------------------
-
-+------+-------------+--------------+--------+-------+------+------+--------+----------------+-------+--------+--------------+-------------------+------------+----------+
-| Name | No of Paths | Logic Levels | Routes | Slack | Req. | Skew | Fanout | Datapath Delay | Cell% | Route% | Source Clock | Destination Clock | Startpoint | Endpoint |
-+------+-------------+--------------+--------+-------+------+------+--------+----------------+-------+--------+--------------+-------------------+------------+----------+
-
-
-+------------------+--------------------------+--------------------------------------------------------------------------+
-|       Name       |        Object Name       |                                   File                                   |
-+------------------+--------------------------+--------------------------------------------------------------------------+
-| RQS_TIMING-201-1 | u_frame_buf_mgr/bram_reg | D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/rtl/frame_buf_mgr.sv:63 |
-+------------------+--------------------------+--------------------------------------------------------------------------+
-
-
-4. QoR Suggestions - XDC
-------------------------
-
-+-------------+-------------+--------------+--------+---------+--------+--------+----------------+-------+--------+--------------+-------------------+--------------------------------+--------------------------------------+---------------------------+---------------------------+-----------------+-----------------+
-|     Name    | No of Paths | Logic Levels | Routes |  Slack  |  Req.  |  Skew  | Datapath Delay | Cell% | Route% | Source Clock | Destination Clock |           Startpoint           |               Endpoint               | Path budget for Net check | Path budget for Lut check | Net check slack | LUT check slack |
-+-------------+-------------+--------------+--------+---------+--------+--------+----------------+-------+--------+--------------+-------------------+--------------------------------+--------------------------------------+---------------------------+---------------------------+-----------------+-----------------+
-| RQS_XDC-1-1 | 20          | 65           | 66     | -25.908 | 10.000 | -0.145 | 35.772         | 43.80 | 56.20  | clk          | clk               | u_regs_top/img_cols_r_reg[3]/C | u_shift_addr_gen/calc_col_r_reg[9]/D | -14                       | 17                        | -17.509         | -6.811          |
-+-------------+-------------+--------------+--------+---------+--------+--------+----------------+-------+--------+--------------+-------------------+--------------------------------+--------------------------------------+---------------------------+---------------------------+-----------------+-----------------+
-
-
-5. QoR Suggestions - Netlist
+3. QoR Suggestions - Netlist
 ----------------------------
 
-+------------------+-------------+--------------+--------+---------+--------+--------+--------+----------------+-------+--------+--------------+-------------------+--------------------------------+--------------------------------------+
-|       Name       | No of Paths | Logic Levels | Routes |  Slack  |  Req.  |  Skew  | Fanout | Datapath Delay | Cell% | Route% | Source Clock | Destination Clock |           Startpoint           |               Endpoint               |
-+------------------+-------------+--------------+--------+---------+--------+--------+--------+----------------+-------+--------+--------------+-------------------+--------------------------------+--------------------------------------+
-| RQS_NETLIST-10-1 | 1           | 64           | 65     | -25.573 | 10.000 | -0.145 | -      | 35.437         | 44.20 | 55.80  | clk          | clk               | u_regs_top/img_rows_r_reg[4]/C | u_shift_addr_gen/calc_row_r_reg[9]/D |
-|                  | 1           | 64           | 65     | -25.182 | 10.000 | -0.145 | -      | 35.046         | 44.20 | 55.80  | clk          | clk               | u_regs_top/img_cols_r_reg[3]/C | u_shift_addr_gen/calc_col_r_reg[5]/D |
-|                  | 1           | 64           | 65     | -25.573 | 10.000 | -0.145 | -      | 35.437         | 44.20 | 55.80  | clk          | clk               | u_regs_top/img_rows_r_reg[4]/C | u_shift_addr_gen/calc_row_r_reg[8]/D |
-|                  | 1           | 65           | 66     | -25.908 | 10.000 | -0.145 | -      | 35.772         | 43.80 | 56.20  | clk          | clk               | u_regs_top/img_cols_r_reg[3]/C | u_shift_addr_gen/calc_col_r_reg[9]/D |
-|                  | 1           | 64           | 65     | -25.193 | 10.000 | -0.145 | -      | 35.057         | 44.10 | 55.90  | clk          | clk               | u_regs_top/img_cols_r_reg[3]/C | u_shift_addr_gen/calc_col_r_reg[6]/D |
-|                  | 1           | 64           | 65     | -25.398 | 10.000 | -0.145 | -      | 35.262         | 43.90 | 56.10  | clk          | clk               | u_regs_top/img_cols_r_reg[3]/C | u_shift_addr_gen/calc_col_r_reg[8]/D |
-|                  | 1           | 62           | 63     | -24.008 | 10.000 | -0.145 | -      | 33.872         | 45.00 | 55.00  | clk          | clk               | u_regs_top/img_cols_r_reg[3]/C | u_shift_addr_gen/calc_col_r_reg[2]/D |
-|                  | 1           | 62           | 63     | -24.860 | 10.000 | -0.145 | -      | 34.724         | 44.40 | 55.60  | clk          | clk               | u_regs_top/img_rows_r_reg[4]/C | u_shift_addr_gen/calc_row_r_reg[7]/D |
-|                  | 1           | 62           | 63     | -24.890 | 10.000 | -0.145 | -      | 34.754         | 44.30 | 55.70  | clk          | clk               | u_regs_top/img_rows_r_reg[4]/C | u_shift_addr_gen/calc_row_r_reg[5]/D |
-|                  | 1           | 63           | 64     | -24.609 | 10.000 | -0.145 | -      | 34.473         | 44.50 | 55.50  | clk          | clk               | u_regs_top/img_cols_r_reg[3]/C | u_shift_addr_gen/calc_col_r_reg[4]/D |
-|                  | 1           | 63           | 64     | -25.200 | 10.000 | -0.145 | -      | 35.064         | 44.30 | 55.70  | clk          | clk               | u_regs_top/img_cols_r_reg[3]/C | u_shift_addr_gen/calc_col_r_reg[7]/D |
-|                  | 1           | 62           | 63     | -24.480 | 10.000 | -0.145 | -      | 34.344         | 44.30 | 55.70  | clk          | clk               | u_regs_top/img_cols_r_reg[3]/C | u_shift_addr_gen/calc_col_r_reg[3]/D |
-|                  | 1           | 61           | 62     | -24.317 | 10.000 | -0.145 | -      | 34.181         | 44.70 | 55.30  | clk          | clk               | u_regs_top/img_rows_r_reg[4]/C | u_shift_addr_gen/calc_row_r_reg[4]/D |
-|                  | 1           | 62           | 63     | -24.890 | 10.000 | -0.145 | -      | 34.754         | 44.30 | 55.70  | clk          | clk               | u_regs_top/img_rows_r_reg[4]/C | u_shift_addr_gen/calc_row_r_reg[6]/D |
-|                  | 1           | 64           | 65     | -24.572 | 10.000 | -0.145 | -      | 34.436         | 44.30 | 55.70  | clk          | clk               | u_regs_top/img_cols_r_reg[3]/C | u_shift_addr_gen/calc_col_r_reg[1]/D |
-+------------------+-------------+--------------+--------+---------+--------+--------+--------+----------------+-------+--------+--------------+-------------------+--------------------------------+--------------------------------------+
++------------------+-------------+--------------+--------+-------+--------+--------+--------+----------------+-------+--------+--------------+-------------------+--------------------------------------+-----------------------------------------+
+|       Name       | No of Paths | Logic Levels | Routes | Slack |  Req.  |  Skew  | Fanout | Datapath Delay | Cell% | Route% | Source Clock | Destination Clock |              Startpoint              |                 Endpoint                |
++------------------+-------------+--------------+--------+-------+--------+--------+--------+----------------+-------+--------+--------------+-------------------+--------------------------------------+-----------------------------------------+
+| RQS_NETLIST-10-1 | 1           | 20           | 21     | 7.893 | 20.000 | -0.145 | -      | 11.971         | 43.90 | 56.10  | clk          | clk               | u_shift_addr_gen/img_rows_r_reg[4]/C | u_shift_addr_gen/step_mod_rows_reg[5]/D |
+|                  | 1           | 20           | 21     | 7.923 | 20.000 | -0.145 | -      | 11.941         | 44.00 | 56.00  | clk          | clk               | u_shift_addr_gen/img_rows_r_reg[4]/C | u_shift_addr_gen/step_mod_rows_reg[7]/D |
+|                  | 1           | 20           | 21     | 7.901 | 20.000 | -0.145 | -      | 11.963         | 43.80 | 56.20  | clk          | clk               | u_shift_addr_gen/img_cols_r_reg[4]/C | u_shift_addr_gen/step_mod_cols_reg[6]/D |
+|                  | 1           | 21           | 22     | 7.410 | 20.000 | -0.145 | -      | 12.454         | 44.50 | 55.50  | clk          | clk               | u_shift_addr_gen/img_rows_r_reg[4]/C | u_shift_addr_gen/step_mod_rows_reg[9]/D |
+|                  | 1           | 20           | 21     | 7.893 | 20.000 | -0.145 | -      | 11.971         | 43.90 | 56.10  | clk          | clk               | u_shift_addr_gen/img_cols_r_reg[4]/C | u_shift_addr_gen/step_mod_cols_reg[8]/D |
+|                  | 1           | 21           | 22     | 7.410 | 20.000 | -0.145 | -      | 12.454         | 44.50 | 55.50  | clk          | clk               | u_shift_addr_gen/img_cols_r_reg[4]/C | u_shift_addr_gen/step_mod_cols_reg[9]/D |
+|                  | 1           | 20           | 21     | 7.901 | 20.000 | -0.145 | -      | 11.963         | 43.80 | 56.20  | clk          | clk               | u_shift_addr_gen/img_rows_r_reg[4]/C | u_shift_addr_gen/step_mod_rows_reg[6]/D |
+|                  | 1           | 20           | 21     | 7.893 | 20.000 | -0.145 | -      | 11.971         | 43.90 | 56.10  | clk          | clk               | u_shift_addr_gen/img_rows_r_reg[4]/C | u_shift_addr_gen/step_mod_rows_reg[8]/D |
+|                  | 1           | 20           | 21     | 7.893 | 20.000 | -0.145 | -      | 11.971         | 43.90 | 56.10  | clk          | clk               | u_shift_addr_gen/img_cols_r_reg[4]/C | u_shift_addr_gen/step_mod_cols_reg[5]/D |
+|                  | 1           | 20           | 21     | 7.923 | 20.000 | -0.145 | -      | 11.941         | 44.00 | 56.00  | clk          | clk               | u_shift_addr_gen/img_cols_r_reg[4]/C | u_shift_addr_gen/step_mod_cols_reg[7]/D |
+|                  | 1           | 18           | 19     | 9.071 | 20.000 | -0.145 | -      | 10.793         | 46.40 | 53.60  | clk          | clk               | u_shift_addr_gen/img_rows_r_reg[4]/C | u_shift_addr_gen/step_mod_rows_reg[2]/D |
+|                  | 1           | 19           | 20     | 8.466 | 20.000 | -0.145 | -      | 11.398         | 45.00 | 55.00  | clk          | clk               | u_shift_addr_gen/img_cols_r_reg[4]/C | u_shift_addr_gen/step_mod_cols_reg[4]/D |
+|                  | 1           | 18           | 19     | 8.116 | 20.000 | -0.145 | -      | 11.748         | 42.60 | 57.40  | clk          | clk               | u_shift_addr_gen/img_rows_r_reg[4]/C | u_shift_addr_gen/step_mod_rows_reg[3]/D |
+|                  | 1           | 19           | 20     | 8.466 | 20.000 | -0.145 | -      | 11.398         | 45.00 | 55.00  | clk          | clk               | u_shift_addr_gen/img_rows_r_reg[4]/C | u_shift_addr_gen/step_mod_rows_reg[4]/D |
+|                  | 1           | 18           | 19     | 9.071 | 20.000 | -0.145 | -      | 10.793         | 46.40 | 53.60  | clk          | clk               | u_shift_addr_gen/img_cols_r_reg[4]/C | u_shift_addr_gen/step_mod_cols_reg[2]/D |
+|                  | 1           | 18           | 19     | 8.116 | 20.000 | -0.145 | -      | 11.748         | 42.60 | 57.40  | clk          | clk               | u_shift_addr_gen/img_cols_r_reg[4]/C | u_shift_addr_gen/step_mod_cols_reg[3]/D |
++------------------+-------------+--------------+--------+-------+--------+--------+--------+----------------+-------+--------+--------------+-------------------+--------------------------------------+-----------------------------------------+
 
 

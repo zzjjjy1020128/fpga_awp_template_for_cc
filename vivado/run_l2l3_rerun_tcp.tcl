@@ -1,7 +1,7 @@
 # =============================================================================
-# run_l2l3_rerun_tcp.tcl — L2+L3 重跑（step_mod 寄存器化 + 输出寄存器）
+# run_l2l3_._tcp.tcl — L2+L3 重跑（step_mod 寄存器化 + 输出寄存器）
 # 通过 TCP 连接到运行中的 Vivado GUI（batch 模式不可用时）
-# 使用 rerun/ 子目录避免与 GUI 锁定冲突
+# 使用 ./ 子目录避免与 GUI 锁定冲突
 # =============================================================================
 
 # 关闭已有工程
@@ -10,7 +10,7 @@ close_project -quiet
 
 # 设置工程目录
 set script_dir [file normalize [file dirname [info script]]]
-set project_dir [file join $script_dir rerun]
+set project_dir [file join $script_dir .]
 set rtl_dir    [file normalize [file join $script_dir .. rtl]]
 set constr_dir [file normalize [file join $script_dir .. constraints]]
 
