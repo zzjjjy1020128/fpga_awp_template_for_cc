@@ -14,15 +14,31 @@ set_input_delay -clock clk 2.0 [list [remove_from_list [all_inputs] [get_ports c
 # 输出延迟约束（相对于 clk 的 2.0ns 输出延迟）
 set_output_delay -clock clk 2.0 [all_outputs]
 
+# ============================================================================
 # IOB 寄存器打包：将输出寄存器放入 IOB 逻辑
 # 消除 fabric 到 OBUF 的长路径延迟和 clock skew 影响
+# ============================================================================
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_rdata_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_rresp_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_rvalid_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_bvalid_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_bresp_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_wready_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_awready_reg*"}]
+set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axil_arready_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tdata_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tvalid_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tlast_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tuser_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axis_tready_reg*"}]
+
+# ============================================================================
+# 多周期路径：step_mod 和配置寄存器仅在帧间变化
+# 允许 2 个周期完成计算（setup=2, hold=1）
+# ============================================================================
+set_multicycle_path -setup 2 -from [get_cells -hier -filter {NAME =~ "*img_rows_r_reg*"}] -to [get_cells -hier -filter {NAME =~ "*step_mod*"}]
+set_multicycle_path -hold  1 -from [get_cells -hier -filter {NAME =~ "*img_rows_r_reg*"}] -to [get_cells -hier -filter {NAME =~ "*step_mod*"}]
+set_multicycle_path -setup 2 -from [get_cells -hier -filter {NAME =~ "*img_cols_r_reg*"}] -to [get_cells -hier -filter {NAME =~ "*step_mod*"}]
+set_multicycle_path -hold  1 -from [get_cells -hier -filter {NAME =~ "*img_cols_r_reg*"}] -to [get_cells -hier -filter {NAME =~ "*step_mod*"}]
+set_multicycle_path -setup 2 -from [get_cells -hier -filter {NAME =~ "*cfg_step_r_reg*"}] -to [get_cells -hier -filter {NAME =~ "*step_mod*"}]
+set_multicycle_path -hold  1 -from [get_cells -hier -filter {NAME =~ "*cfg_step_r_reg*"}] -to [get_cells -hier -filter {NAME =~ "*step_mod*"}]
