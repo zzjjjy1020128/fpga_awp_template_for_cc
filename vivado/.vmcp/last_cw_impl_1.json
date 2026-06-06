@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "run_name": "impl_1",
+  "report": {
+    "errors": 0,
+    "critical_warnings": 1,
+    "warnings": 101,
+    "groups": [
+      {
+        "warning_id": "Place 30-73",
+        "category": "UNKNOWN",
+        "count": 1,
+        "first_line": 393,
+        "message_template": "CRITICAL WARNING: [Place 30-73] Invalid constraint on register 'u_axis_input/s_axis_tready_reg'. It has the property IOB=TRUE, but it is not driving or driven by any IO element.",
+        "affected_ports": [],
+        "source_files": [],
+        "suggestion": "未知警告类型，请查阅 Vivado 日志获取详细信息。"
+      }
+    ],
+    "error_groups": []
+  },
+  "raw_cws": [
+    {
+      "warning_id": "Place 30-73",
+      "message": "CRITICAL WARNING: [Place 30-73] Invalid constraint on register 'u_axis_input/s_axis_tready_reg'. It has the property IOB=TRUE, but it is not driving or driven by any IO element.",
+      "line_number": 393,
+      "source_file": "",
+      "port": "",
+      "pin": ""
+    }
+  ]
+}

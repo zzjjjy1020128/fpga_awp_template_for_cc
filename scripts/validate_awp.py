@@ -755,6 +755,45 @@ def validate_port_connectivity():
     return errors
 
 
+def validate_resource_thresholds():
+    """检查 L2/L3 run 报告中的资源利用率是否超过器件阈值。
+    IOB > 70%、BRAM > 90%、DSP > 80% 触发 WARN——可能说明架构方向错误。
+    """
+    warnings = []
+    runs_dir = ROOT / ".awp" / "runs"
+    if not runs_dir.exists():
+        return warnings
+
+    thresholds = {
+        "IOB": 0.70,
+        "Block RAM": 0.90,
+        "DSP": 0.80,
+    }
+
+    for f in sorted(runs_dir.glob("RUN-E001-SYNTH-*.md"), reverse=True)[:1]:
+        try:
+            content = _read_file_robust(f)
+        except Exception:
+            continue
+
+        for line in content.split("\n"):
+            for resource, threshold in thresholds.items():
+                if resource in line and "%" in line:
+                    # 提取百分比数值
+                    import re
+                    m = re.search(r'(\d+\.?\d*)\s*%', line)
+                    if m:
+                        pct = float(m.group(1)) / 100.0
+                        if pct > threshold:
+                            warnings.append(
+                                f"{f.stem}: {resource} = {pct*100:.1f}% exceeds "
+                                f"{threshold*100:.0f}% threshold. "
+                                f"Consider architectural review — may need Block Design, "
+                                f"ILA, or device port reduction instead of external IOB."
+                            )
+    return warnings
+
+
 def validate_manifest():
     """校验 workspace_manifest.json"""
     errors = []
@@ -815,6 +854,7 @@ def cmd_validate():
     all_errors.extend(validate_registry_consistency())
     all_errors.extend(validate_issue_coverage())
     all_errors.extend(validate_port_connectivity())
+    all_errors.extend(validate_resource_thresholds())
 
     if all_errors:
         print(f"\n[FAIL] {len(all_errors)} validation error(s):\n")
@@ -1545,6 +1585,30 @@ def cmd_guard_pre_spawn():
     if target_agent and target_agent in GAP_SAFE_AGENTS:
         # 允许：修复、建 task、审查、流程修补
         return 0
+
+    # 迭代刹车：检查 ISS issue 是否超过资源 + 轮次阈值
+    issues_dir = ROOT / ".awp" / "issues"
+    if issues_dir.exists():
+        for f in sorted(issues_dir.glob("ISS-*.yaml")):
+            data, _ = load_yaml_file(str(f.relative_to(ROOT)))
+            if not data:
+                continue
+            rc = data.get("round_count", 0)
+            mr = data.get("max_rounds", 3)
+            if rc >= mr and data.get("status") not in ("resolved", "closed"):
+                # 检查是否有资源警告
+                thresholds = validate_resource_thresholds()
+                if thresholds:
+                    print("\n" + "=" * 60)
+                    print("  [AWP-GUARD] Pre-Spawn BLOCKED -- Iteration Brake")
+                    print("=" * 60)
+                    print(f"  {f.stem}: round={rc} >= max_rounds={mr}")
+                    print(f"  Resource warnings present:")
+                    for t in thresholds[:3]:
+                        print(f"    [!] {t}")
+                    print(f"\n  Direction may be wrong -- escalate to human_owner.")
+                    print("=" * 60 + "\n")
+                    return 1
 
     # 无法判断 agent 类型（手动调用）或有 GAP 且非安全 agent → 阻断
     print("\n" + "=" * 60)

@@ -195,6 +195,7 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
    - handoff 创建、session 记录
    - `make validate-awp`、门禁检查
    - 与用户确认方向、架构决策
+   - **审核 sub-agent 产出**：验证报告中的资源指标（IOB/BRAM/DSP/LUT）是否在目标器件合理范围内；任何指标 > 70% 需向 human_owner 确认方向
 5. **涉及跨文件接口变更** → **不得委托 sub-agent**，必须由 orchestrator 亲自执行：
    - 新增/删除/重命名模块端口、参数、interface 信号
    - 修改多个模块共享的 interface 定义
@@ -262,6 +263,7 @@ integration_verifier 发现失败
        round 1-2：正常往返
        round 3：spawn rtl_reviewer 深度审查，或切换 module_owner
        round > 3：停止迭代，issue status=blocked，请求 human_owner 介入
+   **迭代方向刹车**：同一 ISS issue 连续 3 轮 WNS 改善 < 5% 且某资源（IOB/BRAM/DSP）> 75% → 阻断 spawn，orchestrator 必须写根因分析并请求 human_owner 确认方向
 ```
 
 #### 阻断规则
