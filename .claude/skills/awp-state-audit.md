@@ -5,11 +5,11 @@
 ## 审计命令
 
 ```bash
-# 完整状态审计（一次性运行所有检查）
-python scripts/validate_awp.py                # schema + 引用 + review 覆盖 + 文件存在 + skip + fail + 涟漪
-python scripts/validate_awp.py --gate-check   # gate 递进 + target-gap
-python scripts/validate_awp.py --sync         # 自动修复可检测的不一致
-python scripts/validate_awp.py --guard session-start  # handoff + gate + skeleton 汇总
+# 完整状态审计（按此顺序执行——先修复再检查）
+python scripts/validate_awp.py --sync         # 1. 自动修复 + registry 同步
+python scripts/validate_awp.py                # 2. 全量校验（含 issue coverage、涟漪等）
+python scripts/validate_awp.py --gate-check   # 3. gate 门禁
+python scripts/validate_awp.py --guard session-start  # 4. handoff + gate + skeleton 汇总
 ```
 
 ## 审计检查清单
@@ -40,11 +40,16 @@ python scripts/validate_awp.py --guard session-start  # handoff + gate + skeleto
 - [ ] 所有 active/done 的 rtl_implementer task 有通过 review
 - [ ] 所有 review 文件 frontmatter 完整（task_id, reviewer, result, date）
 
-### 6. Integration scope
+### 6. Issue 覆盖（G4 强制）
+- [ ] 每个 status=FAIL 的 RUN 有对应 ISS issue（`detected_in_run` 字段）
+- [ ] 每个 open/in_progress issue 有 `suspected_owner_task`
+- [ ] 无 round_count 超过 max_rounds 的 issue（应设 blocked）
+
+### 7. Integration scope
 - [ ] integration_verifier task 的 `allowed_edit_paths` 不包含子模块 RTL（G6 规则）
 - [ ] 例外：may-fix-with-record 的修改有对应 ISS issue
 
-### 7. Session 记录
+### 8. Session 记录
 - [ ] 无残留 SKELETON-*.md 文件（未完成的 session 记录）
 - [ ] Handoff 文件包含 Gate Status 表
 

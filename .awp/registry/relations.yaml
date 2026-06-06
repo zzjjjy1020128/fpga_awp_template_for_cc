@@ -6,6 +6,24 @@ relations:
 - from: HO-E001-008-001
   to: SESS-E001-OR-001
   type: from_session
+- from: ISS-E001-001
+  to: RUN-E001-L1B-WRITE-001
+  type: detected_in
+- from: ISS-E001-001
+  to: TASK-E001-004
+  type: assigned_to
+- from: ISS-E001-001
+  to: TASK-E001-004
+  type: detected_by
+- from: ISS-E001-002
+  to: RUN-E001-SIM-004
+  type: detected_in
+- from: ISS-E001-002
+  to: TASK-E001-005
+  type: assigned_to
+- from: ISS-E001-002
+  to: TASK-E001-005
+  type: detected_by
 - from: REV-E001-001-ARCH-001
   to: EXP001
   type: belongs_to

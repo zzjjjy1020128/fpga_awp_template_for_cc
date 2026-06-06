@@ -10,6 +10,16 @@ ids:
   title: Handoff HO-E001-008-001
   status: in_progress
   created: '2026-06-04'
+- id: ISS-E001-001
+  type: ISSUE
+  title: L1b WRITE re-run encoding error — 10 RUN files unreadable as UTF-8
+  status: resolved
+  created: SESS-E001-
+- id: ISS-E001-002
+  type: ISSUE
+  title: shift_addr_gen L1a re-run — TB missing .proceed(1'b1) port connection
+  status: resolved
+  created: SESS-E001-
 - id: REV-E001-001-ARCH-001
   type: REVIEW
   title: Review of TASK-E001-001 (ARCH)

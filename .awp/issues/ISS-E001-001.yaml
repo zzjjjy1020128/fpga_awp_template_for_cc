@@ -1,0 +1,40 @@
+issue_id: "ISS-E001-001"
+title: "L1b WRITE re-run encoding error — 10 RUN files unreadable as UTF-8"
+status: "resolved"
+
+detected_at_level: "L1a"
+detected_by_task: "TASK-E001-004"
+detected_by_session: "SESS-E001-OR-001"
+detected_in_run: "RUN-E001-L1B-WRITE-001"
+
+suspected_owner_task: "TASK-E001-004"
+suspected_module: "axis_input"
+
+round_count: 1
+max_rounds: 3
+
+failure_signature:
+  test_case: "sync_registry file read"
+  timestamp: "N/A"
+  signal: "N/A"
+  expected: "34 entities in registry"
+  observed: "24 entities — 10 RUN files silently skipped due to GBK encoding"
+
+evidence:
+  logs:
+    - ".awp/runs/RUN-E001-L1B-WRITE-001.md"
+  notes:
+    - "10 RUN files contained GBK-encoded Chinese characters, utf-8 decode failed"
+    - "Fixed by adding _read_file_robust() with GBK fallback"
+    - "Not a DUT bug — tooling issue"
+    - "RUN report itself was auto-generated and shows FAIL from initial encoding error"
+
+attempts:
+  - round: 1
+    verifier_session: "SESS-E001-OR-001"
+    action: "Added _read_file_robust() helper in validate_awp.py with utf-8 → gbk fallback"
+    result: "pass"
+
+next_action:
+  role: "none"
+  action: "Resolved. RUN-E001-L1B-WRITE-001 report status was stale from encoding error; actual simulation passed."

@@ -17,10 +17,11 @@
     },
     "detected_at_level": {
       "type": "string",
-      "enum": ["L1b", "L1c", "L2", "L3", "L5", "L6"]
+      "enum": ["L1a", "L1b", "L1c", "L2", "L3", "L5", "L6"]
     },
     "detected_by_task": { "type": "string" },
     "detected_by_session": { "type": "string" },
+    "detected_in_run": { "type": "string", "description": "发现此 issue 的 RUN ID，如 RUN-E001-SIM-007" },
     "suspected_owner_task": { "type": "string" },
     "suspected_module": { "type": "string" },
     "round_count": { "type": "integer", "minimum": 1 },

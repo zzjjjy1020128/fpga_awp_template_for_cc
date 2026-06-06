@@ -1,0 +1,41 @@
+issue_id: "ISS-E001-002"
+title: "shift_addr_gen L1a re-run — TB missing .proceed(1'b1) port connection"
+status: "resolved"
+
+detected_at_level: "L1a"
+detected_by_task: "TASK-E001-005"
+detected_by_session: "SESS-E001-OR-001"
+detected_in_run: "RUN-E001-SIM-004"
+
+suspected_owner_task: "TASK-E001-005"
+suspected_module: "shift_addr_gen"
+
+round_count: 1
+max_rounds: 3
+
+failure_signature:
+  test_case: "TC01-TC15 all fail except pixel 0"
+  timestamp: "N/A"
+  signal: "proceed"
+  expected: "1'b1 (connected)"
+  observed: "X (unconnected — floating)"
+
+evidence:
+  logs:
+    - ".awp/runs/RUN-E001-SIM-004.md"
+  notes:
+    - "RTL added proceed port during L1c fix (axil_2d_shift.sv added .proceed(m_axis_tready))"
+    - "L1a TB tb_shift_addr_gen.sv was not updated with new port connection"
+    - "All pixel addresses after pixel 0 failed because proceed=X prevented counter increment"
+    - "Fixed by adding .proceed(1'b1) to L1a TB instantiation"
+    - "L1b TB (tb_l1b_read_path.sv) already had correct .proceed(m_axis_tready) connection"
+
+attempts:
+  - round: 1
+    verifier_session: "SESS-E001-OR-001"
+    action: "Added .proceed(1'b1) to tb_shift_addr_gen.sv DUT instantiation"
+    result: "pass"
+
+next_action:
+  role: "none"
+  action: "Resolved. Root cause was TB not updated after RTL port addition. Recommend port-consistency check in validate_awp.py (retrospective P1-2)."

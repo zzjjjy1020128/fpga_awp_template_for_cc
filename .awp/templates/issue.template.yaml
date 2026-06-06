@@ -6,8 +6,9 @@ title: "<issue 标题>"
 status: "open"           # open | in_progress | blocked | resolved | closed
 
 detected_at_level: "L1b"  # 首次在哪个验证级别发现
-detected_by_task: "<TASK-E001-L1B-WRITE>"
+detected_by_task: "<TASK-E001-009>"
 detected_by_session: "<SESS-E001-OR-001>"
+detected_in_run: "<RUN-E001-SIM-007>"  # 关联到具体的运行记录
 
 suspected_owner_task: "<TASK-E001-004>"  # 怀疑根因所在的模块 task
 suspected_module: "<axis_input>"
