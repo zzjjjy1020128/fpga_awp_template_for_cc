@@ -24,6 +24,15 @@ relations:
 - from: ISS-E001-002
   to: TASK-E001-005
   type: detected_by
+- from: ISS-E001-003
+  to: RUN-E001-IMPL-001
+  type: detected_in
+- from: ISS-E001-003
+  to: TASK-E001-005
+  type: assigned_to
+- from: ISS-E001-003
+  to: TASK-E001-013
+  type: detected_by
 - from: REV-E001-001-ARCH-001
   to: EXP001
   type: belongs_to
@@ -78,6 +87,9 @@ relations:
 - from: REV-E001-007-RTL-001
   to: TASK-E001-007
   type: reviews
+- from: RUN-E001-IMPL-001
+  to: EXP001
+  type: belongs_to
 - from: RUN-E001-L1B-CONTROL-001
   to: EXP001
   type: belongs_to
@@ -144,6 +156,9 @@ relations:
 - from: RUN-E001-SIM-008
   to: TASK-E001-008
   type: runs_for
+- from: RUN-E001-SYNTH-001
+  to: EXP001
+  type: belongs_to
 - from: SESS-E001-OR-001
   to: EXP001
   type: belongs_to
@@ -266,4 +281,25 @@ relations:
   type: depends_on
 - from: TASK-E001-011
   to: TASK-E001-003
+  type: depends_on
+- from: TASK-E001-012
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-012
+  to: TASK-E001-008
+  type: depends_on
+- from: TASK-E001-012
+  to: TASK-E001-009
+  type: depends_on
+- from: TASK-E001-012
+  to: TASK-E001-010
+  type: depends_on
+- from: TASK-E001-012
+  to: TASK-E001-011
+  type: depends_on
+- from: TASK-E001-013
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-013
+  to: TASK-E001-012
   type: depends_on

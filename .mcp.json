@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "vivado": {
+      "command": "python",
+      "args": ["-m", "vivado_mcp", "serve"],
+      "env": {
+        "VIVADO_PATH": "G:/vivado2022.2/Vivado/2022.2/bin/vivado.bat",
+        "VIVADO_MCP_PORT": "9999"
+      }
+    }
+  }
+}

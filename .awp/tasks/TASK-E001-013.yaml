@@ -1,0 +1,64 @@
+task_id: "TASK-E001-013"
+title: "L3 Vivado 实现与时序收敛 —— axil_2d_shift"
+status: "in_progress"
+agent: "vivado_integrator"
+assigned_to: ""
+created_date: "2026-06-06"
+
+objective: >
+  对已综合的 axil_2d_shift 设计运行实现（opt_design + place_design + route_design），
+  分析时序报告，确认 100MHz 时序收敛（WNS >= 0）。
+
+target_validation_level: "L3"
+integration_scope: "system"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "fail"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-012"
+
+scope:
+  allowed_edit_paths:
+    - "vivado/"
+    - "constraints/"
+    - ".awp/runs/"
+    - ".awp/issues/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - ".awp/runs/RUN-E001-SYNTH-001.md"
+    - "constraints/timing.xdc"
+
+acceptance:
+  - "实现（opt + place + route）成功完成，无 Error"
+  - "时序收敛：WNS >= 0 ns，WHS >= 0 ns"
+  - "无未解决的 Critical Warning"
+  - "实现报告输出到 .awp/runs/RUN-E001-IMPL-001.md"
+
+required_outputs:
+  - ".awp/runs/RUN-E001-IMPL-001.md"
+  - "vivado/axil_2d_shift.runs/impl_1/axil_2d_shift_routed.dcp"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "medium"

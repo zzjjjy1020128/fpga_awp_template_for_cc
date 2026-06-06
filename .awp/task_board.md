@@ -13,7 +13,8 @@
 
 ## In Progress
 
-- [ ] *（暂无）*
+- [ ] [TASK-E001-005](.awp/tasks/TASK-E001-005.yaml) | rtl_implementer | 移位地址生成器 shift_addr_gen RTL 实现
+- [ ] [TASK-E001-013](.awp/tasks/TASK-E001-013.yaml) | vivado_integrator | L3 Vivado 实现与时序收敛 —— axil_2d_shift
 
 ## Blocked
 
@@ -21,7 +22,7 @@
 
 ## Review
 
-- [ ] *（暂无）*
+- [ ] [TASK-E001-012](.awp/tasks/TASK-E001-012.yaml) | vivado_integrator | L2 Vivado 综合 —— axil_2d_shift 顶层模块
 
 ## Done
 
@@ -29,7 +30,6 @@
 - [ ] [TASK-E001-002](.awp/tasks/TASK-E001-002.yaml) | rtl_implementer | AXI-Lite 从属接口与寄存器文件 RTL 实现
 - [ ] [TASK-E001-003](.awp/tasks/TASK-E001-003.yaml) | rtl_implementer | 主控制状态机 ctrl_fsm RTL 实现
 - [ ] [TASK-E001-004](.awp/tasks/TASK-E001-004.yaml) | rtl_implementer | AXI-Stream 输入接口 axis_input RTL 实现
-- [ ] [TASK-E001-005](.awp/tasks/TASK-E001-005.yaml) | rtl_implementer | 移位地址生成器 shift_addr_gen RTL 实现
 - [ ] [TASK-E001-006](.awp/tasks/TASK-E001-006.yaml) | rtl_implementer | AXI-Stream 输出接口 axis_output RTL 实现
 - [ ] [TASK-E001-007](.awp/tasks/TASK-E001-007.yaml) | rtl_implementer | 帧缓冲控制器 frame_buf_mgr RTL 实现
 - [ ] [TASK-E001-008](.awp/tasks/TASK-E001-008.yaml) | integration_verifier | AXI-Lite 2D Shift 顶层模块集成

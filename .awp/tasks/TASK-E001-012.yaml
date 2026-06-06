@@ -1,0 +1,100 @@
+task_id: "TASK-E001-012"
+title: "L2 Vivado 综合 —— axil_2d_shift 顶层模块"
+status: "review"
+agent: "vivado_integrator"
+assigned_to: ""
+created_date: "2026-06-06"
+
+objective: >
+  对 axil_2d_shift 顶层模块创建 Vivado 工程，编写 XDC 约束（100MHz 时钟），
+  运行综合（synthesis），分析综合报告（资源利用率、时序预估、Critical Warning）。
+  目标器件：xc7z020clg400-1（Zynq-7000）。
+
+target_validation_level: "L2"
+integration_scope: "system"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pass"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-008"
+  - "TASK-E001-009"
+  - "TASK-E001-010"
+  - "TASK-E001-011"
+
+scope:
+  allowed_edit_paths:
+    - "vivado/"
+    - "constraints/"
+    - ".awp/runs/"
+    - ".awp/issues/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - "rtl/axil_2d_shift.sv"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+    - "rtl/ctrl_fsm.sv"
+    - "rtl/axis_input.sv"
+    - "rtl/shift_addr_gen.sv"
+    - "rtl/axis_output.sv"
+    - "rtl/frame_buf_mgr.sv"
+    - "docs/architecture.md"
+
+acceptance:
+  - "Vivado 工程创建成功，所有 RTL 文件正确添加"
+  - "XDC 约束文件包含 100MHz 主时钟约束"
+  - "综合（synth_design）成功完成，无 Error"
+  - "综合报告：资源利用率（LUT/FF/BRAM/DSP）可接受"
+  - "综合报告：时序预估 WNS >= 0（无严重违例）"
+  - "无未解决的 Critical Warning"
+  - "综合报告输出到 .awp/runs/RUN-E001-SYNTH-001.md"
+
+required_outputs:
+  - "vivado/axil_2d_shift.xpr"
+  - "constraints/timing.xdc"
+  - ".awp/runs/RUN-E001-SYNTH-001.md"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## 综合配置
+
+  - 目标器件：xc7z020clg400-1（Zynq-7000，Xilinx）
+  - 主时钟：clk = 100MHz（10ns 周期）
+  - 复位：rstn，异步复位同步释放（在 RTL 中处理）
+
+  ## Vivado 工程结构
+
+  ```
+  vivado/axil_2d_shift.xpr
+  constraints/timing.xdc
+  ```
+
+  ## 关键检查项
+
+  1. 扇出（fanout）：rstn 复位信号可能高扇出，检查是否需要 BUFG
+  2. BRAM 推断：frame_buf_mgr 的 4096 深度 BRAM 是否正确推断为 Block RAM
+  3. 时序：100MHz 下所有路径 slack >= 0
+  4. DSP/资源利用率：确认在目标器件容量内

@@ -20,6 +20,12 @@ ids:
   title: shift_addr_gen L1a re-run — TB missing .proceed(1'b1) port connection
   status: resolved
   created: SESS-E001-
+- id: ISS-E001-003
+  type: ISSUE
+  title: L3 timing closure failure — shift_addr_gen 54 logic levels, WNS = -28.321
+    ns
+  status: open
+  created: PLACEHOLDE
 - id: REV-E001-001-ARCH-001
   type: REVIEW
   title: Review of TASK-E001-001 (ARCH)
@@ -65,6 +71,11 @@ ids:
   title: Review of TASK-E001-007 (RTL)
   status: closed
   created: '2026-06-04'
+- id: RUN-E001-IMPL-001
+  type: RUN
+  title: RUN-E001-IMPL-001.md - axil_2d_shift L3 实现报告
+  status: active
+  created: ''
 - id: RUN-E001-L1B-CONTROL-001
   type: RUN
   title: 'RUN-E001-L1B-CONTROL-001: L1b 控制通路集成仿真'
@@ -120,6 +131,11 @@ ids:
   title: 'RUN-E001-SIM-008: axil_2d_shift L1c Full-System Integration Simulation'
   status: active
   created: '2026-06-05'
+- id: RUN-E001-SYNTH-001
+  type: RUN
+  title: RUN-E001-SYNTH-001.md - axil_2d_shift L2 综合报告
+  status: active
+  created: ''
 - id: SESS-E001-OR-001
   type: SESSION
   title: Session 记录
@@ -148,7 +164,7 @@ ids:
 - id: TASK-E001-005
   type: TASK
   title: 移位地址生成器 shift_addr_gen RTL 实现
-  status: closed
+  status: active
   created: '2026-06-04'
 - id: TASK-E001-006
   type: TASK
@@ -180,3 +196,13 @@ ids:
   title: L1b 数据通路闭环 —— 控制通路（axil_slave_if + regs_top → ctrl_fsm → datapath stubs）
   status: closed
   created: '2026-06-05'
+- id: TASK-E001-012
+  type: TASK
+  title: L2 Vivado 综合 —— axil_2d_shift 顶层模块
+  status: active
+  created: '2026-06-06'
+- id: TASK-E001-013
+  type: TASK
+  title: L3 Vivado 实现与时序收敛 —— axil_2d_shift
+  status: active
+  created: '2026-06-06'
