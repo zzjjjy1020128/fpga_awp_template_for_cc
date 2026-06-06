@@ -31,7 +31,6 @@ set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tdata_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tvalid_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tlast_reg*"}]
 set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*m_axis_tuser_reg*"}]
-set_property IOB TRUE [get_cells -hier -filter {NAME =~ "*s_axis_tready_reg*"}]
 
 # ============================================================================
 # 多周期路径：step_mod 和配置寄存器仅在帧间变化

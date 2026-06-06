@@ -1,8 +1,12 @@
 # 验证计划：AXI-Lite 2D Shift 模块
 
+**验证范围说明**：本文档涵盖 PL-only 架构 (v1) 和 Zynq Block Design 架构 (v2, `docs/architecture_v2_block_design.md`) 两个变体。
+PL-only 架构通过原始顶层的 102 个端口进行仿真验证。
+BD 架构通过 PS AXI 接口 + AXI DMA + ILA 在系统层级进行验证。
+
 ## 1. 验证范围
 
-### 1.1 验证覆盖的模块
+### 1.1.1 验证覆盖的模块 (PL-only v1)
 
 | 模块 | 验证方法 | 说明 |
 |------|---------|------|
@@ -16,11 +20,26 @@
 | **顶层集成** | 完整的端到端测试 | 所有子模块联动 |
 | **AXI-Lite 隔离** | 错误注入 | 未映射地址、写只读寄存器 |
 
+### 1.1.2 验证覆盖的模块 (Block Design v2)
+
+BD 方案不需要对 axil_2d_shift 子模块重新验证（RTL 未修改），但对新增的系统级交互需要验证：
+
+| 验证项 | 验证方法 | 说明 |
+|--------|---------|------|
+| AXI Interconnect 地址映射 | 系统级仿真 | M_AXI_GP0 → axil_2d_shift S_AXI 地址可达 |
+| AXI DMA MM2S → axil_2d_shift | 系统级仿真 | DDR → AXI-Stream 数据通路 |
+| axil_2d_shift → AXI DMA S2MM | 系统级仿真 | AXI-Stream → DDR 数据通路 |
+| ILA 触发 | 上板验证 | ILA 核触发和捕获正确性 |
+| 中断路径 | 系统级仿真 | s2mm_introut → PS IRQ_F2P |
+| PS 寄存器访问 | 系统级仿真 | 通过 M_AXI_GP0 读写 axil_2d_shift 全部寄存器 |
+
 ### 1.2 不覆盖的范围
 
 - 多时钟域验证（本设计为单时钟域）
 - 布局布线后时序仿真（由后续 L2/L3 阶段覆盖）
 - BRAM 的物理行为（由工艺库保证）
+- PS DDR 控制器的物理层验证（由 Xilinx 提供保证）
+- AXI DMA IP 核的协议一致性（由 Xilinx 提供保证）
 
 ## 2. 验证环境
 
@@ -113,6 +132,37 @@ function automatic void ref_2d_shift(
 | TC-045 | frame_buf_mgr | BRAM 地址边界 | 配置最大维度后写最大地址 | 数据正确写入和读出 | directed | done |
 | TC-046 | 顶层集成 | 移位后全帧验证（累加和校验） | 各种配置 | 输出元素的累加和与参考模型一致 | directed | planned |
 | TC-047 | 顶层集成 | 配置在 start 后变更 | start=1 后写 CFG | 行为未定义（仅记录，不视为错误） | directed | planned |
+
+### 3.5 Block Design 系统级测试用例 (v2 新增)
+
+| 用例 ID | 目标层级 | 描述 | 输入 | 预期输出 | 类型 | 状态 |
+|---------|---------|------|------|---------|------|------|
+| BD-TC-001 | BD 系统 | PS 通过 AXI-Lite 读写 axil_2d_shift 全部寄存器 | PS 通过 GP0 遍历所有寄存器地址 | 读回值与写入一致，保留地址返回 0 | directed | planned |
+| BD-TC-002 | BD 系统 | AXI DMA MM2S + S2MM 环路 (透传模式) | DMA 从 DDR 读取 4x4 帧 → shift(NONE) → DMA 写回 DDR | DDR 输出缓冲区数据与输入一致 | directed | planned |
+| BD-TC-003 | BD 系统 | BD 系统 UP wrap 移位 | DDR 中写入 6x4 递增数据 → DMA → shift(UP, step=2, wrap=1) → DMA → DDR | DDR 输出缓冲区内容与参考模型一致 | directed | planned |
+| BD-TC-004 | BD 系统 | BD 系统 LEFT zero-fill 移位 | DDR 中写入 3x5 递增数据 → DMA → shift(LEFT, step=2, wrap=0) → DMA → DDR | 右侧 2 列补 0 | directed | planned |
+| BD-TC-005 | BD 系统 | AXI DMA MM2S + S2MM 同时运行 | 4x4 数据，MM2S 和 S2MM 同时使能 | 流水线完整，无数据丢失 | directed | planned |
+| BD-TC-006 | BD 系统 | AXI DMA S2MM 中断检测 | 帧传输完成后检查 PS IRQ_F2P 中断 | S2MM 完成时 s2mm_introut 置 1 | directed | planned |
+| BD-TC-007 | BD 系统 | ILA 触发捕获 | 设置 ILA 触发条件为 m_axis_tuser 上升沿 | ILA 正确捕获移位阶段开始的波形 | directed | planned |
+| BD-TC-008 | BD 系统 | 大帧传输 (64x64) | 64x64 随机数据，所有方向/步长组合 | DDR 输出与参考模型一致 | random | planned |
+| BD-TC-009 | BD 系统 | 连续多帧传输 | 连续 5 帧 8x8 数据，每帧不同配置 | 每帧 DDR 输出正确 | directed | planned |
+| BD-TC-010 | BD 系统 | DDR 地址边界测试 | DMA 目标地址位于 DDR 空间边界 | 地址正确，无 AXI 错误响应 | directed | planned |
+| BD-TC-011 | BD 系统 | AXI Interconnect 地址空间隔离 | 访问未映射地址 (超出 axil_2d_shift 和 DMA 范围) | 返回 SLVERR 或 DECERR | directed | planned |
+| BD-TC-012 | BD 系统 | PS 访存 DMA 同步 (双向) | PS 写入 DDR 输入缓冲区 → DMA_MM2S → shift → DMA_S2MM → DDR → PS 读取 | 输出缓冲区数据正确且完整 | directed | planned |
+
+### 3.6 硬件验证用例 (BD v2, L5-L6)
+
+| 用例 ID | 目标 | 描述 | 验证方法 |
+|---------|------|------|---------|
+| HW-TC-001 | 上板冒烟 | 加载比特流，确认 PS 启动和 UART 输出 | 通过串口终端观察启动信息 |
+| HW-TC-002 | ILA 调试 | 触发 ILA 捕获采集阶段和移位阶段波形 | Vivado HW Manager 读取 ILA 数据 |
+| HW-TC-003 | 寄存器访问 | PS 读写全部 axil_2d_shift 寄存器 | PS 软件打印寄存器值 |
+| HW-TC-004 | 透传模式 | 4x4 NONE 模式环路 | DDR 输入/输出数据比对 |
+| HW-TC-005 | 方向验证 | 5 种移位方向 (NONE/UP/DOWN/LEFT/RIGHT) | DDR 输出与参考模型比对 |
+| HW-TC-006 | 步长验证 | step=0,1,2,3 各方向覆盖 | DDR 输出与参考模型比对 |
+| HW-TC-007 | 缠绕 vs 补零 | 两种模式对比 | DDR 输出与参考模型比对 |
+| HW-TC-008 | 大帧 64x64 | 最大配置下的移位正确性 | DDR 输出与参考模型比对 |
+| HW-TC-009 | 长时间运行 | 连续 1000 帧随机配置 | 无数据损坏，无 DMA 错误 |
 
 ## 4. 覆盖率目标
 

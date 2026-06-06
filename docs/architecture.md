@@ -1,5 +1,10 @@
 # 架构文档：AXI-Lite 2D Shift 模块
 
+**架构版本**：本文档描述 PL-only 帧缓冲架构（v1）。
+**Block Design 变体**：详见 `docs/architecture_v2_block_design.md` — 将本模块集成到 Zynq-7000 PS+PL 系统的方案。
+**迁移理由**：PL-only 架构需 102 个外部 IOB (81.6%)，远超 xc7z020 的合理利用率。
+Block Design 方案通过 PS M_AXI_GP0、AXI DMA、S_AXI_HP0 在芯片内部完成所有连接，PL IOB 降至 0。
+
 ## 1. 设计目标
 
 实现一个 AXI-Lite 控制的 2D shift 模块，采用**帧缓冲架构**（先存后读），支持对矩形数据阵列进行 UP / DOWN / LEFT / RIGHT 四方向移位，可选择补零或缠绕模式。单时钟域、同步复位设计。

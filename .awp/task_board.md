@@ -14,10 +14,11 @@
 ## In Progress
 
 - [ ] [TASK-E001-005](.awp/tasks/TASK-E001-005.yaml) | rtl_implementer | 移位地址生成器 shift_addr_gen RTL 实现
+- [ ] [TASK-E001-014](.awp/tasks/TASK-E001-014.yaml) | planner | Zynq Block Design 架构重构 —— 替代外部 IOB 方案
 
 ## Blocked
 
-- [ ] *（暂无）*
+- [ ] [TASK-E001-015](.awp/tasks/TASK-E001-015.yaml) | vivado_integrator | Vivado Block Design 创建与综合实现 —— Zynq PS7 + AXI DMA + ILA
 
 ## Review
 

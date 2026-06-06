@@ -189,6 +189,9 @@ relations:
 - from: SESS-E001-OR-001
   to: EXP001
   type: belongs_to
+- from: SESS-E001-OR-002
+  to: EXP001
+  type: belongs_to
 - from: TASK-E001-001
   to: EXP001
   type: belongs_to
@@ -329,4 +332,16 @@ relations:
   type: belongs_to
 - from: TASK-E001-013
   to: TASK-E001-012
+  type: depends_on
+- from: TASK-E001-014
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-014
+  to: TASK-E001-001
+  type: depends_on
+- from: TASK-E001-015
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-015
+  to: TASK-E001-014
   type: depends_on

@@ -1,0 +1,88 @@
+task_id: "TASK-E001-014"
+title: "Zynq Block Design 架构重构 —— 替代外部 IOB 方案"
+status: "in_progress"
+agent: "planner"
+assigned_to: ""
+created_date: "2026-06-06"
+
+objective: >
+  将 axil_2d_shift 从 102 外部 IOB 架构重构为 Zynq Block Design 方案：
+  AXI-Lite 通过 PS M_AXI_GP0 连接，AXI-Stream 通过 DMA 连接，
+  内部信号使用 ILA 调试。目标器件 xc7z020clg400-1。
+
+target_validation_level: "L0"
+integration_scope: "module"
+
+validation_status:
+  L0: "pass"       # 架构文档已完成，包含完整 BD 设计和验证计划
+  L1a: "skip"      # planner 不做仿真
+  L1b: "skip"      # planner 不做仿真
+  L1c: "skip"      # planner 不做仿真
+  L2: "skip"       # planner 不做综合
+  L3: "skip"       # planner 不做实现
+  L4: "skip"       # planner 不做比特流
+  L5: "skip"       # planner 不做上板
+  L6: "skip"       # planner 不做上板
+  L7: "skip"       # planner 不做复盘
+
+depends_on:
+  - "TASK-E001-001"
+
+scope:
+  allowed_edit_paths:
+    - "docs/"
+    - ".awp/tasks/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "vivado/"
+    - "constraints/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+
+context:
+  must_read:
+    - "docs/architecture.md"
+    - "docs/project_charter.md"
+    - "docs/retrospective_iob_decision_failure.md"
+    - "rtl/axil_2d_shift.sv"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/axis_input.sv"
+    - "rtl/axis_output.sv"
+    - "rtl/ctrl_fsm.sv"
+
+acceptance:
+  - "Zynq PS7 配置设计（时钟、DDR、M_AXI_GP0、S_AXI_HP0）"
+  - "AXI Interconnect 拓扑设计"
+  - "axil_2d_shift AXI-Lite 接口连接到 PS GP0 的方案"
+  - "AXI-Stream 输入/输出通过 DMA 或直连 PS HP 口的方案"
+  - "ILA 调试核配置方案（替代全部外部 IOB 观测）"
+  - "外部引脚减少到最小集合（clk, rstn）"
+  - "Block Design 框图 + 接口连接表"
+  - "IOB 预估利用率 < 10%"
+
+required_outputs:
+  - "docs/architecture_v2_block_design.md"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## 背景
+
+  当前设计将 102 个信号全部引到外部 IOB（81.6% 利用率），在 xc7z020 Zynq-7000
+  上浪费了 PS 端的 AXI 接口能力。IOB 时钟偏斜 5.2ns 是 100MHz 时序难以收敛
+  的根因。
+
+  ## Block Design 预期组件
+
+  - Zynq7 Processing System (PS7)
+  - AXI Interconnect (PS GP0 → PL)
+  - AXI-Stream DMA 或 AXI-Stream FIFO
+  - ILA (Integrated Logic Analyzer) 核
+  - Processor System Reset

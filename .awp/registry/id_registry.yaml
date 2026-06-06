@@ -176,6 +176,11 @@ ids:
   title: Session 记录
   status: closed
   created: '2026-06-04'
+- id: SESS-E001-OR-002
+  type: SESSION
+  title: Session 记录
+  status: closed
+  created: '2026-06-06'
 - id: TASK-E001-001
   type: TASK
   title: AXI-Lite 2D Shift 模块架构规划
@@ -240,4 +245,14 @@ ids:
   type: TASK
   title: L3 Vivado 实现与时序收敛 —— axil_2d_shift
   status: closed
+  created: '2026-06-06'
+- id: TASK-E001-014
+  type: TASK
+  title: Zynq Block Design 架构重构 —— 替代外部 IOB 方案
+  status: active
+  created: '2026-06-06'
+- id: TASK-E001-015
+  type: TASK
+  title: Vivado Block Design 创建与综合实现 —— Zynq PS7 + AXI DMA + ILA
+  status: active
   created: '2026-06-06'

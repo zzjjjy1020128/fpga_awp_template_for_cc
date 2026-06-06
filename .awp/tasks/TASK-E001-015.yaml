@@ -1,0 +1,85 @@
+task_id: "TASK-E001-015"
+title: "Vivado Block Design 创建与综合实现 —— Zynq PS7 + AXI DMA + ILA"
+status: "blocked"
+agent: "vivado_integrator"
+assigned_to: ""
+created_date: "2026-06-06"
+
+objective: >
+  按 architecture_v2_block_design.md 创建 Vivado Block Design：
+  PS7 + AXI Interconnect + AXI DMA + SmartConnect + ILA + axil_2d_shift。
+  综合、实现、导出比特流。目标器件 xc7z020clg400-1。
+
+target_validation_level: "L4"
+integration_scope: "system"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-014"
+
+scope:
+  allowed_edit_paths:
+    - "vivado/"
+    - "constraints/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "docs/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+
+context:
+  must_read:
+    - "docs/architecture_v2_block_design.md"
+    - "docs/architecture.md"
+    - "rtl/axil_2d_shift.sv"
+    - "rtl/axil_slave_if.sv"
+
+acceptance:
+  - "Block Design 创建成功（PS7 + AXI Interconnect + DMA + ILA + axil_2d_shift）"
+  - "validate_bd_design 通过"
+  - "综合成功，0 Errors, 0 Critical Warnings"
+  - "实现成功，时序收敛（WNS >= 0）"
+  - "比特流生成成功（.bit 文件存在）"
+  - "IOB 利用率 < 10%"
+
+required_outputs:
+  - "vivado/bd/axil_2d_shift_bd.tcl"
+  - "vivado/bd/axil_2d_shift_bd.pdf"
+  - ".awp/runs/RUN-E001-BD-SYNTH-001.md"
+  - ".awp/runs/RUN-E001-BD-IMPL-001.md"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## Block Design 组件
+
+  - Zynq7 Processing System (PS7): FCLK_CLK0=100MHz, DDR, UART1
+  - AXI Interconnect: PS GP0 → PL (1:2)
+  - AXI SmartConnect: PL → PS HP0 (2:1)
+  - AXI DMA: Simple mode, 8-bit MM2S/S2MM
+  - ILA: 2 cores (capture monitor + shift monitor)
+  - axil_2d_shift: RTL module unchanged
+
+  ## 关键约束
+
+  - 外部 IOB: 0（clk 由 PS FCLK 内部提供，rstn 由 Processor System Reset 提供）
+  - 使用 Vivado 2022.2 MCP 工具
