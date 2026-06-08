@@ -1,0 +1,129 @@
+task_id: "TASK-E001-023"
+title: "Vitis 平台工程与 PS 基础测试程序 —— XSA→BSP→C 代码→烧写"
+status: "done"
+agent: "hardware_validator"
+assigned_to: ""
+created_date: "2026-06-08"
+
+objective: >
+  基于 Vivado 导出的 XSA 构建 Vitis 平台工程，编写 PS 端基础测试 C 程序。
+  覆盖：寄存器读写 (AXI-Lite R/W)、UART 输出、DMA 传输 (MM2S+S2MM)、
+  测试数据生成与比对。程序通过 Vitis 编译烧写后 FSBL 自动初始化 PS，
+  解除 ILA debug hub 时钟依赖。代码跨 AX7010 (PS7) 和 ZCU102 (PS8) 双平台共享。
+
+target_validation_level: "L0"
+integration_scope: "system"
+
+validation_status:
+  L0: "pass"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "skip"
+  L4: "skip"
+  L5: "skip"
+  L6: "skip"
+  L7: "skip"
+
+depends_on:
+  - "TASK-E001-019"
+
+scope:
+  allowed_edit_paths:
+    - "board/ps_dma_test/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "constraints/"
+    - "vivado/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - ".awp/platform/hw_base_ax7010_v1.0.yaml"
+    - ".awp/platform/hw_base_zcu102_v1.0.yaml"
+    - "docs/architecture_v2_block_design.md"
+    - "docs/project_contract.md"
+    - "vivado/shift_2d_ax7010_260608/xsa_export/design_1_wrapper.xsa"
+
+acceptance:
+  - "XSA 导入 Vitis 2022.2，创建 Platform 工程 (AX7010, PS7, Standalone BSP)"
+  - "FSBL + BSP 自动生成，编译通过"
+  - "Vitis 2022.2 workspace 创建，支持 AX7010 (PS7) 和 ZCU102 (PS8) 双平台 BSP"
+  - "AXI DMA 驱动：MM2S (DDR→stream) + S2MM (stream→DDR) 轮询模式"
+  - "AXI-Lite 寄存器读写工具函数（axil_read/axil_write）"
+  - "测试数据生成：递增序列、棋盘格、固定值三种模式"
+  - "DMA 环回测试通过：MM2S → S2MM 直连（bypass accelerator），数据比对正确"
+  - "DMA 中断处理程序（s2mm_introut + mm2s_introut）"
+  - "代码在两个平台 BSP 下均编译通过"
+  - "README.md 包含构建和部署说明"
+
+required_outputs:
+  - "board/ps_dma_test/README.md"
+  - "board/ps_dma_test/src/main.c"
+  - "board/ps_dma_test/src/dma_utils.c"
+  - "board/ps_dma_test/src/dma_utils.h"
+  - "board/ps_dma_test/src/axil_utils.c"
+  - "board/ps_dma_test/src/axil_utils.h"
+  - "board/ps_dma_test/src/test_patterns.c"
+  - "board/ps_dma_test/src/test_patterns.h"
+
+handoff:
+  next_task: "TASK-E001-024"
+  handoff_file: ""
+
+risk_level: "high"
+
+notes: >
+  ## Zynq 上板验证完整工作流
+
+  ```
+  Vivado: XSA 导出 (含 bitstream + PS 配置 + IP 地址映射)
+    → Vitis: 导入 XSA → 创建 Platform 工程 (自动生成 FSBL + BSP + device tree)
+      → Vitis: 创建 Application 工程 (C 代码)
+        → Vitis: Build → 生成 ELF
+          → Vitis: Run/Debug → FSBL 自动初始化 PS (PLL/时钟/DDR)
+            → 自动加载 bitstream (PL 配置)
+              → 自动加载 ELF (PS 程序)
+                → FCLK_CLK0 时钟运行 → debug hub 可检测 → ILA 可用
+                  → PS 程序通过 UART 输出测试结果
+  ```
+
+  ### L5 冒烟测试与 Vitis 的关系
+  L5 冒烟测试 (TASK-E001-021) 依赖本 task 产出的 Vitis 工程和基础 C 程序。
+  原因：Zynq-7000 的 PL 时钟 (FCLK_CLK0) 来自 PS PLL，PS 必须先由 FSBL 初始化
+  才能输出时钟 → debug hub 才能被 Hardware Manager 检测 → ILA 才能使用。
+  这个限制在 ZCU102 (PS8) 上同样存在。
+
+  ### 工具链
+  - Vitis 2022.2（与 Vivado 同版本）
+  - Standalone BSP（裸机程序，无 Linux）
+  - 编译器：arm-none-eabi-gcc (PS7 Cortex-A9)
+
+  ### 软件架构
+  ```
+  main.c
+    ├── init_platform(): 初始化 UART、中断控制器
+    ├── axil_reg_test(): AXI-Lite 寄存器读写 + UART 输出 PASS/FAIL
+    ├── dma_loopback_test(): DMA MM2S→S2MM 环回 + 数据比对
+    ├── accel_test(): DMA MM2S→加速器→S2MM + golden 比对
+    ├── dump_*(): PS 端数据 dump 函数（发现错误时打印 expected vs actual）
+    └── UART 输出测试结果
+  ```
+
+  ### XSA 信息
+  - 路径: vivado/shift_2d_ax7010_260608/xsa_export/design_1_wrapper.xsa
+  - 大小: 686 KB
+  - 含 bitstream (2.0 MB) + PS7 配置 (DDR/时钟/外设) + IP 地址映射
+
+  ### 关键注意事项
+  - AXI-Lite 基地址从 xparameters.h (BSP 自动生成) 获取
+  - DMA 缓冲区需 non-cacheable (使用 Xil_DCacheFlushRange/Xil_DCacheInvalidateRange)
+  - 数据宽度：8-bit (DMA 配置的 MM2S/S2MM width)
+  - 中断：s2mm_introut → xlconcat → PS IRQ_F2P

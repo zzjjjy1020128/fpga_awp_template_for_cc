@@ -1,6 +1,6 @@
 task_id: "TASK-E001-014"
 title: "Zynq Block Design 架构重构 —— 替代外部 IOB 方案"
-status: "in_progress"
+status: "done"
 agent: "planner"
 assigned_to: ""
 created_date: "2026-06-06"

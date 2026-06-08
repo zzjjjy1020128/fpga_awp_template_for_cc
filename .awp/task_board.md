@@ -9,11 +9,15 @@
 
 ## Ready
 
-- [ ] *（暂无）*
+- [ ] [TASK-E001-020](.awp/tasks/TASK-E001-020.yaml) | hardware_validator | ZCU102 上板调试基础设施 —— ILA 探针配置与 debug 比特流
+- [ ] [TASK-E001-022](.awp/tasks/TASK-E001-022.yaml) | hardware_validator | L5 上板冒烟测试 —— ZCU102 备选平台
+- [ ] [TASK-E001-024](.awp/tasks/TASK-E001-024.yaml) | hardware_validator | L6 上板数据正确性验证 —— AX7010 主力平台
+- [ ] [TASK-E001-025](.awp/tasks/TASK-E001-025.yaml) | hardware_validator | L6 上板数据正确性验证 —— ZCU102 备选平台
+- [ ] [TASK-E001-026](.awp/tasks/TASK-E001-026.yaml) | process_owner | L7 性能与资源复盘 —— 上板验证汇总
 
 ## In Progress
 
-- [ ] [TASK-E001-014](.awp/tasks/TASK-E001-014.yaml) | planner | Zynq Block Design 架构重构 —— 替代外部 IOB 方案
+- [ ] [TASK-E001-021](.awp/tasks/TASK-E001-021.yaml) | hardware_validator | L5 上板冒烟测试 —— AX7010 主力平台
 
 ## Blocked
 
@@ -38,10 +42,13 @@
 - [ ] [TASK-E001-011](.awp/tasks/TASK-E001-011.yaml) | integration_verifier | L1b 数据通路闭环 —— 控制通路（axil_slave_if + regs_top → ctrl_fsm → datapath stubs）
 - [ ] [TASK-E001-012](.awp/tasks/TASK-E001-012.yaml) | vivado_integrator | L2 Vivado 综合 —— axil_2d_shift 顶层模块
 - [ ] [TASK-E001-013](.awp/tasks/TASK-E001-013.yaml) | vivado_integrator | L3 Vivado 实现与时序收敛 —— axil_2d_shift
+- [ ] [TASK-E001-014](.awp/tasks/TASK-E001-014.yaml) | planner | Zynq Block Design 架构重构 —— 替代外部 IOB 方案
 - [ ] [TASK-E001-015](.awp/tasks/TASK-E001-015.yaml) | vivado_integrator | Vivado Block Design 创建与综合实现 —— Zynq PS7 + AXI DMA + ILA
 - [ ] [TASK-E001-016](.awp/tasks/TASK-E001-016.yaml) | planner | 硬件基座规格制定 —— 冻结 BD + 约束文件的完整定义
 - [ ] [TASK-E001-017](.awp/tasks/TASK-E001-017.yaml) | vivado_integrator | axil_2d_shift IP 打包 —— 封装为 Vivado Custom IP 核
 - [ ] [TASK-E001-018](.awp/tasks/TASK-E001-018.yaml) | vivado_integrator | AX7010 硬件基座创建 —— Alinx xc7z020 平台
+- [ ] [TASK-E001-019](.awp/tasks/TASK-E001-019.yaml) | hardware_validator | AX7010 上板调试基础设施 —— ILA 探针配置与 debug 比特流
+- [ ] [TASK-E001-023](.awp/tasks/TASK-E001-023.yaml) | hardware_validator | Vitis 平台工程与 PS 基础测试程序 —— XSA→BSP→C 代码→烧写
 
 ## Retrospective Items
 

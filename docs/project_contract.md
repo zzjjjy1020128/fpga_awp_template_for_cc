@@ -167,8 +167,8 @@
 | L2 | Vivado synth_design: 0 errors, 0 CW | pass | synth_1 Complete |
 | L3 | Vivado impl: WNS ≥ 0, WHS ≥ 0 | pass | WNS +5.636 ns, WHS +0.010 ns |
 | L4 | write_bitstream 成功，.bit 文件存在 | pass | 26.5 MB |
-| L5 | 上板：JTAG 检测、时钟心跳、AXI-Lite 读写 | pending | — |
-| L6 | 上板：DMA 传输 + 移位结果正确性 | pending | — |
+| L5 | 上板冒烟：JTAG 检测、时钟确认、PS 启动、AXI-Lite 寄存器读写、ILA 触发捕获 | pending | — |
+| L6 | 上板数据：DMA 传输 (MM2S→加速器→S2MM)、移位结果与仿真 golden 比对 (多方向/步长/帧尺寸)、ILA pipeline 验证 | pending | — |
 | L7 | 资源/性能复盘 | pending | — |
 
 ### 3.2 时序目标
@@ -200,18 +200,39 @@
 
 ### 3.5 失败处理规则
 
+#### RTL/验证阶段（L1a-L4）：G4 标准迭代
+
 | 失败阶段 | 回退路径 | 最大往返轮次 |
 |---------|---------|:--:|
 | L1a fail | RTL 修复 → 重跑 L1a | 3 |
 | L1b/L1c fail | 创建 ISS issue → module_owner 修复 → L1a 回验 → 重跑 L1b/L1c | 3 |
 | L2 fail | RTL 修复 or 综合策略调整 | 2 |
 | L3 fail | RTL 修复 or 约束调整 or 策略调整 | 3 |
-| L5/L6 fail | RTL/基座/工具链/板卡 四向排查 | 2 |
 | 3 轮迭代无改善 | 停止，转 human_owner | — |
+
+#### 上板验证阶段（L5/L6）：B-G4 分诊迭代
+
+上板失败按类别分诊，不同类别有独立轮次上限和升级路径：
+
+| 类别 | 含义 | 上限 | 超限动作 |
+|------|------|:--:|---------|
+| CAT-HW | JTAG 链/电源/线缆/适配器物理问题 | 2 | → human_owner |
+| CAT-BS | PS 启动失败/时钟异常/比特流加载失败 | 2 | → human_owner |
+| CAT-AX | AXI-Lite 寄存器读写异常（地址映射/互联问题） | 2 | → vivado_integrator |
+| CAT-IL | ILA 触发不工作/探针无信号/捕获深度不足 | 2 | → vivado_integrator |
+| CAT-SW | PS 软件 bug（DMA 描述符/buffer 对齐等） | 3 | → human_owner |
+| CAT-DT | DMA 传输完成但数据异常（不匹配 golden） | 3 | → vivado_integrator 或 rtl_implementer |
+| CAT-RT | ILA 证据确认的 RTL 逻辑 bug | 3 | → rtl_implementer（需重新走 L1a→IP→bitstream） |
+
+**B-G4 关键规则**：
+- 每次上板 session 失败必须一次性采集：ILA 波形 + PS 日志 + 比特流版本
+- CAT-RT 是最昂贵路径（触发完整 RTL 回修链），必须经 ILA 证据确认后才能发起
+- CAT-RT 未经 ILA 证据确认 → 硬阻断，需 human_owner 介入
+- 同一 issue 的 CAT-DT/CAT-RT 连续 3 轮无改善 → 阻断，human_owner 确认方向
 
 ### 3.6 明确的 Out-of-Scope
 
-- PS 端 C 驱动开发（当前仅需验证硬件通路，不需要完整 Linux 驱动）
+- PS 端完整 Linux 驱动（当前仅需 Standalone BSP 裸机 DMA 测试程序）
 - Vitis/XRT/PetaLinux 嵌入式 Linux 构建
 - 多 accelerator 并发调度
 - DDR 带宽优化
@@ -225,7 +246,6 @@
 |------|:--:|------|------|
 | 硬件基座 | frozen | BD + 约束 + 验证已完成 | 见基座修改规则 |
 | 软件环境 | **frozen** | 全部项已确认 | — |
-| 验收标准 | candidate | L5/L6/L7 跑通 → frozen | 上板验证 |
 | 验收标准 | candidate | L5/L6/L7 跑通 → frozen | 上板验证 |
 
 ---

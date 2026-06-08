@@ -33,11 +33,11 @@
       "description": "ZCU102 — Zynq UltraScale+ MPSoC (xczu9eg-ffvb1156-2-e). 100 MHz, 备选平台."
     },
     {
-      "id": "HW_BASE_AX7010_v1.0",
+      "id": "HW_BASE_AX7010_v1.1",
       "manifest": ".awp/platform/hw_base_ax7010_v1.0.yaml",
       "status": "frozen",
       "frozen_date": "2026-06-08",
-      "description": "AX7010 — Zynq-7000 (xc7z010clg400-1). 50 MHz, 主力开发平台."
+      "description": "AX7010 — Zynq-7000 (xc7z010clg400-1). 50 MHz, 独立调试时钟 (K17), 主力平台."
     }
   ],
   "directories": {

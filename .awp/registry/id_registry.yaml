@@ -8,8 +8,13 @@ ids:
 - id: HO-E001-008-001
   type: HANDOFF
   title: Handoff HO-E001-008-001
-  status: in_progress
+  status: resolved
   created: '2026-06-04'
+- id: HO-E001-OR-004-001
+  type: HANDOFF
+  title: Handoff HO-E001-OR-004-001
+  status: in_progress
+  created: '2026-06-08'
 - id: ISS-E001-001
   type: ISSUE
   title: L1b WRITE re-run encoding error — 10 RUN files unreadable as UTF-8
@@ -76,6 +81,16 @@ ids:
   title: Review of TASK-E001-007 (RTL)
   status: closed
   created: '2026-06-04'
+- id: RUN-E001-BOARD-001
+  type: RUN
+  title: 上板验证记录
+  status: active
+  created: ''
+- id: RUN-E001-BOARD-003
+  type: RUN
+  title: 上板验证记录
+  status: active
+  created: ''
 - id: RUN-E001-IMPL-001
   type: RUN
   title: RUN-E001-IMPL-001.md - axil_2d_shift L3 实现报告
@@ -191,6 +206,11 @@ ids:
   title: Session 记录
   status: closed
   created: '2026-06-08'
+- id: SESS-E001-OR-004
+  type: SESSION
+  title: Session 记录 — SESS-E001-OR-004
+  status: closed
+  created: '2026-06-08'
 - id: TASK-E001-001
   type: TASK
   title: AXI-Lite 2D Shift 模块架构规划
@@ -259,7 +279,7 @@ ids:
 - id: TASK-E001-014
   type: TASK
   title: Zynq Block Design 架构重构 —— 替代外部 IOB 方案
-  status: active
+  status: closed
   created: '2026-06-06'
 - id: TASK-E001-015
   type: TASK
@@ -280,4 +300,44 @@ ids:
   type: TASK
   title: AX7010 硬件基座创建 —— Alinx xc7z020 平台
   status: closed
+  created: '2026-06-08'
+- id: TASK-E001-019
+  type: TASK
+  title: AX7010 上板调试基础设施 —— ILA 探针配置与 debug 比特流
+  status: closed
+  created: '2026-06-08'
+- id: TASK-E001-020
+  type: TASK
+  title: ZCU102 上板调试基础设施 —— ILA 探针配置与 debug 比特流
+  status: active
+  created: '2026-06-08'
+- id: TASK-E001-021
+  type: TASK
+  title: L5 上板冒烟测试 —— AX7010 主力平台
+  status: active
+  created: '2026-06-08'
+- id: TASK-E001-022
+  type: TASK
+  title: L5 上板冒烟测试 —— ZCU102 备选平台
+  status: active
+  created: '2026-06-08'
+- id: TASK-E001-023
+  type: TASK
+  title: Vitis 平台工程与 PS 基础测试程序 —— XSA→BSP→C 代码→烧写
+  status: closed
+  created: '2026-06-08'
+- id: TASK-E001-024
+  type: TASK
+  title: L6 上板数据正确性验证 —— AX7010 主力平台
+  status: active
+  created: '2026-06-08'
+- id: TASK-E001-025
+  type: TASK
+  title: L6 上板数据正确性验证 —— ZCU102 备选平台
+  status: active
+  created: '2026-06-08'
+- id: TASK-E001-026
+  type: TASK
+  title: L7 性能与资源复盘 —— 上板验证汇总
+  status: active
   created: '2026-06-08'

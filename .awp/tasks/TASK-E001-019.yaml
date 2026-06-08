@@ -1,0 +1,102 @@
+task_id: "TASK-E001-019"
+title: "AX7010 上板调试基础设施 —— ILA 探针配置与 debug 比特流"
+status: "done"
+agent: "hardware_validator"
+assigned_to: ""
+created_date: "2026-06-08"
+
+objective: >
+  为 AX7010 平台配置 ILA 调试基础设施：编写 debug.xdc 连接 ILA 探针到关键信号，
+  重新生成含调试核的比特流，编写硬件操作手册。此任务为上板验证的前置 infra 工作，
+  不对应 L0-L7 中的验证级别。
+
+target_validation_level: "L0"
+integration_scope: "system"
+target_platform: "HW_BASE_AX7010_v1.0"
+
+validation_status:
+  L0: "pass"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "skip"
+  L4: "skip"
+  L5: "skip"
+  L6: "skip"
+  L7: "skip"
+
+depends_on:
+  - "TASK-E001-018"
+
+scope:
+  allowed_edit_paths:
+    - "constraints/debug.xdc"
+    - "board/"
+    - "vivado/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "constraints/ax7010_base_timing.xdc"
+    - "constraints/ax7010_base_physical.xdc"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - ".awp/platform/hw_base_ax7010_v1.0.yaml"
+    - "docs/architecture_v2_block_design.md"
+    - "rtl/axil_2d_shift.sv"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/ctrl_fsm.sv"
+    - "rtl/axis_input.sv"
+    - "rtl/axis_output.sv"
+    - "rtl/shift_addr_gen.sv"
+    - "rtl/frame_buf_mgr.sv"
+    - "rtl/regs_top.sv"
+
+acceptance:
+  - "debug.xdc 创建，MARK_DEBUG 连接到 axil_2d_shift 关键内部信号（AXI-Lite 总线、控制寄存器、stream 数据通路）"
+  - "System ILA 探针在 Vivado 中正确关联（system_ila_0 监控 AXI 接口，system_ila_1 监控 stream 数据通路）"
+  - "含调试核的比特流重新生成成功（design_1_wrapper.bit）"
+  - "board/hw_arch_ax7010.md 编写完成：电源、JTAG、UART、启动模式、跳线设置"
+  - "JTAG 链检测流程文档化"
+
+required_outputs:
+  - "constraints/debug.xdc"
+  - "board/hw_arch_ax7010.md"
+  - ".awp/runs/RUN-E001-BOARD-001.md"
+
+handoff:
+  next_task: "TASK-E001-021"
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## AX7010 平台 ILA 配置
+
+  当前 AX7010 基座 BD 包含两个 System ILA 核（system_ila_0, system_ila_1），
+  均为 xilinx.com:ip:system_ila:1.1。System ILA 的优势：通过 MARK_DEBUG 属性
+  自动连接探针，无需在 BD 中手动连线。
+
+  ### 探针分配建议
+
+  **system_ila_0** (AXI 接口监控):
+  - s_axil_awaddr, s_axil_wdata, s_axil_araddr, s_axil_rdata
+  - s_axil_awvalid, s_axil_wvalid, s_axil_arvalid
+  - s_axil_awready, s_axil_wready, s_axil_arready, s_axil_rvalid
+
+  **system_ila_1** (数据通路监控):
+  - s_axis_tdata, s_axis_tvalid, s_axis_tready, s_axis_tlast
+  - m_axis_tdata, m_axis_tvalid, m_axis_tready, m_axis_tlast
+  - ctrl_fsm 状态机 state 寄存器
+  - shift_addr_gen 的行/列计数器
+
+  ### 基座冻结规则
+  基座约束中 debug 类标记为 modifiable（见平台清单 freeze_rules），
+  创建 debug.xdc 不破坏基座冻结。

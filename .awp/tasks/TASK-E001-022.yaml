@@ -1,0 +1,78 @@
+task_id: "TASK-E001-022"
+title: "L5 上板冒烟测试 —— ZCU102 备选平台"
+status: "ready"
+agent: "hardware_validator"
+assigned_to: ""
+created_date: "2026-06-08"
+
+objective: >
+  在 ZCU102 硬件上执行 L5 板级冒烟测试，与 AX7010 的 TASK-E001-021 结构相同，
+  适配 ZCU102 的硬件特性（Zynq UltraScale+、100MHz、PS8）。
+
+target_validation_level: "L5"
+integration_scope: "system"
+target_platform: "HW_BASE_ZCU102_v1.0"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "skip"
+  L4: "skip"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-020"
+
+scope:
+  allowed_edit_paths:
+    - "board/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "constraints/"
+    - "vivado/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - ".awp/platform/hw_base_zcu102_v1.0.yaml"
+    - "board/hw_arch_zcu102.md"
+    - "constraints/debug_zcu102.xdc"
+    - "docs/board_validation.md"
+
+acceptance:
+  - "JTAG 链检测到目标 FPGA (xczu9eg-ffvb1156-2-e)"
+  - "比特流下载成功，无 DONE 错误"
+  - "时钟频率通过 ILA 捕获确认 (100 MHz)"
+  - "PS 启动完成，UART 控制台有输出"
+  - "AXI-Lite 寄存器读回：ID 寄存器返回预期值"
+  - "AXI-Lite 寄存器写+读：CTRL 寄存器写入后读回一致"
+  - "ILA 触发配置正确，测试捕获展示有效信号波形"
+  - "所有结果记录到 BOARD run record"
+
+required_outputs:
+  - ".awp/runs/RUN-E001-BOARD-004.md"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## ZCU102 冒烟测试注意事项
+
+  - ZCU102 使用 PS8 (Zynq UltraScale+)，时钟 100MHz，与 AX7010 的 PS7/50MHz 不同
+  - ILA 6.2 核的探针配置方式与 System ILA 不同（见 TASK-E001-020 notes）
+  - 备选平台，可在 AX7010 冒烟测试完成后进行
+  - 若 ZCU102 硬件不可用，此 task 可标记为 blocked 或 skip

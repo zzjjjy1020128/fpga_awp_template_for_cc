@@ -1,7 +1,7 @@
 {
   "design": {
     "design_info": {
-      "boundary_crc": "0xCC6CFA535221FB6E",
+      "boundary_crc": "0x60B65B0E6DF72D03",
       "device": "xc7z010clg400-1",
       "gen_directory": "../../../../shift_2d_ax7010_260608.gen/sources_1/bd/design_1",
       "name": "design_1",
@@ -37,7 +37,8 @@
       },
       "xlconcat_0": "",
       "system_ila_0": "",
-      "system_ila_1": ""
+      "system_ila_1": "",
+      "const_vcc_ila": ""
     },
     "interface_ports": {
       "DDR": {
@@ -207,6 +208,11 @@
             "direction": "IO"
           }
         }
+      }
+    },
+    "ports": {
+      "clk_debug_50m": {
+        "direction": "I"
       }
     },
     "components": {
@@ -2075,6 +2081,20 @@
             "vlnv": "xilinx.com:interface:aximm_rtl:1.0"
           }
         }
+      },
+      "const_vcc_ila": {
+        "vlnv": "xilinx.com:ip:xlconstant:1.1",
+        "xci_name": "design_1_const_vcc_ila_0",
+        "xci_path": "ip\\design_1_const_vcc_ila_0\\design_1_const_vcc_ila_0.xci",
+        "inst_hier_path": "const_vcc_ila",
+        "parameters": {
+          "CONST_VAL": {
+            "value": "1"
+          },
+          "CONST_WIDTH": {
+            "value": "1"
+          }
+        }
       }
     },
     "interface_nets": {
@@ -2152,6 +2172,20 @@
           "xlconcat_0/In1"
         ]
       },
+      "clk_debug_50m_1": {
+        "ports": [
+          "clk_debug_50m",
+          "system_ila_0/clk",
+          "system_ila_1/clk"
+        ]
+      },
+      "const_vcc_ila_dout": {
+        "ports": [
+          "const_vcc_ila/dout",
+          "system_ila_0/resetn",
+          "system_ila_1/resetn"
+        ]
+      },
       "proc_sys_reset_0_peripheral_aresetn": {
         "ports": [
           "proc_sys_reset_0/peripheral_aresetn",
@@ -2164,9 +2198,7 @@
           "axi_mem_intercon/S00_ARESETN",
           "axi_mem_intercon/M00_ARESETN",
           "axi_mem_intercon/ARESETN",
-          "axi_mem_intercon/S01_ARESETN",
-          "system_ila_0/resetn",
-          "system_ila_1/resetn"
+          "axi_mem_intercon/S01_ARESETN"
         ]
       },
       "processing_system7_0_FCLK_CLK0": {
@@ -2186,9 +2218,7 @@
           "axi_mem_intercon/M00_ACLK",
           "axi_mem_intercon/ACLK",
           "axi_dma_0/m_axi_s2mm_aclk",
-          "axi_mem_intercon/S01_ACLK",
-          "system_ila_1/clk",
-          "system_ila_0/clk"
+          "axi_mem_intercon/S01_ACLK"
         ]
       },
       "processing_system7_0_FCLK_RESET0_N": {

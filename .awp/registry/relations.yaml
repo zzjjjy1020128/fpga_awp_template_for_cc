@@ -6,6 +6,12 @@ relations:
 - from: HO-E001-008-001
   to: SESS-E001-OR-001
   type: from_session
+- from: HO-E001-OR-004-001
+  to: EXP001
+  type: belongs_to
+- from: HO-E001-OR-004-001
+  to: SESS-E001-OR-004
+  type: from_session
 - from: ISS-E001-001
   to: RUN-E001-L1B-WRITE-001, RUN-E001-L1B-READ-001
   type: detected_in
@@ -96,6 +102,12 @@ relations:
 - from: REV-E001-007-RTL-001
   to: TASK-E001-007
   type: reviews
+- from: RUN-E001-BOARD-001
+  to: EXP001
+  type: belongs_to
+- from: RUN-E001-BOARD-003
+  to: EXP001
+  type: belongs_to
 - from: RUN-E001-IMPL-001
   to: EXP001
   type: belongs_to
@@ -196,6 +208,9 @@ relations:
   to: EXP001
   type: belongs_to
 - from: SESS-E001-OR-003
+  to: EXP001
+  type: belongs_to
+- from: SESS-E001-OR-004
   to: EXP001
   type: belongs_to
 - from: TASK-E001-001
@@ -368,4 +383,58 @@ relations:
   type: belongs_to
 - from: TASK-E001-018
   to: TASK-E001-016
+  type: depends_on
+- from: TASK-E001-019
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-019
+  to: TASK-E001-018
+  type: depends_on
+- from: TASK-E001-020
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-020
+  to: TASK-E001-015
+  type: depends_on
+- from: TASK-E001-021
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-021
+  to: TASK-E001-019
+  type: depends_on
+- from: TASK-E001-021
+  to: TASK-E001-023
+  type: depends_on
+- from: TASK-E001-022
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-022
+  to: TASK-E001-020
+  type: depends_on
+- from: TASK-E001-023
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-023
+  to: TASK-E001-019
+  type: depends_on
+- from: TASK-E001-024
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-024
+  to: TASK-E001-023
+  type: depends_on
+- from: TASK-E001-025
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-025
+  to: TASK-E001-022
+  type: depends_on
+- from: TASK-E001-025
+  to: TASK-E001-023
+  type: depends_on
+- from: TASK-E001-026
+  to: EXP001
+  type: belongs_to
+- from: TASK-E001-026
+  to: TASK-E001-024
   type: depends_on

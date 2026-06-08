@@ -1,0 +1,16 @@
+timestamp=[2026-06-08 16:25:52], mode=PLATFORM_REPOSITORY_INIT, duration=0:00:01.457, duration_ms=1457, data={}
+timestamp=[2026-06-08 16:26:36], mode=PLATFORM_REPOSITORY_INIT, duration=0:00:01.149, duration_ms=1149, data={}
+timestamp=[2026-06-08 16:27:10], mode=APP_CREATION, duration=0:00:09.415, duration_ms=9415, data={name=dma_test, project_type=sdk, os=standalone, processor=cortex-a9, runtime=C/C++, platform=ax7010_platform, application_type=application}
+timestamp=[2026-06-08 16:27:54], mode=PLATFORM_GENERATION, duration=0:00:43.299, duration_ms=43299, data={name=ax7010_platform}
+timestamp=[2026-06-08 16:27:56], mode=BUILD, duration=0:00:01.769, duration_ms=1769, data={name=dma_test, configuration=Debug, clean_build=false}
+timestamp=[2026-06-08 16:29:05], mode=PLATFORM_REPOSITORY_INIT, duration=0:00:01.166, duration_ms=1166, data={}
+timestamp=[2026-06-08 16:29:42], mode=PLATFORM_GENERATION, duration=0:00:36.936, duration_ms=36936, data={name=ax7010_platform}
+timestamp=[2026-06-08 16:30:04], mode=BUILD, duration=0:00:01.250, duration_ms=1250, data={name=dma_test, configuration=Debug, clean_build=false}
+timestamp=[2026-06-08 16:30:54], mode=PLATFORM_REPOSITORY_INIT, duration=0:00:01.120, duration_ms=1120, data={}
+timestamp=[2026-06-08 16:31:22], mode=PLATFORM_REPOSITORY_INIT, duration=0:00:01.132, duration_ms=1132, data={}
+timestamp=[2026-06-08 16:31:50], mode=APP_CREATION, duration=0:00:07.646, duration_ms=7646, data={name=dma_hello, project_type=sdk, os=standalone, processor=cortex-a9, runtime=C/C++, platform=ax7010_platform, application_type=application}
+timestamp=[2026-06-08 16:32:22], mode=PLATFORM_GENERATION, duration=0:00:31.149, duration_ms=31149, data={name=ax7010_platform}
+timestamp=[2026-06-08 16:32:24], mode=BUILD, duration=0:00:01.655, duration_ms=1655, data={name=dma_hello, configuration=Debug, clean_build=false}
+timestamp=[2026-06-08 16:32:46], mode=PLATFORM_REPOSITORY_INIT, duration=0:00:01.100, duration_ms=1100, data={}
+timestamp=[2026-06-08 16:33:22], mode=PLATFORM_GENERATION, duration=0:00:36.055, duration_ms=36055, data={name=ax7010_platform}
+timestamp=[2026-06-08 16:33:44], mode=BUILD, duration=0:00:01.114, duration_ms=1114, data={name=dma_hello, configuration=Debug, clean_build=false}

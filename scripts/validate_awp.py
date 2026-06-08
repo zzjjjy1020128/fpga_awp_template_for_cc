@@ -794,6 +794,59 @@ def validate_resource_thresholds():
     return warnings
 
 
+def validate_handoff_completeness():
+    """检查所有 handoff 文件是否包含必填的 Gate Status 节。
+    Handoff 没有 Gate Status 表 = 下一 session 无法判断验证门禁状态 = 硬错误。
+    同时检查 handoff 的 status 是否与实际 task 状态一致。
+    """
+    errors = []
+    handoff_dir = ROOT / ".awp" / "handoffs"
+    if not handoff_dir.exists():
+        return errors
+
+    # 收集所有 task 的状态
+    all_tasks = {t.get("task_id"): t for t in collect_tasks()}
+
+    for hf in sorted(handoff_dir.glob("HO-*.md")):
+        hid = hf.stem
+        try:
+            content = hf.read_text(encoding="utf-8")
+        except Exception as e:
+            errors.append(f"{hid}: cannot read file: {e}")
+            continue
+
+        fm = extract_frontmatter(content)
+        if fm is None:
+            errors.append(f"{hid}: missing YAML frontmatter")
+            continue
+
+        h_status = fm.get("status", "")
+
+        # 必填检查：Gate Status 节（仅对非 resolved 的活跃 handoff 强制）
+        if h_status != "resolved" and "## Gate Status" not in content:
+            errors.append(
+                f"{hid}: active handoff (status={h_status}) missing required "
+                f"'## Gate Status' section. "
+                f"Handoff without gate status is unreliable — add validation status table."
+            )
+
+        # 僵尸 handoff 检测：handoff 不是 resolved，但其引用的所有 task 已 done
+        if h_status not in ("resolved",):
+            ref_ids = set(re.findall(r'TASK-E\d{3}-\d{3}', content))
+            if ref_ids:
+                all_done = all(
+                    all_tasks.get(tid, {}).get("status") == "done"
+                    for tid in ref_ids
+                )
+                if all_done:
+                    errors.append(
+                        f"{hid}: handoff status='{h_status}' but all {len(ref_ids)} "
+                        f"referenced task(s) are done. Run --sync to auto-resolve."
+                    )
+
+    return errors
+
+
 def validate_manifest():
     """校验 workspace_manifest.json"""
     errors = []
@@ -855,6 +908,7 @@ def cmd_validate():
     all_errors.extend(validate_issue_coverage())
     all_errors.extend(validate_port_connectivity())
     all_errors.extend(validate_resource_thresholds())
+    all_errors.extend(validate_handoff_completeness())
 
     if all_errors:
         print(f"\n[FAIL] {len(all_errors)} validation error(s):\n")
@@ -1231,17 +1285,78 @@ def cmd_sync():
             yaml_path.write_text(content, encoding="utf-8")
             fixes.append(f"{tid}: L1b/L1c skip -> pending (module tasks must not skip integration levels)")
 
-    # 4. 同步 registry
+    # 4. Auto-resolve stale handoffs: referenced tasks all done → resolved
+    handoff_dir = ROOT / ".awp" / "handoffs"
+    if handoff_dir.exists():
+        all_done_ids = {t.get("task_id") for t in tasks if t.get("status") == "done"}
+        for hf in sorted(handoff_dir.glob("HO-*.md")):
+            try:
+                hf_content = hf.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fm = extract_frontmatter(hf_content)
+            if not fm:
+                continue
+            h_status = fm.get("status", "")
+            if h_status == "resolved":
+                continue
+            # Extract all TASK-* IDs referenced in handoff body
+            ref_ids = set(re.findall(r'TASK-E\d{3}-\d{3}', hf_content))
+            if ref_ids and ref_ids.issubset(all_done_ids):
+                new_hf = hf_content.replace(f'status: "{h_status}"', 'status: "resolved"')
+                if new_hf != hf_content:
+                    hf.write_text(new_hf, encoding="utf-8")
+                    fixes.append(f"{hf.stem}: status {h_status} -> resolved (all referenced tasks done)")
+
+    # 5. Auto-detect factual task completion:
+    #    required_outputs all exist + all levels up to target are pass/skip → done
+    for t in tasks:
+        tid = t.get("task_id", "")
+        t_status = t.get("status", "")
+        if t_status not in ("in_progress", "review"):
+            continue
+        # Check all required_outputs exist
+        all_exist = True
+        for fpath in t.get("required_outputs", []) or []:
+            if not (ROOT / fpath).exists():
+                all_exist = False
+                break
+        if not all_exist:
+            continue
+        # Check all validation levels up to target are pass/skip
+        vs = t.get("validation_status", {})
+        target = t.get("target_validation_level", "")
+        all_pass = True
+        if target in VALID_L_LEVELS:
+            target_idx = VALID_L_LEVELS.index(target)
+            for i in range(target_idx + 1):
+                level = VALID_L_LEVELS[i]
+                if vs.get(level, "pending") not in ("pass", "skip"):
+                    all_pass = False
+                    break
+        if all_pass:
+            yaml_path = tasks_dir / f"{tid}.yaml"
+            if yaml_path.exists():
+                yaml_content = yaml_path.read_text(encoding="utf-8")
+                new_yaml = yaml_content.replace(f'status: "{t_status}"', 'status: "done"')
+                if new_yaml != yaml_content:
+                    yaml_path.write_text(new_yaml, encoding="utf-8")
+                    fixes.append(
+                        f"{tid}: status {t_status} -> done "
+                        f"(factual completion: all outputs exist + target {target} pass)"
+                    )
+
+    # 6. 同步 registry
     n_entities, n_rels = sync_registry()
     fixes.append(f"Registry synced: {n_entities} entities, {n_rels} relations")
 
-    # 5. 重生 task board
+    # 7. 重生 task board
     if fixes or True:
         board_ok = cmd_gen_task_board() == 0
         if board_ok:
             fixes.append("task_board.md regenerated")
 
-    # 3. 报告 skeleton 文件
+    # 8. 报告 skeleton 文件
     sessions_dir = ROOT / ".awp" / "sessions"
     skeletons = list(sessions_dir.glob("SKELETON-*.md"))
     if skeletons:

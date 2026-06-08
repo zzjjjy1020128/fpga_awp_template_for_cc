@@ -1,0 +1,80 @@
+task_id: "TASK-E001-025"
+title: "L6 上板数据正确性验证 —— ZCU102 备选平台"
+status: "ready"
+agent: "hardware_validator"
+assigned_to: ""
+created_date: "2026-06-08"
+
+objective: >
+  在 ZCU102 上执行 L6 数据正确性验证，与 AX7010 的 TASK-E001-024 结构相同，
+  适配 100MHz 时钟和 PS8 平台。
+
+target_validation_level: "L6"
+integration_scope: "system"
+target_platform: "HW_BASE_ZCU102_v1.0"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "skip"
+  L4: "skip"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-023"
+  - "TASK-E001-022"
+
+scope:
+  allowed_edit_paths:
+    - "board/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "constraints/"
+    - "vivado/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - ".awp/platform/hw_base_zcu102_v1.0.yaml"
+    - "board/ps_dma_test/README.md"
+    - "board/hw_arch_zcu102.md"
+    - "docs/board_validation.md"
+    - "rtl/axil_2d_shift.sv"
+
+acceptance:
+  - "DMA 传输 + 加速器处理 + 数据回读全部正确（同 AX7010 测试矩阵）"
+  - "100MHz 时钟下 pipeline 时序通过 ILA 验证"
+  - "跨多帧传输无数据错位"
+  - "结果与仿真 golden 一致"
+
+required_outputs:
+  - ".awp/runs/RUN-E001-BOARD-006.md"
+  - ".awp/runs/RUN-E001-BOARD-006_ila.cdc"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "high"
+
+notes: >
+  ## ZCU102 L6 验证
+
+  使用 TASK-E001-023 开发的共享 PS DMA 软件（平台头文件区分 PS7/PS8）。
+  ZCU102 是备选平台，可在 AX7010 L6 通过后进行。
+
+  ### 与 AX7010 的差异
+  - 100MHz vs 50MHz：时序余量更小（WHS +0.010ns），但仍在安全范围内
+  - ILA 6.2 探针深度 1024，与 AX7010 System ILA 相同
+  - PS8 DDR 基地址与 PS7 不同，需确认 lscript.ld 中的内存映射

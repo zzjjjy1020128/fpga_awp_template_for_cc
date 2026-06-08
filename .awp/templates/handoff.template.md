@@ -18,8 +18,9 @@ next_session_role: "orchestrator"
 - **Date**：`<YYYY-MM-DD>`
 - **原因**：`<用户停止 / 上下文满 / compact>`（注：所有 task 已完成时不创建 handoff，直接做 session 记录和复盘）
 
-## Gate Status（必填）
+## Gate Status（强制必填）
 
+> **此节为强制项**。缺少此节的 handoff 在 `validate_awp` 中视为硬错误。
 > 列出本次 handoff 涉及的所有 task 的验证状态。**handoff 的"下一步行动"不得跨越未通过的 gate**。
 > 若 L1b=pending 而 L1c=target，handoff 应指明先创建 L1b task，而非直接调试 L1c。
 

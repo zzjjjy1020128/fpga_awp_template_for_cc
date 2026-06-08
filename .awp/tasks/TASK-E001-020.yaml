@@ -1,0 +1,89 @@
+task_id: "TASK-E001-020"
+title: "ZCU102 上板调试基础设施 —— ILA 探针配置与 debug 比特流"
+status: "ready"
+agent: "hardware_validator"
+assigned_to: ""
+created_date: "2026-06-08"
+
+objective: >
+  为 ZCU102 备选平台配置 ILA 调试基础设施，并行于 AX7010 的 TASK-E001-019。
+  ZCU102 使用 ILA 6.2（非 System ILA），探针需在 BD 中通过 connect_bd_net
+  或 RTL MARK_DEBUG 连接。重新生成含调试核的比特流。
+
+target_validation_level: "L0"
+integration_scope: "system"
+target_platform: "HW_BASE_ZCU102_v1.0"
+
+validation_status:
+  L0: "pending"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "skip"
+  L4: "skip"
+  L5: "skip"
+  L6: "skip"
+  L7: "skip"
+
+depends_on:
+  - "TASK-E001-015"
+
+scope:
+  allowed_edit_paths:
+    - "constraints/debug_zcu102.xdc"
+    - "board/"
+    - "vivado/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "constraints/base_timing.xdc"
+    - "constraints/base_physical.xdc"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - ".awp/platform/hw_base_zcu102_v1.0.yaml"
+    - "docs/architecture_v2_block_design.md"
+    - "rtl/axil_2d_shift.sv"
+
+acceptance:
+  - "debug_zcu102.xdc 创建，MARK_DEBUG 或 BD 连接 ILA 探针到关键信号"
+  - "ila_capture (9 probes, 27-bit) 连接到数据捕获路径"
+  - "ila_shift (10 probes, 29-bit) 连接到移位处理路径"
+  - "含调试核的比特流重新生成成功"
+  - "board/hw_arch_zcu102.md 编写完成"
+
+required_outputs:
+  - "constraints/debug_zcu102.xdc"
+  - "board/hw_arch_zcu102.md"
+  - ".awp/runs/RUN-E001-BOARD-002.md"
+
+handoff:
+  next_task: "TASK-E001-022"
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## ZCU102 平台 ILA 配置
+
+  ZCU102 基座 BD 包含两个 ILA 6.2 核（ila_capture, ila_shift）。
+  **与 AX7010 的 System ILA 不同**：ILA 6.2 的探针需要通过以下方式之一连接：
+  1. BD 中 connect_bd_net 显式连线（需修改 BD，违反基座冻结规则）
+  2. RTL 中 MARK_DEBUG + 综合时自动连接（推荐，不修改 BD）
+
+  **推荐方案**：使用 RTL MARK_DEBUG 方式。在 debug_zcu102.xdc 中设置
+  set_property MARK_DEBUG，Vivado 综合时自动将标记信号路由到 ILA 探针。
+  此方案不修改 BD 拓扑，符合基座 freeze_rules。
+
+  ### 探针分配
+  - ila_capture：s_axis_*, capture_en, write_addr/data
+  - ila_shift：shift_en, read_addr, m_axis_*, zero_fill, ctrl_fsm state
+
+  ZCU102 作为备选平台，可在 AX7010 验证完成后再进行。

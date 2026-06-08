@@ -1,0 +1,99 @@
+task_id: "TASK-E001-021"
+title: "L5 上板冒烟测试 —— AX7010 主力平台"
+status: "in_progress"
+agent: "hardware_validator"
+assigned_to: ""
+created_date: "2026-06-08"
+
+objective: >
+  在 AX7010 硬件上执行 L5 板级冒烟测试：验证 JTAG 链、时钟、PS 启动、
+  比特流下载、AXI-Lite 寄存器读写、ILA 触发捕获等基本功能。
+
+target_validation_level: "L5"
+integration_scope: "system"
+target_platform: "HW_BASE_AX7010_v1.0"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "skip"
+  L4: "skip"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-019"
+  - "TASK-E001-023"
+
+scope:
+  allowed_edit_paths:
+    - "board/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "constraints/"
+    - "vivado/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - ".awp/platform/hw_base_ax7010_v1.0.yaml"
+    - "board/hw_arch_ax7010.md"
+    - "constraints/debug.xdc"
+    - "docs/board_validation.md"
+
+acceptance:
+  - "JTAG 链检测到目标 FPGA (xc7z010clg400-1)"
+  - "比特流下载成功，无 DONE 错误"
+  - "时钟频率通过 ILA 捕获确认 (50 MHz FCLK_CLK0)"
+  - "PS 启动完成，UART 控制台有输出"
+  - "AXI-Lite 寄存器读回：ID 寄存器 (0x00) 返回预期值"
+  - "AXI-Lite 寄存器写+读：CTRL 寄存器 (0x04) 写入后读回一致"
+  - "ILA 触发配置正确，测试捕获展示有效信号波形"
+  - "所有结果记录到 BOARD run record"
+
+required_outputs:
+  - ".awp/runs/RUN-E001-BOARD-003.md"
+
+handoff:
+  next_task: "TASK-E001-023"
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## L5 冒烟测试范围
+
+  L5 = "板上冒烟测试（上电、JTAG 检测、基本 I/O）"（workspace_manifest.json）
+
+  ### Zynq 上板工作流
+  Zynq-7000 的 PL 时钟 (FCLK_CLK0) 来自 PS PLL，必须通过 FSBL 初始化 PS
+  后才能运行。因此 L5 冒烟测试**依赖 Vitis 工程**（TASK-E001-023）：
+  Vitis 编译烧写 → FSBL 自动初始化 PS (PLL/DDR/时钟) → 自动加载 bitstream
+  → FCLK_CLK0 运行 → ILA debug hub 可检测 → ILA 探针可用。
+
+  ### 测试顺序（通过 Vitis 执行）
+  1. 硬件连接检查（电源、JTAG、UART）→ 无需 Vivado，Vitis 自动完成
+  2. Vitis 编译 TASK-E001-023 基础程序 → Run
+  3. FSBL 自动初始化 PS → 加载 bitstream → 加载 ELF
+  4. UART 输出：寄存器读写 PASS/FAIL
+  5. Vivado Hardware Manager 打开 → ILA 探针验证（此时 debug hub 已有时钟）
+  6. ILA 配置触发条件，捕获波形
+
+  ### 不需要的内容
+  - 不需要 DMA 数据传输正确性验证（那是 L6）
+  - AXI-Lite 寄存器读写已由 Vitis C 程序覆盖
+  - 不再使用 XSCT 手工方式（已被 Vitis FSBL 替代）
+
+  ### 失败处理
+  遵循 B-G4 上板迭代模型。L5 阶段的典型失败类别：CAT-HW, CAT-BS, CAT-AX, CAT-IL。
+  每类有独立的轮次上限和升级路径。

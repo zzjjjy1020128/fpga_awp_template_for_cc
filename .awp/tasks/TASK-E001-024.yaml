@@ -1,0 +1,101 @@
+task_id: "TASK-E001-024"
+title: "L6 上板数据正确性验证 —— AX7010 主力平台"
+status: "ready"
+agent: "hardware_validator"
+assigned_to: ""
+created_date: "2026-06-08"
+
+objective: >
+  在 AX7010 上执行 L6 数据正确性验证：通过 PS DMA 发送已知测试图案到加速器，
+  读回输出与仿真 golden 参考比对，用 ILA 捕获关键信号验证 pipeline 时序。
+  覆盖多种移位方向和步长、多帧传输。
+
+target_validation_level: "L6"
+integration_scope: "system"
+target_platform: "HW_BASE_AX7010_v1.0"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "skip"
+  L4: "skip"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-023"
+
+scope:
+  allowed_edit_paths:
+    - "board/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "constraints/"
+    - "vivado/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - ".awp/platform/hw_base_ax7010_v1.0.yaml"
+    - "board/ps_dma_test/README.md"
+    - "board/hw_arch_ax7010.md"
+    - "docs/board_validation.md"
+    - "docs/architecture_v2_block_design.md"
+    - "rtl/axil_2d_shift.sv"
+
+acceptance:
+  - "DMA MM2S 传输测试图案到加速器输入成功"
+  - "加速器处理后 DMA S2MM 读回数据成功"
+  - "回读数据与仿真 golden 参考比对一致（支持多种移位方向：左/右/上/下）"
+  - "多步长测试通过（1, 2, 半帧尺寸）"
+  - "多帧尺寸测试通过（小帧、全帧、奇数尺寸）"
+  - "帧边界处理（wrapping/no-wrapping）正确"
+  - "ILA 捕获展示 pipeline 时序与仿真波形一致"
+  - "持续多帧传输无数据错位或丢失"
+
+required_outputs:
+  - ".awp/runs/RUN-E001-BOARD-005.md"
+  - ".awp/runs/RUN-E001-BOARD-005_ila.cdc"
+
+handoff:
+  next_task: "TASK-E001-026"
+  handoff_file: ""
+
+risk_level: "high"
+
+notes: >
+  ## L6 数据正确性验证
+
+  L6 = "板上数据正确性测试"（workspace_manifest.json）
+
+  ### 测试矩阵
+  | 参数 | 取值 |
+  |------|------|
+  | 移位方向 | 左、右、上、下 |
+  | 移位步长 | 1, 2, half_width, half_height |
+  | 帧尺寸 | 8x8, 64x64, 15x31 (odd), max(regs_top configured) |
+  | 边界模式 | wrapping, no-wrapping (zero fill) |
+  | 数据模式 | 递增、棋盘格、全0、全1 |
+
+  ### Golden 数据来源
+  仿真 L1c 阶段生成的 golden reference（来自 tb/tb_axil_2d_shift.sv 的参考模型输出）。
+  若仿真未保存 golden 文件，需先从仿真中重新导出。
+
+  ### 失败处理
+  遵循 B-G4 上板迭代模型。L6 阶段典型失败类别：CAT-SW, CAT-DT, CAT-RT。
+  最昂贵的是 CAT-RT（RTL bug）：必须用 ILA 证据确认后才能触发 RTL 回修。
+  每次上板 session 必须一次性采集 ILA 波形 + PS 日志 + DMA 状态。
+
+  ### 平台特定
+  AX7010 是主力平台，L6 验证优先在此完成。50MHz 时钟下 DMA 传输速率受限，
+  但不影响数据正确性验证。

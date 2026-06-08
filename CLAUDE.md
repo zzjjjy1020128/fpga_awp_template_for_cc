@@ -188,7 +188,7 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 | XDC 约束编写 | `vivado_integrator` | |
 | 约束完成后的审查 | `rtl_reviewer` | vivado_integrator 产出 XDC 后自动触发 |
 | Vivado 工程/综合/实现 | `vivado_integrator` | |
-| 上板验证 | `hardware_validator` | |
+| 上板验证 (B0-B3) | `hardware_validator` | L5/L6 上板验证全流程：debug 基础设施(B0)、冒烟测试(B1/L5)、PS 软件(B2)、数据正确性(B3/L6)。详见 §B-G4 |
 | 流程检查/复盘 | `process_owner` | 所有 task 完成后自动触发 |
 
 4. **需求是以下管理工作** → orchestrator 自己处理，不 spawn：
@@ -277,6 +277,28 @@ integration_verifier 发现失败
 | Gate violation（跳级） | **硬阻断** |
 | integration_verifier 擅自修改子模块 RTL | **硬阻断**（除非 human_owner 授权） |
 
+#### B-G4：上板验证失败处理（v0.4 新增）—— 替代 G4 的 round 1-3 用于 L5/L6
+
+上板验证与仿真/RTL 验证有本质区别：迭代慢（每次需重建比特流→编程器件→运行测试→采集数据）、工具链不同（Vitis/ILA/VIO/Hardware Manager）、失败证据为硬件级。因此上板失败不适用 G4 的"统一次数上限"，改用**按失败类别分诊**。
+
+**失败类别分诊表**：
+
+| 类别 | 含义 | 上限 | 超限动作 |
+|------|------|:--:|---------|
+| CAT-HW | JTAG 链/电源/线缆/适配器物理问题 | 2 | → human_owner |
+| CAT-BS | PS 启动失败/时钟异常/比特流加载失败 | 2 | → human_owner |
+| CAT-AX | AXI-Lite 寄存器读写异常（地址映射/互联问题） | 2 | → vivado_integrator |
+| CAT-IL | ILA 触发不工作/探针无信号/深度不足 | 2 | → vivado_integrator |
+| CAT-SW | PS 软件 bug（DMA 描述符/buffer 对齐/cache） | 3 | → human_owner |
+| CAT-DT | DMA 传输完成但数据异常（不匹配 golden） | 3 | → vivado_integrator 或 rtl_implementer |
+| CAT-RT | ILA 证据确认的 RTL 逻辑 bug | 3 | → rtl_implementer（完整回修链：RTL fix → L1a → IP → bitstream → board） |
+
+**B-G4 关键规则**：
+- 每次上板 session 失败必须**一次性采集三类证据**：ILA 波形 + PS 日志 + 比特流版本。缺少任意一项 → 不得关闭 session。
+- **CAT-RT 刹车**：CAT-RT 是最高成本路径。必须经 ILA 证据确认后才能发起 RTL 回修。未经 ILA 证实的 RTL 怀疑 → 硬阻断，human_owner 介入。
+- 上板 ISS issue 额外必填字段：`failure_category`、`platform_id`、`hardware_evidence`（ILA 路径+PS 日志路径）、`bitstream_version`。
+- 硬件问题（CAT-HW/CAT-BS）上限 2 轮 → 直接升级 human_owner，不进入 RTL 迭代。
+
 ### Task 粒度决策规则（G5）
 
 拆分 task 时的判断标准：
@@ -296,8 +318,16 @@ integration_verifier 发现失败
 | L1b GAP | 有足够模块 ready 但无对应 L1b task | L1c/L2+ task spawn、模块 task done |
 | L1c GAP | L1b 未全部 pass | L2+ task spawn、全系统 task unblock |
 | 越级推进 | 任何跳级行为 | 对应高级别 task spawn |
+| L5 GAP | B0 (debug infra) 未完成 → 比特流无 ILA 探针 | L5/L6 task spawn |
+| L6 GAP | L5 未 pass 或 B2 (PS 软件) 未完成 | L6 task spawn |
+| Cross-platform | 主力平台 (AX7010) L5 未 pass | 备选平台 (ZCU102) L5 spawn — WARN 不阻断 |
 
 **GAP 阻断不阻止**：创建 L1b task、执行 L1b、module_owner 修复 issue、rtl_reviewer 审查、process_owner 流程修补。
+
+**上板验证门禁特殊规则**：
+- B0 (debug infra) 是 L5 的前置条件，但 B0 自身不是独立验证级别（不对应 L0-L7 中的任何一级）
+- 上板门禁是**平台作用域**的：L5 pass on AX7010 ≠ L5 pass on ZCU102。跨平台不自动传递。
+- 上板 task 的 validation_status 中 L0-L4 统一为 `skip`（由前置 task 已 pass），仅 L5/L6/L7 为有效级别
 
 ### Scope 规则（G6）—— v0.2 分层责任边界
 

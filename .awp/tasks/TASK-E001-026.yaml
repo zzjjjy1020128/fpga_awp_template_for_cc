@@ -1,0 +1,86 @@
+task_id: "TASK-E001-026"
+title: "L7 性能与资源复盘 —— 上板验证汇总"
+status: "ready"
+agent: "process_owner"
+assigned_to: ""
+created_date: "2026-06-08"
+
+objective: >
+  汇总全部上板验证结果，输出项目复盘报告：资源利用率 vs 预估、实际吞吐 vs 理论、
+  调试基础设施（ILA/VIO）有效性评估、B-G4 迭代模型效果评估、经验教训沉淀。
+
+target_validation_level: "L7"
+integration_scope: "system"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "skip"
+  L4: "skip"
+  L5: "skip"
+  L6: "skip"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-024"
+
+scope:
+  allowed_edit_paths:
+    - "docs/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "constraints/"
+    - "vivado/"
+    - "board/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+
+context:
+  must_read:
+    - ".awp/platform/hw_base_ax7010_v1.0.yaml"
+    - "docs/board_validation.md"
+    - "docs/architecture_v2_block_design.md"
+    - "docs/project_contract.md"
+    - "docs/retrospective_iob_decision_failure.md"
+
+acceptance:
+  - "资源占用复盘：LUT/FF/BRAM/DSP 实际 vs 综合报告预估"
+  - "吞吐量统计：实际 DMA 传输速率、加速器处理延迟"
+  - "时序复盘：两个平台的 WNS/WHS 对比，100MHz 失败根因总结"
+  - "调试基础设施评估：ILA 探针覆盖率、触发效率、VIO 可用性"
+  - "B-G4 迭代模型效果评估：各类别失败发生次数、平均轮次、升级率"
+  - "经验教训沉淀：上板验证中的关键踩坑点和最佳实践"
+
+required_outputs:
+  - "docs/retrospective_board.md"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "low"
+
+notes: >
+  ## L7 复盘范围
+
+  L7 = "性能/资源复盘"（workspace_manifest.json）
+
+  此 task 覆盖全部上板验证阶段（B0-B4）的结果汇总。process_owner 以只读方式
+  审查所有 BOARD run record，提取关键数据和经验教训。
+
+  ### 复盘重点
+  1. 为什么 100MHz 在 xc7z010-1 上不收敛（shift_addr_gen DSP 路径 16-20 级逻辑）
+  2. ILA 探针在实际调试中的有效性（哪些信号最有用、哪些没用上）
+  3. DMA 环回测试发现的软件/硬件交互问题
+  4. B-G4 迭代模型是否有效控制了上板迭代成本
+
+  ### 不需要的内容
+  - 不需要重新跑综合/实现（数据来自已有 run record）
+  - 不需要重新设计架构（复盘不是规划）
