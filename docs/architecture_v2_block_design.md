@@ -4,6 +4,60 @@
 > 目标器件：xc7z020clg400-1 (Zynq-7000)
 > 前置文档：`docs/architecture.md`（原 PL-only 架构）、`docs/retrospective_iob_decision_failure.md`
 > 设计目的：将 axil_2d_shift 从 102 外部 IOB 架构重构为 Zynq Block Design，利用 PS AXI 接口和内部 ILA 调试，消除外部引脚瓶颈
+> 相关决策：AWP-0001 平台层冻结策略
+
+---
+
+## 0. 平台分层策略
+
+本 Block Design 采用**稳定平台 BD + 标准插槽 + wrapper/adapter**的分层架构：
+
+```
+┌──────────────────────────────────────────┐
+│  平台 BD (frozen shell) — v1.0            │  ← 仅平台级需求变化时修改
+│  PS7 + AXI Interconnect + DMA + ILA       │
+│                                           │
+│  标准插槽 (slots):                         │
+│   SLOT_AXIL:  S_AXI (AXI-Lite, 32-bit)    │  ← AXI Interconnect M00
+│   SLOT_AXIS_I: S_AXIS (8-bit)             │  ← AXI DMA MM2S
+│   SLOT_AXIS_O: M_AXIS (8-bit)             │  ← AXI DMA S2MM
+│   SLOT_IRQ:    IRQ_F2P[0]                 │  ← AXI DMA s2mm_intr
+├──────────────────────────────────────────┤
+│  accelerator_shell (稳定接口)              │  ← wrapper 对外端口 = 标准插槽
+│  axil_2d_shift 当前直接适配插槽，          │     不随 custom IP 内部迭代变化
+│  无需额外 adapter（接口天然匹配）           │
+├──────────────────────────────────────────┤
+│  custom IP (快速迭代)                      │  ← 内部实现自由修改
+│  axil_2d_shift 内核 (7 个子模块)            │     不影响平台 BD
+└──────────────────────────────────────────┘
+```
+
+**核心原则**：
+
+| 原则 | 说明 |
+|------|------|
+| 平台 BD 冻结 | BD 创建后即 baseline，不自 Driver 自动修改。回归风险降至零 |
+| 插槽标准化 | 平台提供 SLOT_AXIL / SLOT_AXIS_I / SLOT_AXIS_O 三个标准槽位 |
+| adapter 消化差异 | 新 accelerator 接口不匹配时，写 wrapper/adapter 而非修改 BD |
+| BD 变更门槛 | 仅平台级需求变化（PS 外设变更、DMA 位宽升级、时钟方案调整）才修改 BD |
+
+**适用场景**：
+
+| 场景 | 做法 |
+|------|------|
+| 当前：axil_2d_shift 接入 | 直接连接标准插槽（接口天然匹配，无需 adapter） |
+| 将来：新 accelerator X 接入 | 写 `accel_x_wrapper.sv` 将 X 的接口适配到标准插槽；BD 不变 |
+| 将来：升级 DMA 位宽 8→32 | 平台级变更 → 修改 BD、更新插槽规格 → accelerator wrapper 同步适配 |
+
+**本项目中 axil_2d_shift 的接口与标准插槽的对应**：
+
+| 标准插槽 | 信号 | axil_2d_shift 端口 | 匹配 |
+|----------|------|-------------------|:--:|
+| SLOT_AXIL | AXI4-Lite (32-bit) | s_axil_* | 天然 |
+| SLOT_AXIS_I | AXI-Stream (8-bit) | s_axis_* | 天然 |
+| SLOT_AXIS_O | AXI-Stream (8-bit) | m_axis_* | 天然 |
+
+> 当前无需 adapter。若将来某 accelerator 的 data width 为 16-bit 或接口协议为 AXI4-Full，则写一个 `accel_x_adapter.sv` 做宽度转换/协议转换，BD 保持不变。
 
 ---
 

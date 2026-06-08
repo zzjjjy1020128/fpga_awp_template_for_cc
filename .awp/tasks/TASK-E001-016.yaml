@@ -1,0 +1,134 @@
+task_id: "TASK-E001-016"
+title: "硬件基座规格制定 —— 冻结 BD + 约束文件的完整定义"
+status: "done"
+agent: "planner"
+assigned_to: ""
+created_date: "2026-06-07"
+
+objective: >
+  制定"硬件基座"的完整规格：明确基座由哪些 artifact 构成（BD、XDC 约束、
+  Zynq IP 配置预设、板级引脚映射）、如何一次性创建并冻结、accelerator 的
+  接口契约是什么、约束文件如何组织（基座约束 vs 项目约束）。
+  吸取 SESS-E001-OR-002 中 Tcl BD 自动化失败的教训，基座方案不依赖
+  "每次从头 Tcl 生成 BD"。
+
+target_validation_level: "L0"
+integration_scope: "module"
+
+validation_status:
+  L0: "pass"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "skip"
+  L4: "skip"
+  L5: "skip"
+  L6: "skip"
+  L7: "skip"
+
+depends_on:
+  - "TASK-E001-014"
+
+scope:
+  allowed_edit_paths:
+    - "docs/"
+    - ".awp/decisions.md"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "vivado/"
+    - "constraints/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+
+context:
+  must_read:
+    - "docs/architecture_v2_block_design.md"
+    - "docs/architecture.md"
+    - "docs/project_charter.md"
+    - "docs/retrospective_iob_decision_failure.md"
+    - ".awp/sessions/SESS-E001-OR-002.md"
+    - ".awp/decisions.md"
+
+acceptance:
+  - "硬件基座的 artifact 清单完整（BD 导出产物、约束文件、IP 配置预设、板级文件）"
+  - "基座创建方法论明确：GUI 辅助首次创建 → Tcl 导出 → 版本锁定 → 可复现验证"
+  - "accelerator 接口契约精确定义（端口名、位宽、方向、协议、时序预期）"
+  - "约束文件分层方案明确（基座级约束 vs accelerator 级约束 vs 项目级约束）"
+  - "基座版本管理与冻结策略明确"
+  - "与 AWP-0001 平台分层策略一致"
+
+required_outputs:
+  - "docs/hardware_base_spec.md"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## 背景
+
+  SESS-E001-OR-002 揭示：Vivado 2022.2 的 Tcl `make_wrapper` + `validate_bd_design`
+  对含 PS7 的 Block Design 一致失败。结论："BD 必须在 GUI 中创建"。
+  这意味着不能依赖"每次 Agent 自动 Tcl 生成 BD"的工作流。
+
+  AWP-0001 确立了平台 BD 冻结 + adapter 模式的策略。本任务在此策略下，
+  进一步回答"基座到底是什么、怎么构建、包含哪些文件、如何冻结"。
+
+  ## 需回答的核心问题
+
+  1. **基座 artifact 清单**：哪些文件构成硬件基座？
+     - BD 的 Tcl 导出脚本（`base_bd.tcl`）？
+     - BD 的 PDF 框图？
+     - XDC 约束文件（哪些是基座级、哪些是 accelerator 级）？
+     - PS7 配置预设文件（`.tcl` 或 Vivado preset）？
+     - 板级信息（part、package、speed grade）？
+     - ILA 调试核配置？
+
+  2. **基座创建流程**：怎么做且怎么做一次？
+     - 首次在 Vivado GUI 中手动创建 BD → Run Block Automation → 连接 IP → Validate
+     - 导出为 `write_bd_tcl` 脚本（可版本控制、可 diff review）
+     - 导出 BD 框图 PDF
+     - 手工编写/审核约束文件
+     - 验证基座可复现性（在新目录中 source Tcl 重建 BD → 综合 → 实现 → 时序收敛）
+
+  3. **基座 vs accelerator 的边界**：
+     - 基座：PS7、AXI Interconnect、AXI DMA、SmartConnect、Processor System Reset、
+       ILA 调试核、时钟/复位网络
+     - accelerator 插槽：SLOT_AXIL、SLOT_AXIS_I、SLOT_AXIS_O、SLOT_IRQ
+     - accelerator：axil_2d_shift（或其他 custom IP）通过 wrapper 连接插槽
+
+  4. **约束文件分层**：
+     - `constraints/base_timing.xdc`  —— 基座级：时钟定义（PS FCLK_CLK0 100MHz）+
+       基座内部时序例外
+     - `constraints/base_physical.xdc` —— 基座级：板级引脚（当前为空，仅保留给
+       可选 LED/按钮）
+     - `constraints/accel_constraints.xdc` —— accelerator 级：accelerator 专属的
+       时序/物理约束（如有）
+     - `constraints/debug.xdc` —— 调试约束：ILA probe 连接、mark_debug 属性
+
+  5. **基座版本管理**：
+     - 基座版本号（如 `HW_BASE_v1.0`）
+     - 何时升版（平台级需求变化）
+     - 基座变更的 review 要求
+
+  ## 成功标准
+
+  未来任何 accelerator 项目（不仅是 axil_2d_shift）接入时：
+  1. 打开基座 Vivado 工程
+  2. 添加 accelerator wrapper RTL
+  3. 连接 SLOT_* 接口到 wrapper
+  4. 综合 → 实现 → 比特流
+  5. 不修改 BD 中任何已有 IP 配置
+
+  ## 已知约束
+
+  - Vivado 2022.2 的 Tcl BD 自动化对 PS7 设计不可靠
+  - 目标器件 xc7z020clg400-1
+  - Vivado MCP 工具可用于综合/实现/比特流生成
+  - 当前无需外部 PL IOB（所有接口通过 PS MIO + 内部 AXI）
