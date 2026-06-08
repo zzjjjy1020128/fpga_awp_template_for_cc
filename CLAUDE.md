@@ -158,6 +158,7 @@ Handoff 是 **session 之间的桥梁**，不是 agent 之间的交接。同一 
 2. 若存在 handoff：读取其内容，恢复上一 session 的上下文（已完成/未完成 task、关键文件、已知问题），从"下一步行动"开始继续
 3. 若不存在 handoff：检查 `.awp/task_board.md` 确认当前项目状态
 4. 向用户汇报恢复结果："检测到上次未完成的 session，已从 HO-xxx 恢复上下文"或"这是新项目的首次 session"
+5. **平台检查（v0.3 新增）**：读取 `workspace_manifest.json` → `platforms[]`，若存在已冻结平台则加载对应 `.awp/platform/hw_base_*.yaml`，打印可用平台摘要（器件、频率、验证状态）。后续 task 派发时优先匹配 task 的 `target_platform` 到对应平台。
 
 **Handoff 恢复后的 gate re-validation（强制）**：从 handoff 恢复到下一步 task 后，在 spawn 任何子智能体之前，必须逐项执行以下检查。**handoff 的叙事不可覆盖 task YAML 中的 formal state**——handoff 说"调试 L1c"但 YAML 写 `L1b: pending` 时，以 YAML 为准。
 
@@ -353,6 +354,62 @@ integration_verifier 对子模块 RTL 的修改权限分三层：
 1. 创建 `process_owner` 任务（agent: `process_owner`），spawn 子智能体编写 `docs/retrospective.md`
 2. 完成最终 session 记录和 handoff（如跨 session）
 3. 向用户汇报项目总结（验证结果表、资源/时序数据、经验沉淀）
+
+### 平台合同管理（G9）—— v0.3
+
+#### 平台加载（每个 session 启动时）
+
+Session B1 恢复协议中增加平台检查步骤：
+
+1. 读取 `workspace_manifest.json` → `platforms[]`
+2. 若存在已冻结平台（`status == "frozen"`）：
+   - 加载对应的 `.awp/platform/hw_base_*.yaml` 清单
+   - 向用户汇报可用平台及其关键参数（器件、频率、验证状态）
+3. 后续 task 执行前，确认 task 的 `target_platform` 与已加载平台匹配
+
+#### 平台选择规则
+
+| 场景 | 规则 |
+|------|------|
+| 仅有 1 个平台 | 自动选择 |
+| 多个平台 | 优先使用 `description` 中标注"主力"的平台；或由用户显式指定 |
+| task 指定了 `target_platform` | 使用指定平台，不自动选择 |
+
+#### 基座冻结规则
+
+基座一旦标记为 `status: frozen`：
+- **BD 不可修改**——任何 BD 内 IP 配置变更需平台级理由 + 版本升级
+- **约束文件 (base_*.xdc) 冻结**——修改需版控
+- **accelerator IP 可独立迭代**——RTL 变更 → 重新打包 IP → BD 中 Upgrade IP → 重综合（不修改 BD 拓扑）
+- **新 accelerator 接入**——替换 BD 中 IP 实例，连接相同 SLOT_* 接口，BD 其余不变
+- **基座升版**——修改后更新平台清单版本号 + CHANGELOG + ADR
+
+#### 平台级 Vivado 操作纪律
+
+| 规则 | 原因 |
+|------|------|
+| **同一工程不可同时被 GUI 和 MCP Tcl 打开** | Vivado 不支持并发写入；GUI 保存会覆盖 Tcl 修改 |
+| **MCP Tcl 工作时关闭 GUI，反之亦然** | 实测：Tcl 改完的 BD 被 GUI 旧状态覆盖丢失 |
+| **ILA 探针不在 BD 中直连 AXI 接口信号** | 拆分接口个别 pin 会破坏 interface connection |
+| **`make_wrapper` 需在 `validate_bd_design` 通过后执行** | 未验证的 BD 生成 wrapper 可能失败 |
+| **PS 时钟修改需按器件代际使用不同属性名** | PS7: `PCW_FPGA0_PERIPHERAL_FREQMHZ`；PS8: `PCW_FCLK0_PERIPHERAL_FREQ` |
+
+#### 项目合同体系
+
+项目合同由三份子合同组成，统一索引在 `docs/project_contract.md`：
+
+| 合同 | 管理文件 | 内容 |
+|------|---------|------|
+| 硬件基座 | `.awp/platform/hw_base_*.yaml` | 器件、BD、IP、插槽、约束、验证状态 |
+| 软件环境 | `docs/project_contract.md#2` | Vivado、仿真器、Python、OS、上板工具 |
+| 验收标准 | `docs/project_contract.md#3` | 每级 pass/fail 标准、时序/资源目标、out-of-scope |
+
+合同状态生命周期: `unknown → draft → candidate → frozen → revised`
+
+冻结条件：
+- 硬件基座：BD + 约束 + 综合/实现/比特流全部通过
+- 软件环境：所有工具链项确认完毕
+- 验收标准：该阶段所有级别通过
 
 ### 合规分层
 

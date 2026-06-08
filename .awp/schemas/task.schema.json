@@ -19,6 +19,10 @@
       "type": "string",
       "enum": ["ready", "in_progress", "blocked", "review", "done"]
     },
+    "target_platform": {
+      "type": "string",
+      "description": "本任务目标硬件基座 ID，必须与 workspace_manifest.json#platforms[].id 匹配"
+    },
     "agent": {
       "type": "string",
       "description": "执行本 task 的子智能体名称（对应 .claude/agents/{name}.md）",

@@ -49,6 +49,21 @@
         "L7": { "type": "string" }
       }
     },
+    "platforms": {
+      "type": "array",
+      "description": "已冻结的硬件基座清单，每个基座对应一个板卡/器件",
+      "items": {
+        "type": "object",
+        "required": ["id", "manifest", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "基座唯一标识，如 HW_BASE_ZCU102_v1.0" },
+          "manifest": { "type": "string", "description": "平台清单 YAML 路径，如 .awp/platform/hw_base_zcu102_v1.0.yaml" },
+          "status": { "type": "string", "enum": ["frozen", "candidate", "revised"] },
+          "frozen_date": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
     "default_agent_policy": {
       "type": "object",
       "required": ["language", "record_all_sessions", "require_handoff"],

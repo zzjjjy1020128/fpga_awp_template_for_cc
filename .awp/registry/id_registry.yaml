@@ -96,6 +96,11 @@ ids:
   title: RUN-E001-IMPL-004.md — axil_2d_shift L3 实现报告（第四次，最终重跑）
   status: active
   created: ''
+- id: RUN-E001-IP-PACK-001
+  type: RUN
+  title: IP 打包运行报告
+  status: active
+  created: ''
 - id: RUN-E001-L1B-CONTROL-001
   type: RUN
   title: 'RUN-E001-L1B-CONTROL-001: L1b 控制通路集成仿真'
@@ -181,6 +186,11 @@ ids:
   title: Session 记录
   status: closed
   created: '2026-06-06'
+- id: SESS-E001-OR-003
+  type: SESSION
+  title: Session 记录
+  status: closed
+  created: '2026-06-08'
 - id: TASK-E001-001
   type: TASK
   title: AXI-Lite 2D Shift 模块架构规划
@@ -204,7 +214,7 @@ ids:
 - id: TASK-E001-005
   type: TASK
   title: 移位地址生成器 shift_addr_gen RTL 实现
-  status: active
+  status: closed
   created: '2026-06-04'
 - id: TASK-E001-006
   type: TASK
@@ -254,5 +264,20 @@ ids:
 - id: TASK-E001-015
   type: TASK
   title: Vivado Block Design 创建与综合实现 —— Zynq PS7 + AXI DMA + ILA
-  status: active
+  status: closed
   created: '2026-06-06'
+- id: TASK-E001-016
+  type: TASK
+  title: 硬件基座规格制定 —— 冻结 BD + 约束文件的完整定义
+  status: closed
+  created: '2026-06-07'
+- id: TASK-E001-017
+  type: TASK
+  title: axil_2d_shift IP 打包 —— 封装为 Vivado Custom IP 核
+  status: closed
+  created: '2026-06-07'
+- id: TASK-E001-018
+  type: TASK
+  title: AX7010 硬件基座创建 —— Alinx xc7z020 平台
+  status: closed
+  created: '2026-06-08'

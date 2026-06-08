@@ -1,6 +1,6 @@
 task_id: "TASK-E001-005"
 title: "移位地址生成器 shift_addr_gen RTL 实现"
-status: "in_progress"
+status: "done"
 agent: "rtl_implementer"
 assigned_to: ""
 created_date: "2026-06-04"
