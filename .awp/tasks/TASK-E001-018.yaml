@@ -1,0 +1,107 @@
+task_id: "TASK-E001-018"
+title: "AX7010 硬件基座创建 —— Alinx xc7z020 平台"
+status: "done"
+agent: "vivado_integrator"
+assigned_to: ""
+created_date: "2026-06-08"
+
+objective: >
+  为 Alinx AX7010 开发板创建独立的硬件基座（HW_BASE_AX7010_v1.0）。
+  目标器件 xc7z020clg400-2 (Zynq-7000)，
+  BD 包含 PS7 + AXI Interconnect + AXI DMA + ILA 等标准插槽组件。
+  用户提供 BD 基座，Agent 完成 IP 打包、约束编写、综合、实现、比特流、冻结。
+
+target_validation_level: "L4"
+integration_scope: "system"
+
+target_platform: "HW_BASE_AX7010_v1.0"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pass"
+  L3: "pass"
+  L4: "pass"
+  L5: "pending"
+  L6: "pending"
+  L7: "pending"
+
+depends_on:
+  - "TASK-E001-016"
+
+scope:
+  allowed_edit_paths:
+    - "vivado/"
+    - "constraints/"
+    - ".awp/runs/"
+    - ".awp/platform/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "docs/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+
+context:
+  must_read:
+    - ".awp/platform/hw_base_zcu102_v1.0.yaml"
+    - "docs/project_contract.md"
+    - "docs/hardware_base_spec.md"
+    - "docs/architecture_v2_block_design.md"
+    - "rtl/axil_2d_shift.sv"
+
+acceptance:
+  - "AX7010 BD 创建完成（PS7 + AXI Interconnect + AXI DMA + ILA + axil_2d_shift）"
+  - "IP 打包完成（axil_2d_shift 适配 xc7z020 器件）"
+  - "约束文件完成（base_timing.xdc for xc7z020 + base_physical.xdc for AX7010 引脚）"
+  - "综合通过（0 errors）"
+  - "实现通过（WNS >= 0, WHS >= 0）"
+  - "比特流生成（.bit 文件存在）"
+  - "平台清单 .awp/platform/hw_base_ax7010_v1.0.yaml 已冻结"
+  - "workspace_manifest.json platforms[] 已注册 AX7010"
+
+required_outputs:
+  - ".awp/platform/hw_base_ax7010_v1.0.yaml"
+  - "vivado/shift_2d_ax7010_260608/shift_2d_ax7010_260608.xpr"
+  - "vivado/shift_2d_ax7010_260608/shift_2d_ax7010_260608.runs/impl_1/design_1_wrapper.bit"
+  - "constraints/ax7010_base_timing.xdc"
+  - "constraints/ax7010_base_physical.xdc"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## AX7010 平台信息
+
+  - 开发板: Alinx AX7010
+  - 主芯片: xc7z020clg400-2 (Zynq-7000, CLG400 封装, speed -2)
+  - PS: ARM Cortex-A9 ×2, DDR3 控制器
+  - PL: Artix-7 架构, ~85K 逻辑单元
+  - 与 ZCU102 (xczu9eg) 的关键差异:
+    - PS: PS7 (processing_system7) 替代 PS8 (zynq_ultra_ps_e)
+    - AXI HP 接口位宽不同 (32/64-bit vs always 64-bit)
+    - 资源容量: LUT ~53K vs ~274K, BRAM ~140 vs ~912
+    - 无 GTH/GTY transceiver
+
+  ## 工作流
+
+  1. 用户提供 AX7010 的 BD 基座 (.bd 文件)
+  2. Agent 创建 Vivado 工程，导入 BD
+  3. Agent 打包 axil_2d_shift IP（目标器件 xc7z020，可能与 xczu9eg 版本不同）
+  4. Agent 编写约束文件
+  5. Agent 运行综合 → 实现 → 比特流
+  6. Agent 创建平台清单并冻结
+  7. Agent 注册到 workspace_manifest.json
+
+  ## 与 ZCU102 基座的关系
+
+  两个基座独立冻结、独立版本管理。
+  Accelerator IP (axil_2d_shift) 需要分别为两个器件打包（IP 参数相同，仅目标器件不同）。
+  上层 RTL 源码共享同一套 `rtl/*.sv`。
