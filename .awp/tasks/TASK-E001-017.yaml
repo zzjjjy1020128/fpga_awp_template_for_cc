@@ -1,0 +1,121 @@
+task_id: "TASK-E001-017"
+title: "axil_2d_shift IP 打包 —— 封装为 Vivado Custom IP 核"
+status: "done"
+agent: "vivado_integrator"
+assigned_to: ""
+created_date: "2026-06-07"
+
+objective: >
+  将 axil_2d_shift 顶层模块及其 7 个子模块打包为一个 Vivado Custom IP 核，
+  使其可在 Block Design 中直接添加并自动连接 AXI-Lite / AXI-Stream 接口。
+  使用 ipx::package_project Tcl 流程，评估自动化可行性。
+
+target_validation_level: "L0"
+integration_scope: "module"
+
+validation_status:
+  L0: "pass"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pass"
+  L3: "skip"
+  L4: "skip"
+  L5: "skip"
+  L6: "skip"
+  L7: "skip"
+
+depends_on:
+  - "TASK-E001-008"
+
+scope:
+  allowed_edit_paths:
+    - "vivado/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - "rtl/"
+    - "tb/"
+    - "sim/"
+    - "docs/"
+    - "constraints/"
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+
+context:
+  must_read:
+    - "rtl/axil_2d_shift.sv"
+    - "rtl/axil_slave_if.sv"
+    - "rtl/regs_top.sv"
+    - "rtl/ctrl_fsm.sv"
+    - "rtl/axis_input.sv"
+    - "rtl/shift_addr_gen.sv"
+    - "rtl/axis_output.sv"
+    - "rtl/frame_buf_mgr.sv"
+    - "docs/architecture.md"
+
+acceptance:
+  - "IP 核创建成功，包含全部 8 个 RTL 源文件"
+  - "AXI-Lite slave 接口被正确识别为 aximm 总线接口"
+  - "AXI-Stream slave (s_axis) 被正确识别为 axis 总线接口"
+  - "AXI-Stream master (m_axis) 被正确识别为 axis 总线接口"
+  - "IP 可在 BD 中通过 Add IP 添加并显示正确端口"
+  - "IP 综合通过（synth_1 无 Error）"
+  - "打包流程评估：是否可完全自动化、有无手动步骤"
+
+required_outputs:
+  - "vivado/ip/axil_2d_shift_v1_0/component.xml"
+  - "vivado/ip/axil_2d_shift_v1_0/xgui/axil_2d_shift_v1_0.tcl"
+  - ".awp/runs/RUN-E001-IP-PACK-001.md"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## IP 打包方案
+
+  使用 Vivado `ipx::package_project` 流程：
+  ```
+  1. create_project -part xc7z020clg400-1
+  2. add_files rtl/*.sv + set_property file_type SystemVerilog
+  3. set_property top axil_2d_shift
+  4. synth_design -mode out_of_context (可选，帮助接口推断)
+  5. ipx::package_project -root_dir vivado/ip/axil_2d_shift_v1_0
+  6. ipx::add_bus_interface 添加/修正 AXI 接口
+  7. ipx::save_core
+  ```
+
+  ## 接口映射
+
+  | RTL 端口组 | Vivado Bus Interface | 类型 |
+  |-----------|---------------------|------|
+  | s_axil_* (36 信号) | s_axil | aximm (slave) |
+  | s_axis_* (3+ 信号) | s_axis | axis (slave) |
+  | m_axis_* (3+ 信号) | m_axis | axis (master) |
+  | clk, rstn | — | clock/reset (单独) |
+
+  ## 自动化评估
+
+  `ipx::package_project` 是 Vivado 标准 Tcl API，与 BD make_wrapper 不同，
+  不依赖 GUI 才能完成的步骤。MCP Vivado 工具可以全自动执行。
+  关键风险点：
+  - 接口自动推断是否正确（可能需要手动 `ipx::add_bus_interface` 修正）
+  - .sv 文件在 ipx 中的支持程度
+  - out_of_context 综合是否能通过
+
+  ## IP 目录结构预期
+
+  ```
+  vivado/ip/axil_2d_shift_v1_0/
+    component.xml          ← IP 核描述文件
+    xgui/
+      axil_2d_shift_v1_0.tcl ← GUI 参数配置
+    src/
+      hdl/                  ← RTL 源文件（复制或引用）
+        axil_2d_shift.sv
+        axil_slave_if.sv
+        ...
+  ```
