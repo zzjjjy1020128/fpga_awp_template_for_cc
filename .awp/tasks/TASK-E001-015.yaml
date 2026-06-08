@@ -1,6 +1,6 @@
 task_id: "TASK-E001-015"
 title: "Vivado Block Design 创建与综合实现 —— Zynq PS7 + AXI DMA + ILA"
-status: "blocked"
+status: "done"
 agent: "vivado_integrator"
 assigned_to: ""
 created_date: "2026-06-06"
@@ -18,9 +18,9 @@ validation_status:
   L1a: "skip"
   L1b: "skip"
   L1c: "skip"
-  L2: "pending"
-  L3: "pending"
-  L4: "pending"
+  L2: "pass"
+  L3: "pass"
+  L4: "pass"
   L5: "pending"
   L6: "pending"
   L7: "pending"
@@ -58,10 +58,12 @@ acceptance:
   - "IOB 利用率 < 10%"
 
 required_outputs:
-  - "vivado/bd/axil_2d_shift_bd.tcl"
-  - "vivado/bd/axil_2d_shift_bd.pdf"
-  - ".awp/runs/RUN-E001-BD-SYNTH-001.md"
-  - ".awp/runs/RUN-E001-BD-IMPL-001.md"
+  - "vivado/shift_2d_zcu102_260606/shift_2d_zcu102_260606.srcs/sources_1/bd/design_1/design_1.bd"
+  - "vivado/shift_2d_zcu102_260606/bd_export/hw_base_bd.tcl"
+  - "vivado/shift_2d_zcu102_260606/shift_2d_zcu102_260606.runs/impl_1/design_1_wrapper.bit"
+  - ".awp/platform/hw_base_zcu102_v1.0.yaml"
+  - "docs/project_contract.md"
+  - ".awp/runs/RUN-E001-IP-PACK-001.md"
 
 handoff:
   next_task: ""

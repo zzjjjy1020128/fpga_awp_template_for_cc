@@ -1,0 +1,159 @@
+#==============================================================================
+# 硬件基座清单 — HW_BASE_ZCU102_v1.0
+#==============================================================================
+# 此文件是 AWP 协议识别"已冻结基座"的权威来源。
+# validate_awp.py 可通过此清单校验基座完整性。
+# 冻结意味着: BD 拓扑 + IP 参数 + base_*.xdc 锁定，不可随意修改。
+# accelerator IP 可以独立迭代，不影响基座版本。
+#==============================================================================
+
+platform:
+  id: "HW_BASE_ZCU102_v1.0"
+  name: "Zynq UltraScale+ Accelerator Shell"
+  status: "frozen"
+  frozen_date: "2026-06-07"
+  description: >
+    Zynq UltraScale+ MPSoC (xczu9eg-ffvb1156-2-e) 加速器承载平台。
+    PS8 + AXI Interconnect + AXI DMA + SmartConnect + ILA x2。
+    提供 4 个标准 accelerator 插槽: SLOT_AXIL, SLOT_AXIS_I, SLOT_AXIS_O, SLOT_IRQ。
+
+  # -- 目标器件 ----------------------------------------------------------------
+  target:
+    part: "xczu9eg-ffvb1156-2-e"
+    board: "ZCU102"
+    family: "zynquplus"
+
+  # -- Vivado 工程 -------------------------------------------------------------
+  vivado_project:
+    path: "vivado/shift_2d_zcu102_260606/shift_2d_zcu102_260606.xpr"
+    bd_name: "design_1"
+    bd_file: "vivado/shift_2d_zcu102_260606/shift_2d_zcu102_260606.srcs/sources_1/bd/design_1/design_1.bd"
+    wrapper: "design_1_wrapper"
+    bd_tcl_export: "vivado/shift_2d_zcu102_260606/bd_export/hw_base_bd.tcl"
+    bd_pdf_export: "vivado/shift_2d_zcu102_260606/bd_export/hw_base_bd.pdf"
+
+  # -- BD 内 IP 清单（冻结部分）-----------------------------------------------
+  frozen_ip:
+    - name: "zynq_ultra_ps_e_0"
+      vlnv: "xilinx.com:ip:zynq_ultra_ps_e:3.4"
+      role: "PS core (CPU, DDR, AXI infrastructure, clock/reset source)"
+    - name: "ps8_0_axi_periph"
+      vlnv: "xilinx.com:ip:axi_interconnect:2.1"
+      role: "GP control bus (1:2) — PS → {accelerator AXI-Lite, DMA config}"
+    - name: "axi_dma_0"
+      vlnv: "xilinx.com:ip:axi_dma:7.1"
+      role: "Stream ↔ DDR engine (8-bit MM2S + S2MM, Simple mode)"
+    - name: "axi_smc"
+      vlnv: "xilinx.com:ip:smartconnect:1.0"
+      role: "HP data bus (2:1) — {DMA MM2S, DMA S2MM} → PS HP0 (64-bit)"
+    - name: "proc_sys_reset_0"
+      vlnv: "xilinx.com:ip:proc_sys_reset:5.0"
+      role: "Synchronized reset generator"
+    - name: "xlconcat_0"
+      vlnv: "xilinx.com:ip:xlconcat:2.1"
+      role: "Interrupt concatenation (DMA s2mm + mm2s → PS IRQ_F2P)"
+    - name: "ila_capture"
+      vlnv: "xilinx.com:ip:ila:6.2"
+      role: "Debug: capture path monitor (9 probes, 27-bit, 1024 depth)"
+      note: "Probes currently floating — connect via mark_debug in RTL"
+    - name: "ila_shift"
+      vlnv: "xilinx.com:ip:ila:6.2"
+      role: "Debug: shift path monitor (10 probes, 29-bit, 1024 depth)"
+      note: "Probes currently floating — connect via mark_debug in RTL"
+
+  # -- Accelerator 实例（可替换部分）------------------------------------------
+  accelerator:
+    name: "axil_2d_shift_0"
+    vlnv: "awp:user:axil_2d_shift:1.0"
+    ip_repo: "vivado/ip/axil_2d_shift_v1_0/"
+    source_rtl: ["rtl/axil_2d_shift.sv", "rtl/axil_slave_if.sv", "rtl/regs_top.sv",
+                 "rtl/ctrl_fsm.sv", "rtl/axis_input.sv", "rtl/shift_addr_gen.sv",
+                 "rtl/axis_output.sv", "rtl/frame_buf_mgr.sv"]
+
+  # -- Accelerator 标准插槽 ----------------------------------------------------
+  slots:
+    SLOT_AXIL:
+      protocol: "AXI4-Lite (aximm:1.0)"
+      role: "Control/register access"
+      width: "32-bit addr, 32-bit data"
+      connection: "AXI Interconnect M00 → accelerator s_axil"
+    SLOT_AXIS_I:
+      protocol: "AXI4-Stream (axis:1.0)"
+      role: "Input data stream"
+      width: "8-bit data"
+      connection: "AXI DMA M_AXIS_MM2S → accelerator s_axis"
+    SLOT_AXIS_O:
+      protocol: "AXI4-Stream (axis:1.0)"
+      role: "Output data stream"
+      width: "8-bit data"
+      connection: "accelerator m_axis → AXI DMA S_AXIS_S2MM"
+    SLOT_IRQ:
+      protocol: "Single-wire interrupt"
+      role: "DMA done notification"
+      connection: "AXI DMA s2mm_introut → xlconcat → PS IRQ_F2P[0]"
+
+  # -- 时钟与复位 --------------------------------------------------------------
+  clock_reset:
+    clock: "clk_pl_0 (100 MHz, PS-generated, auto-distributed)"
+    reset: "peripheral_aresetn (active-low, proc_sys_reset, auto-distributed)"
+
+  # -- 约束文件 ----------------------------------------------------------------
+  constraints:
+    frozen:
+      - file: "constraints/base_timing.xdc"
+        role: "Base-level timing — clock declaration (PS IP auto-managed), no I/O delays"
+      - file: "constraints/base_physical.xdc"
+        role: "Base-level physical — currently empty (no PL IOB)"
+    modifiable:
+      - file: "constraints/debug.xdc"
+        role: "Debug constraints — ILA probes, mark_debug (not yet created)"
+
+  # -- 验证状态 ----------------------------------------------------------------
+  validation:
+    synthesis:
+      status: "pass"
+      errors: 0
+      critical_warnings: 1
+      note: "CW is incremental synth checkpoint residue, harmless"
+    implementation:
+      status: "pass"
+      errors: 0
+      timing_met: true
+      setup_wns_ns: 5.636
+      hold_whs_ns: 0.010
+    bitstream:
+      status: "pass"
+      file: "vivado/shift_2d_zcu102_260606/shift_2d_zcu102_260606.runs/impl_1/design_1_wrapper.bit"
+      size_mb: 26.5
+
+  # -- 基座修改规则 ------------------------------------------------------------
+  freeze_rules:
+    bd_modification:
+      allowed: false
+      condition: "Only for platform-level requirement changes (new PS peripheral, DMA width upgrade, clock scheme change)"
+      requires: "Version bump (major), changelog entry, re-validation"
+    constraint_modification:
+      base_timing: "Frozen — only for clock scheme changes (major version bump)"
+      base_physical: "Frozen — only for board-level pin changes"
+      debug: "Modifiable — ILA probe connections, mark_debug attributes"
+    accelerator_replacement:
+      allowed: true
+      procedure: |
+        1. Package new accelerator as IP (ipx::package_project)
+        2. Place IP in vivado/ip/
+        3. Open BD → delete old accelerator instance → add new IP
+        4. Connect to same SLOT_* interfaces
+        5. Re-validate BD → regenerate wrapper → re-synthesize
+        6. Base version: minor bump or unchanged (BD topology unchanged)
+
+  # -- 变更日志 ----------------------------------------------------------------
+  changelog:
+    - version: "v1.0"
+      date: "2026-06-07"
+      changes:
+        - "Initial frozen base: PS8 + Interconnect + DMA (8-bit) + SmartConnect + ILA x2"
+        - "Accelerator: axil_2d_shift v1.0"
+        - "Synthesis PASS (0 errors)"
+        - "Implementation PASS (WNS +5.636 ns, WHS +0.010 ns)"
+        - "Bitstream generated (26.5 MB)"
+        - "Constraints: base_timing.xdc (BD auto-clocked), base_physical.xdc (empty)"
