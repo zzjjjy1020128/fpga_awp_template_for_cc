@@ -55,6 +55,10 @@ Thumbs.db
 # Session 临时骨架（正式文件 SESS-* 需要提交）
 SKELETON-*
 
+# MCP/Vivado 临时元数据
+.vmcp/
+vivado/ip_pack_temp/
+
 # 临时文件
 *.tmp
 *.swp
