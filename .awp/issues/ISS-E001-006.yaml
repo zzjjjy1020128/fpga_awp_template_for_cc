@@ -6,6 +6,9 @@ detected_at_level: "L6"
 detected_by_task: "TASK-E001-024"
 detected_by_session: "SESS-E001-OR-004"
 
+round_count: 1
+max_rounds: 3
+
 failure_signature:
   test_case: "dow ELF → 'Code 16 Invalid context'"
   timestamp: "2026-06-09"

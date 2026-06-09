@@ -2,6 +2,66 @@
 
 > **角色定义已迁移至 `.claude/agents/*.md`。** 本文档保留编排策略和角色间协作关系。
 
+## 工具链边界检查（所有 session 进入跨工具链工作前的强制关卡）
+
+> FPGA 工具链是一个闭合环路。**任何一个环节的断裂都会导致下游全部白费。**
+
+```
+Vivado BD → XSA → Vitis/BSP → C code → XSCT → hardware → ILA 观察 → (反馈回 BD)
+```
+
+在跨越环节边界时（特别是 Vivado→Vitis 和 Vitis→上板），必须执行以下检查。
+
+### 边界 1：Vivado → Vitis（进入软件工作前）
+
+```
+[ ] BD 完整性
+    - ILA probe 是否悬空？每个 SLOT 是否连接到了正确的 AXI 接口？
+    - Accelerator 的 s_axis / m_axis / s_axil 是否全部连接？
+    - DMA → Interconnect → HP0 的 AXI 通路无断点？
+    - validate_bd_design 是否通过？
+
+[ ] XSA 新鲜度
+    - 用户最近一次 export XSA 是什么时候？
+    - 晚于最后一次 BD/RTL 修改吗？
+    - 用户是否明确说了"已重新生成 BD → bitstream → export XSA"？
+      如果是 → 丢弃所有旧的 XSA 和 Vitis 工作区，从新 XSA 开始
+
+[ ] XSA ↔ bitstream 配套
+    - bitstream 和 ps7_init.tcl 是从同一个 XSA 中提取的吗？
+    - 不是的话 Vitis BSP 的 xparameters.h 地址会与实际硬件不匹配
+```
+
+### 边界 2：Vitis → 上板（烧录前）
+
+```
+[ ] PS 初始化只用 XSCT
+    - 永远不用 Vivado Hardware Manager 的 program_hw_devices（覆盖 PS 状态）
+
+[ ] ILA 触发条件已设
+    - 触发值不能是 eq*'hX（don't-care，会导致立即填满 IDLE 数据）
+    - 应设为 tvalid=eq1'b1 AND tready=eq1'b1（AXI Stream handshake）
+
+[ ] 软件 Gate 可用
+    - 对时序敏感的捕获（DMA stream），CPU 侧需要 gate 等待机制
+    - 流程: CPU 停 gate → arm ILA → 释放 gate → DMA 跑 → ILA 捕获
+```
+
+### 边界 3：收到用户声明"已重新生成"时
+
+```
+这是最高优先级的信号。立即执行:
+1. 停止当前所有基于旧 XSA 的 Vitis 编译/测试
+2. 从用户指定的 XSA 路径开始重建 BSP
+3. 用新 XSA 的 ps7_init.tcl 和 bitstream 替换所有旧文件
+4. 重新编译所有 C 代码（因为 xparameters.h 可能已变化）
+```
+
+> **核心教训**：在边界检查通过之前，不要在工具链下游做任何工作。
+> 今天的 session 中 4 小时被浪费，根因就是跨边界时没有检查 BD 完整性和 XSA 同步状态。
+
+---
+
 ## 角色总览
 
 | 角色 | Agent 名 | 类型 | 说明 |

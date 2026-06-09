@@ -2,9 +2,12 @@ issue_id: "ISS-E001-010"
 title: "PostToolUse hooks run from file directory not project root — validate_awp path broken"
 status: "resolved"
 
-detected_at_level: "L0"
+detected_at_level: "L5"
 detected_by_task: "TASK-E001-024"
 detected_by_session: "SESS-E001-OR-004"
+
+round_count: 1
+max_rounds: 3
 
 failure_signature:
   test_case: "Any Edit/Write triggers PostToolUse hook → python can't find scripts/validate_awp.py"

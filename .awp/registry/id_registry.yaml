@@ -59,12 +59,13 @@ ids:
   created: SESS-E001-
 - id: ISS-E001-008
   type: ISSUE
-  title: System ILA v1.1 BD mode does not support BASIC trigger — only ALWAYS capture
-  status: open
+  title: System ILA BD mode trigger support clarified — BASIC_ONLY works with runtime
+    config
+  status: resolved
   created: SESS-E001-
 - id: ISS-E001-009
   type: ISSUE
-  title: DMA MM2S/S2MM stuck IDLE — HP0 port not accepting PL master transactions
+  title: DMA HP0 data path confirmed working — root cause in accelerator capture_done
   status: open
   created: SESS-E001-
 - id: ISS-E001-010
@@ -118,6 +119,16 @@ ids:
   title: Review of TASK-E001-007 (RTL)
   status: closed
   created: '2026-06-04'
+- id: REV-E001-027-RTL-001
+  type: REVIEW
+  title: Review of TASK-E001-027 (RTL)
+  status: active
+  created: '2026-06-09'
+- id: REV-E001-027-RTL-002
+  type: REVIEW
+  title: Review of TASK-E001-027 (RTL)
+  status: closed
+  created: '2026-06-09'
 - id: RUN-E001-BOARD-001
   type: RUN
   title: 上板验证记录
@@ -133,6 +144,11 @@ ids:
   title: 上板验证记录
   status: active
   created: '1'
+- id: RUN-E001-BOARD-006
+  type: RUN
+  title: ILA Cross-Trigger 上板验证
+  status: active
+  created: ''
 - id: RUN-E001-IMPL-001
   type: RUN
   title: RUN-E001-IMPL-001.md - axil_2d_shift L3 实现报告
@@ -256,6 +272,11 @@ ids:
 - id: SESS-E001-OR-005
   type: SESSION
   title: Session 记录 — SESS-E001-OR-005
+  status: closed
+  created: '2026-06-09'
+- id: SESS-E001-OR-006
+  type: SESSION
+  title: 'Session: Zynq PS-PL 联合调试方法论建立 + DMA 数据通路诊断'
   status: closed
   created: '2026-06-09'
 - id: TASK-E001-001
@@ -391,5 +412,5 @@ ids:
 - id: TASK-E001-027
   type: TASK
   title: ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化
-  status: active
+  status: closed
   created: '2026-06-09'
