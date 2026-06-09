@@ -36,7 +36,7 @@ int dma_init(XAxiDma *dma_inst, u16 device_id)
         return -1;
     }
 
-    int status = XAxiDma_CfgInitialize(dma_inst, cfg, XPAR_AXI_DMA_0_BASEADDR);
+    int status = XAxiDma_CfgInitialize(dma_inst, cfg);
     if (status != XST_SUCCESS) {
         xil_printf("  [ERR] DMA_CfgInitialize failed: %d\r\n", status);
         return -1;
@@ -144,11 +144,7 @@ int dma_wait_for_mm2s_done(XAxiDma *dma_inst, u32 timeout_ms)
 
 int dma_reset(XAxiDma *dma_inst)
 {
-    int status = XAxiDma_Reset(dma_inst);
-    if (status != XST_SUCCESS) {
-        xil_printf("  [ERR] DMA_Reset failed: %d\r\n", status);
-        return -1;
-    }
+    XAxiDma_Reset(dma_inst);
 
     // 等待复位完成
     u32 timeout = 1000000;  // ~1s
@@ -176,8 +172,8 @@ void dma_s2mm_isr(void *callback_ref)
     u32 status;
 
     // 获取并清除 S2MM 中断状态
-    status = XAxiDma_IntrGetStatus(dma_inst, XAXIDMA_DEVICE_TO_DMA);
-    XAxiDma_IntrClear(dma_inst, XAXIDMA_DEVICE_TO_DMA, status);
+    status = XAxiDma_IntrGetIrq(dma_inst, XAXIDMA_DEVICE_TO_DMA);
+    XAxiDma_IntrAckIrq(dma_inst, status, XAXIDMA_DEVICE_TO_DMA);
 
     // 错误报告
     if (status & XAXIDMA_IRQ_ERROR_MASK) {

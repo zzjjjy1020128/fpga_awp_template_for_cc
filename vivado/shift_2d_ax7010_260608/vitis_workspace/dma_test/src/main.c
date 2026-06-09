@@ -39,9 +39,9 @@
 // ============================================================================
 
 // 加速器 AXI-Lite 基地址 (来自 xparameters.h)
-// 预期: XPAR_AXIL_2D_SHIFT_0_S_AXI_BASEADDR = 0x43C0_0000
+// 预期: XPAR_AXIL_2D_SHIFT_0_BASEADDR = 0x43C0_0000
 // 如果宏名不匹配, 在 xparameters.h 中搜索 axil_2d_shift 找到正确名称
-#define ACCEL_BASEADDR      XPAR_AXIL_2D_SHIFT_0_S_AXI_BASEADDR
+#define ACCEL_BASEADDR      XPAR_AXIL_2D_SHIFT_0_BASEADDR
 
 // DMA 设备 ID (来自 xparameters.h)
 // 预期: XPAR_AXI_DMA_0_DEVICE_ID = 0
@@ -248,12 +248,12 @@ static int dma_loopback_test(const char *test_name,
     }
 
     // ---- Step 10: 检查 DMA 错误状态 ----
-    dma_err = XAxiDma_IntrGetStatus(&dma_inst, XAXIDMA_DEVICE_TO_DMA);
+    dma_err = XAxiDma_IntrGetIrq(&dma_inst, XAXIDMA_DEVICE_TO_DMA);
     if (dma_err & XAXIDMA_IRQ_ERROR_MASK) {
         xil_printf("  [FAIL] S2MM error status: 0x%08x\r\n", dma_err);
         return -5;
     }
-    dma_err = XAxiDma_IntrGetStatus(&dma_inst, XAXIDMA_DMA_TO_DEVICE);
+    dma_err = XAxiDma_IntrGetIrq(&dma_inst, XAXIDMA_DMA_TO_DEVICE);
     if (dma_err & XAXIDMA_IRQ_ERROR_MASK) {
         xil_printf("  [FAIL] MM2S error status: 0x%08x\r\n", dma_err);
         return -6;
