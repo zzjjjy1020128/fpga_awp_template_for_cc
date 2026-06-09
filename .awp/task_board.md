@@ -25,7 +25,7 @@
 
 ## Review
 
-- [ ] *（暂无）*
+- [ ] [TASK-E001-027](.awp/tasks/TASK-E001-027.yaml) | rtl_implementer | ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化
 
 ## Done
 
@@ -50,7 +50,6 @@
 - [ ] [TASK-E001-019](.awp/tasks/TASK-E001-019.yaml) | hardware_validator | AX7010 上板调试基础设施 —— ILA 探针配置与 debug 比特流
 - [ ] [TASK-E001-021](.awp/tasks/TASK-E001-021.yaml) | hardware_validator | L5 上板冒烟测试 —— AX7010 主力平台
 - [ ] [TASK-E001-023](.awp/tasks/TASK-E001-023.yaml) | hardware_validator | Vitis 平台工程与 PS 基础测试程序 —— XSA→BSP→C 代码→烧写
-- [ ] [TASK-E001-027](.awp/tasks/TASK-E001-027.yaml) | rtl_implementer | ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化
 
 ## Retrospective Items
 

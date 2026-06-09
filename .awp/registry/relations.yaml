@@ -18,6 +18,12 @@ relations:
 - from: HO-E001-OR-005-001
   to: SESS-E001-OR-005
   type: from_session
+- from: HO-E001-OR-006-001
+  to: EXP001
+  type: belongs_to
+- from: HO-E001-OR-006-001
+  to: SESS-E001-OR-006
+  type: from_session
 - from: ISS-E001-001
   to: RUN-E001-L1B-WRITE-001, RUN-E001-L1B-READ-001
   type: detected_in

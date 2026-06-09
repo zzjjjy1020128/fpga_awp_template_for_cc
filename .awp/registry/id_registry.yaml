@@ -20,6 +20,11 @@ ids:
   title: Handoff HO-E001-OR-005-001
   status: in_progress
   created: '2026-06-09'
+- id: HO-E001-OR-006-001
+  type: HANDOFF
+  title: Handoff HO-E001-OR-006-001
+  status: in_progress
+  created: '2026-06-09'
 - id: ISS-E001-001
   type: ISSUE
   title: L1b WRITE re-run encoding error — 10 RUN files unreadable as UTF-8
@@ -412,5 +417,5 @@ ids:
 - id: TASK-E001-027
   type: TASK
   title: ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化
-  status: closed
+  status: active
   created: '2026-06-09'
