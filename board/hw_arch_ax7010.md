@@ -99,7 +99,7 @@ program_hw_devices [get_hw_devices xc7z010_0]
   - PS7 配置：PCW_FPGA0_PERIPHERAL_FREQMHZ = 50
   - 源：1000MHz / 5 / 4 = 50MHz
   - CLK_DOMAIN: design_1_processing_system7_0_0_FCLK_CLK0
-- PL 备用时钟：板载 50 MHz 有源晶振 (Y2, 连至 PL K17 引脚, 未使用)
+- PL 备用时钟：板载 50 MHz 有源晶振 (Y2, 连至 PL U18 引脚, 未使用)
 
 上板验证使用 PS FCLK_CLK0 50MHz，已在 BD 中配置，无需额外设置。
 

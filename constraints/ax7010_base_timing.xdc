@@ -8,6 +8,6 @@
 # 所有数据通路均在芯片内部（PS ↔ PL AXI 互联）。
 #==============================================================================
 
-# 独立调试时钟 — 板载 50 MHz 有源晶振 (Y2, PL K17)
+# 独立调试时钟 — 板载 50 MHz 有源晶振 (Y2, PL U18)
 # 与 FCLK_CLK0 频率相同(50 MHz)但独立于 PS PLL
 create_clock -period 20.000 -name clk_debug_50m [get_ports clk_debug_50m]
