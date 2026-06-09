@@ -15,6 +15,11 @@ ids:
   title: Handoff HO-E001-OR-004-001
   status: in_progress
   created: '2026-06-08'
+- id: HO-E001-OR-005-001
+  type: HANDOFF
+  title: Handoff HO-E001-OR-005-001
+  status: in_progress
+  created: '2026-06-09'
 - id: ISS-E001-001
   type: ISSUE
   title: L1b WRITE re-run encoding error — 10 RUN files unreadable as UTF-8
@@ -34,6 +39,38 @@ ids:
 - id: ISS-E001-004
   type: ISSUE
   title: Original L1c simulation failure (RUN-E001-SIM-007) — historical record
+  status: resolved
+  created: SESS-E001-
+- id: ISS-E001-005
+  type: ISSUE
+  title: xil_printf blocks CLI automation — UART FIFO full with no terminal
+  status: resolved
+  created: SESS-E001-
+- id: ISS-E001-006
+  type: ISSUE
+  title: XSCT/XSDB dow 'Invalid context' TCF Code 16 — targeting APU instead of CPU
+    core
+  status: resolved
+  created: SESS-E001-
+- id: ISS-E001-007
+  type: ISSUE
+  title: AFI WRCHAN_CTRL address bug — wrote 0xF8008004, correct is 0xF8008014
+  status: resolved
+  created: SESS-E001-
+- id: ISS-E001-008
+  type: ISSUE
+  title: System ILA v1.1 BD mode does not support BASIC trigger — only ALWAYS capture
+  status: open
+  created: SESS-E001-
+- id: ISS-E001-009
+  type: ISSUE
+  title: DMA MM2S/S2MM stuck IDLE — HP0 port not accepting PL master transactions
+  status: open
+  created: SESS-E001-
+- id: ISS-E001-010
+  type: ISSUE
+  title: PostToolUse hooks run from file directory not project root — validate_awp
+    path broken
   status: resolved
   created: SESS-E001-
 - id: REV-E001-001-ARCH-001
@@ -91,6 +128,11 @@ ids:
   title: 上板验证记录
   status: active
   created: ''
+- id: RUN-E001-BOARD-005
+  type: RUN
+  title: 上板验证记录
+  status: active
+  created: '1'
 - id: RUN-E001-IMPL-001
   type: RUN
   title: RUN-E001-IMPL-001.md - axil_2d_shift L3 实现报告
@@ -210,7 +252,12 @@ ids:
   type: SESSION
   title: Session 记录 — SESS-E001-OR-004
   status: closed
-  created: '2026-06-08'
+  created: '2026-06-09'
+- id: SESS-E001-OR-005
+  type: SESSION
+  title: Session 记录 — SESS-E001-OR-005
+  status: closed
+  created: '2026-06-09'
 - id: TASK-E001-001
   type: TASK
   title: AXI-Lite 2D Shift 模块架构规划
@@ -314,7 +361,7 @@ ids:
 - id: TASK-E001-021
   type: TASK
   title: L5 上板冒烟测试 —— AX7010 主力平台
-  status: active
+  status: closed
   created: '2026-06-08'
 - id: TASK-E001-022
   type: TASK
@@ -341,3 +388,8 @@ ids:
   title: L7 性能与资源复盘 —— 上板验证汇总
   status: active
   created: '2026-06-08'
+- id: TASK-E001-027
+  type: TASK
+  title: ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化
+  status: active
+  created: '2026-06-09'

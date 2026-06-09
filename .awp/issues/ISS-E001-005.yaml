@@ -1,0 +1,39 @@
+issue_id: "ISS-E001-005"
+title: "xil_printf blocks CLI automation — UART FIFO full with no terminal"
+status: "resolved"
+
+detected_at_level: "L6"
+detected_by_task: "TASK-E001-024"
+detected_by_session: "SESS-E001-OR-004"
+detected_in_run: "RUN-E001-BOARD-005"
+
+suspected_owner_task: "TASK-E001-023"
+suspected_module: "N/A (toolchain)"
+
+round_count: 1
+max_rounds: 3
+
+failure_signature:
+  test_case: "XSCT dow + con C ELF → program hangs before DMA test"
+  timestamp: "2026-06-09"
+  signal: "ping_buf = 0 (fill_pattern never executed)"
+  expected: "ping_buf filled with increment pattern"
+  observed: "ping_buf all zeros — Phase 6a never reached"
+
+evidence:
+  logs:
+    - ".awp/runs/RUN-E001-BOARD-005.md"
+  notes:
+    - "Root cause: xil_printf writes to UART FIFO, no terminal reading → FIFO full → blocks"
+    - "Fix: compile with xil_printf stub + libc stubs (malloc/strlen/exit etc)"
+    - "Proven: minimal C + BSP (step1-7) works end-to-end without UART dependency"
+
+attempts:
+  - round: 1
+    verifier_session: "SESS-E001-OR-004"
+    action: "Created xil_printf_stub.c + stubs.c, compiled with -nostdlib, linked before libxil.a"
+    result: "pass"
+
+next_action:
+  role: "none"
+  action: "Resolved. Stub approach works. Will be documented in vitis-cli-build skill."

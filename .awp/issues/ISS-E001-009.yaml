@@ -1,0 +1,39 @@
+issue_id: "ISS-E001-009"
+title: "DMA MM2S/S2MM stuck IDLE — HP0 port not accepting PL master transactions"
+status: "open"
+
+detected_at_level: "L6"
+detected_by_task: "TASK-E001-024"
+detected_by_session: "SESS-E001-OR-004"
+
+suspected_owner_task: "TASK-E001-018"
+suspected_module: "processing_system7_0 (HP0/AFI configuration)"
+
+failure_signature:
+  test_case: "DMA loopback: MM2S → accelerator → S2MM → DDR"
+  timestamp: "2026-06-09"
+  signal: "DMASR changes from Halted(1) to 0 after DMACR.RS=1, but transfer never completes"
+  expected: "DMA completes, pong_buf matches ping_buf"
+  observed: "STATUS=BUSY_CAPTURE, MM2S_DMASR=0 (stalled), S2MM_DMASR=0, pong_buf=random DDR data"
+
+evidence:
+  logs:
+    - "step4/step5/step6/step7 C code results"
+    - "DMACR=0x10003 (RS=1 + bit1=1), DMASR transitions 1→0 (engine running)"
+    - "DMA SA register readback confirmed (0xDEADBEEF)"
+    - "FPGA_RST_CTRL=0, LVL_SHFTR_EN=0x0F — all PL resets deasserted"
+    - "HP0 data width=64 in BD, AFI reset values are correct (64-bit)"
+  notes:
+    - "DMA engine STARTS (DMASR changes from Halted to running state)"
+    - "DMA register writes/reads work normally through GP0"
+    - "CPU fills ping_buf correctly (D-cache flushed, verified via mrd)"
+    - "DMA MM2S reads from DDR through HP0, gets no response → stalls"
+    - "ps7_init alone does NOT configure AFI registers (FSBL does)"
+    - "Standard FSBL (from Jun 8 XSA) does not resolve the issue"
+    - "XSA exported Jun 8 vs BD modified Jun 9 — but ps7_init.tcl identical"
+    - "Possible causes: FSBL AFI init incomplete, interconnect config, or clock gating"
+
+next_action:
+  role: "vivado_integrator"
+  action: "Re-export XSA from current BD → regenerate FSBL → verify AFI register values after FSBL → or use Vitis GUI Run to confirm DMA works (known working path)"
+  escalate: false

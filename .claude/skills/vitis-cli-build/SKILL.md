@@ -2,81 +2,58 @@
 
 ## When to use
 
-需要在 CLI 环境下（不使用 Vitis GUI）编译 Zynq baremetal C 代码生成 ELF 时使用。
-适用于 CI/CD 集成、sub-agent 自动化、或任何无法启动 Vitis GUI 的场景。
+在 CLI 环境下编译 Zynq baremetal C 代码并下载到目标执行时使用。
+覆盖完整流程：编译 → 二进制准备 → XSCT 下载 → 执行。
 
-## 前置条件
+## 编译
 
-- Vitis 2022.2 已安装（`G:/vivado2022.2/Vitis/2022.2/`）
-- `xsct.bat` 可用
-- 已从 Vivado 导出 XSA（包含 bitstream + PS 配置）
-- 已通过 XSCT 创建 Platform + BSP（或可以在此 skill 中一并创建）
+见原有编译流程（arm-none-eabi-gcc + BSP + lscript.ld + libxil.a + libc + libgcc）。
 
-## 编译流程
+**关键**：CLI 自动化需去除 `xil_printf` 阻塞——用空的 stub 函数替代：
+```c
+void xil_printf(const char *fmt, ...) { (void)fmt; }
+```
+同时需要 stub `__libc_init_array`, `__libc_fini_array`, `exit`, `malloc`, `memset` 等。
+链接顺序：stub.o 放在 libxil.a 之前以覆盖库函数。
 
-### 1. 创建 Vitis Platform + BSP（首次）
+## CLI 下载与执行（替代 Vitis GUI Run）
+
+**核心发现**：`dow` 必须 target CPU 核心（`ARM Cortex-A9 MPCore #0`），而非 APU。
+APU 是 DAP 调试访问端口——这是之前所有 "Invalid context" 错误的根因。
 
 ```tcl
-# XSCT 脚本
-setws <workspace_path>
-platform create -name <platform_name> -hw <xsa_path> -proc ps7_cortexa9_0 -os standalone
-# BSP 自动随 platform 创建为 standalone_domain
+# 正确流程
+connect
+targets -set -filter {name =~ "ARM Cortex-A9 MPCore #0"}  # CPU核!
+fpga -f design_1_wrapper.bit
+source ps7_init.tcl; ps7_init; ps7_post_config
+dow app.elf    # 直接成功! 无需 dow -data 或二进制转换
+con            # 执行
 ```
 
-### 2. 编译 C 代码为 ELF
+**`dow` (ELF) 在正确 target 下完全可用**，不需要 `dow -data` 二进制加载。
+`dow -data` 仅在需要加载 FSBL 二进制到 OCM 时使用（FSBL 无 ELF 头依赖）。
 
-```tcl
-# 在 XSCT 中执行（xsct.bat 启动的 Tcl shell）
-set bsp "<workspace>/<platform>/ps7_cortexa9_0/standalone_domain/bsp/ps7_cortexa9_0"
-set src_dir "<source_directory>"
-set out_dir "<output_directory>"
+## 标准调试流 (UG908)
 
-# 定位 BSP 路径（关键：不同 Vivado 版本路径结构可能不同）
-# include: $bsp/include/
-# libxil.a: $bsp/lib/libxil.a
-# xil-crt0.o: $bsp/lib/xil-crt0.o
-# lscript.ld: 从 Vitis 模板复制到 src_dir
-
-# 编译命令
-arm-none-eabi-gcc -c -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard -O0 -g -Wall \
-    -I$src_dir -I$bsp/include \
-    -o $out_dir/file.o $src_dir/file.c
-
-# 链接命令
-arm-none-eabi-gcc -mcpu=cortex-a9 -mfpu=vfpv3 -mfloat-abi=hard \
-    -nostartfiles -nostdlib \
-    -Wl,-T -Wl,$src_dir/lscript.ld \
-    -Wl,--defsym=_init=0 -Wl,--defsym=_fini=0 \
-    -o $out_dir/app.elf \
-    $bsp/lib/xil-crt0.o \
-    $out_dir/*.o \
-    -Wl,--start-group $bsp/lib/libxil.a -lc -lgcc -Wl,--end-group
+```
+hw_server -d (守护进程, 端口 3121)
+  ├── XSCT (主导): connect -url tcp:localhost:3121
+  │     → fpga -f → ps7_init → dow app.elf → con
+  └── Vivado MCP (观察者): connect_hw_server -url TCP:localhost:3121
+        → arm ILA → 等待捕获 → upload → write .ila
 ```
 
-## 常见 API 差异（Vitis 2022.2）
+两者通过同一 hw_server 共享 JTAG——不存在冲突。
 
-| 问题 | 修正 |
-|------|------|
-| `XAxiDma_CfgInitialize(dma, cfg, BASEADDR)` 参数过多 | SDK v9.15 只接受 2 参数：`(XAxiDma*, XAxiDma_Config*)` |
-| `XAxiDma_Reset()` 返回值 | 返回 `void`，不是 `int` |
-| `XAxiDma_IntrGetStatus` / `XAxiDma_IntrClear` 不存在 | 使用 `XAxiDma_IntrGetIrq` / `XAxiDma_IntrAckIrq(Mask, Direction)` |
-| `XPAR_AXIL_2D_SHIFT_0_S_AXI_BASEADDR` 宏名不匹配 | BSP 实际宏名可能无 `_S_AXI` 部分，在 `xparameters.h` 中搜索确认 |
-| `xil_types.h` 路径错误 | BSP include 路径在 `<bsp>/ps7_cortexa9_0/include/` |
-| `platform.h` 不在 BSP include 中 | 从 Vitis 模板（Hello World）复制或自行创建 minimal 版本 |
+## C 代码逐步验证方法
 
-## XPAR 宏名验证方法
-
-```bash
-grep "AXIL_2D_SHIFT\|AXI_DMA_0\|S2MM_INTROUT" $bsp/include/xparameters.h
-```
-
-输出示例（实际值因 BD address editor 配置而异）：
-```
-XPAR_AXIL_2D_SHIFT_0_BASEADDR = 0x60000000
-XPAR_AXI_DMA_0_BASEADDR = 0x40400000
-XPAR_AXI_DMA_0_DEVICE_ID = 0
-XPAR_FABRIC_AXI_DMA_0_S2MM_INTROUT_INTR = 62
-```
+调试 BSP 启动问题时使用 `step1→step2→...→stepN` 逐步加回功能：
+1. step1: 仅 `_start` + `axil_reg_test` (验证 Xil_In32/Out32)
+2. step2: + `init_platform` + `Xil_DCacheEnable`
+3. step3: + GIC + DMA init (验证中断连接)
+4. step4: + DMA loopback (验证完整数据通路)
+5. step7: + 软件 gate 等待 (ILA 同步)
 
 ## 语言策略
 

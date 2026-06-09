@@ -1,0 +1,31 @@
+issue_id: "ISS-E001-008"
+title: "System ILA v1.1 BD mode does not support BASIC trigger — only ALWAYS capture"
+status: "open"
+
+detected_at_level: "L6"
+detected_by_task: "TASK-E001-024"
+detected_by_session: "SESS-E001-OR-004"
+
+failure_signature:
+  test_case: "Attempt to set ILA BASIC trigger mode via Tcl"
+  timestamp: "2026-06-09"
+  signal: "CONTROL.TRIGGER_MODE is read-only; IS_BASIC_CAPTURE_MODE_SUPPORTED = 0"
+  expected: "ILA arms with trigger condition on AXI AWVALID"
+  observed: "Only ALWAYS capture mode available — ILA fills buffer immediately"
+
+evidence:
+  logs:
+    - "Vivado Tcl: get_property STATIC.IS_BASIC_CAPTURE_MODE_SUPPORTED = 0"
+  notes:
+    - "System ILA v1.1 instantiated through BD with SLOT probes has LIMITED trigger support"
+    - "BASIC/ADVANCED trigger modes require RTL-instantiated ILA (ila_v6_2) with explicit probe ports"
+    - "BD slot-based ILA only supports ALWAYS capture"
+    - "For trigger-synchronized capture, need either:"
+    - "  (a) RTL-instantiated ILA with BASIC mode"
+    - "  (b) PS-PL Cross-Trigger (PS7 CTI → ILA TRIG_IN)"
+    - "  (c) Debug Bridge IP for cross-trigger in BD"
+
+next_action:
+  role: "vivado_integrator"
+  action: "Evaluate PS-PL cross-trigger implementation: enable PCW_USE_CROSS_TRIGGER in PS7, add debug bridge or RTL ILA"
+  escalate: false

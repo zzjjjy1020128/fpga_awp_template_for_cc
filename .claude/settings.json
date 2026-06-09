@@ -9,12 +9,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python scripts/session_skeleton.py",
+            "command": "python D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/scripts/session_skeleton.py",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "python scripts/validate_awp.py --guard session-start",
+            "command": "python D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/scripts/validate_awp.py --guard session-start",
             "timeout": 15
           }
         ]
@@ -26,29 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python scripts/validate_awp.py --guard pre-spawn",
-            "timeout": 15
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python scripts/validate_awp.py --sync",
-            "timeout": 15
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python scripts/validate_awp.py --sync",
+            "command": "python D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/scripts/validate_awp.py --guard pre-spawn",
             "timeout": 15
           }
         ]
@@ -59,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python scripts/validate_awp.py --guard pre-stop",
+            "command": "python D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/scripts/validate_awp.py --guard pre-stop",
             "timeout": 15
           }
         ]

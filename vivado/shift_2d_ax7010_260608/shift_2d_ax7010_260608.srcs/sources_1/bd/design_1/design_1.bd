@@ -1,7 +1,7 @@
 {
   "design": {
     "design_info": {
-      "boundary_crc": "0x60B65B0E6DF72D03",
+      "boundary_crc": "0x60B65B0EB25FC972",
       "device": "xc7z010clg400-1",
       "gen_directory": "../../../../shift_2d_ax7010_260608.gen/sources_1/bd/design_1",
       "name": "design_1",
@@ -2174,9 +2174,7 @@
       },
       "clk_debug_50m_1": {
         "ports": [
-          "clk_debug_50m",
-          "system_ila_0/clk",
-          "system_ila_1/clk"
+          "clk_debug_50m"
         ]
       },
       "const_vcc_ila_dout": {
@@ -2218,7 +2216,9 @@
           "axi_mem_intercon/M00_ACLK",
           "axi_mem_intercon/ACLK",
           "axi_dma_0/m_axi_s2mm_aclk",
-          "axi_mem_intercon/S01_ACLK"
+          "axi_mem_intercon/S01_ACLK",
+          "system_ila_0/clk",
+          "system_ila_1/clk"
         ]
       },
       "processing_system7_0_FCLK_RESET0_N": {

@@ -389,6 +389,79 @@ module axil_2d_shift #(
     assign shift_en_ao = shift_en_dly[1];
 
     // ==================================================================
+    // ILA Cross-Trigger Debug Infrastructure
+    // ==================================================================
+
+    // FSM state encoding (from status bits)
+    logic [1:0] fsm_state;
+    assign fsm_state = status_idle         ? 2'd0 :
+                       status_busy_capture ? 2'd1 :
+                       status_busy_shift   ? 2'd2 :
+                       status_done         ? 2'd3 : 2'd0;
+
+    // Debug trigger hub
+    logic        dbg_trig_pulse;
+    logic [31:0] dbg_cycle_cnt;
+    logic        dbg_anchor_status;
+    logic        trig_in_ack_ctrl;
+    logic        trig_in_ack_data;
+
+    // Trigger select: default to fsm_start_edge (2'd0)
+    // Can be overridden by AXI-Lite write to a reserved register
+    logic [1:0]  trig_sel;
+    assign trig_sel = 2'd0;  // TODO: make AXI-Lite configurable via regs_top
+
+    dbg_trigger_hub u_dbg_hub (
+        .clk               (clk),
+        .rstn              (rstn),
+        .trig_sel          (trig_sel),
+        .fsm_idle          (status_idle),
+        .fsm_capture       (status_busy_capture),
+        .fsm_shift         (status_busy_shift),
+        .axis_tvalid       (s_axis_tvalid),
+        .axis_tready       (s_axis_tready),
+        .capture_en        (capture_en),
+        .dbg_trig_pulse    (dbg_trig_pulse),
+        .dbg_cycle_cnt     (dbg_cycle_cnt),
+        .dbg_anchor_status (dbg_anchor_status)
+    );
+
+    // RTL ILA: Control plane (FSM, AXI-Lite, config, status)
+    ila_ctrl_cross u_ila_ctrl (
+        .clk          (clk),
+        .trig_in      (dbg_trig_pulse),
+        .trig_in_ack  (trig_in_ack_ctrl),
+        .probe0       (dbg_cycle_cnt),
+        .probe1       ({20'd0, fsm_state, ctrl_start, ctrl_sw_reset, cfg_dir, cfg_step, cfg_wrap_en}),
+        .probe2       ({22'd0, img_rows}),
+        .probe3       ({22'd0, img_cols}),
+        .probe4       ({27'd0, status_idle, status_busy_capture, status_busy_shift, status_done, capture_en}),
+        .probe5       ({30'd0, shift_en, shift_done}),
+        .probe6       (32'd0),
+        .probe7       ({30'd0, dbg_anchor_status, dbg_trig_pulse})
+    );
+
+    // RTL ILA: Data path (AXIS in/out, BRAM writes)
+    ila_data_cross u_ila_data (
+        .clk          (clk),
+        .trig_in      (dbg_trig_pulse),
+        .trig_in_ack  (trig_in_ack_data),
+        .probe0       (s_axis_tdata),
+        .probe1       (s_axis_tvalid),
+        .probe2       (s_axis_tready),
+        .probe3       (s_axis_tlast),
+        .probe4       (s_axis_tuser),
+        .probe5       (m_axis_tdata),
+        .probe6       (m_axis_tvalid),
+        .probe7       (m_axis_tready),
+        .probe8       (m_axis_tlast),
+        .probe9       (m_axis_tuser),
+        .probe10      (write_addr),
+        .probe11      (write_data),
+        .probe12      (write_en)
+    );
+
+    // ==================================================================
     // zero_fill 流水线对齐寄存器
     //
     // frame_buf_mgr 读数据有 1 周期延迟：read_data 在 read_addr 后的

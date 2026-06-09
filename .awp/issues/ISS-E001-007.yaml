@@ -1,0 +1,31 @@
+issue_id: "ISS-E001-007"
+title: "AFI WRCHAN_CTRL address bug — wrote 0xF8008004, correct is 0xF8008014"
+status: "resolved"
+
+detected_at_level: "L6"
+detected_by_task: "TASK-E001-024"
+detected_by_session: "SESS-E001-OR-004"
+
+failure_signature:
+  test_case: "Manual AFI register write to enable HP0 → no effect"
+  timestamp: "2026-06-09"
+  signal: "DMA MM2S still IDLE after AFI writes"
+  expected: "AFI write enables HP0 32-bit mode"
+  observed: "DMA stays IDLE — AFI write had no effect because WRONG ADDRESS"
+
+evidence:
+  logs:
+    - "assembly code at dma_minimal.s"
+  notes:
+    - "RDCHAN_CTRL correct at 0xF8008000"
+    - "WRCHAN_CTRL was written at 0xF8008004, but correct address is 0xF8008014"
+    - "Gap of 0x10 between RD and WR channel registers in AFI block"
+    - "Found via web search of Zynq-7000 SLCR register map"
+    - "However: fixing the address still didn't solve HP0 issue — reset values are correct (64-bit)"
+    - "HP0 issue remains unresolved (see ISS-E001-009)"
+
+attempts:
+  - round: 1
+    verifier_session: "SESS-E001-OR-004"
+    action: "Changed AFI WRCHAN address from 0xF8008004 to 0xF8008014"
+    result: "pass (address fixed, but HP0 issue persists — root cause is elsewhere)"

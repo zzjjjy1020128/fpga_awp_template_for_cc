@@ -22,7 +22,7 @@ validation_status:
   L2: "skip"
   L3: "skip"
   L4: "skip"
-  L5: "pending"
+  L5: "pass"
   L6: "pending"
   L7: "pending"
 
@@ -74,9 +74,17 @@ handoff:
 risk_level: "high"
 
 notes: >
-  ## L6 数据正确性验证
+  ## L6 数据正确性验证 (2026-06-09 更新)
 
   L6 = "板上数据正确性测试"（workspace_manifest.json）
+
+  ### CLI 自动化进展
+  - XSCT dow target CPU 核突破 (ISS-E001-006 resolved)
+  - C+step 逐步验证 BSP 链路通 (step1-7)
+  - hw_server 守护进程 + 双客户端模型验证通过
+  - ILA ALWAYS 模式捕获成功 (ila_dma_ok1/2.ila)
+  - DMA 引擎启动确认 (DMASR 1→0) 但 HP0 阻塞 (ISS-E001-009 open)
+  - ILA BASIC 触发模式不可用 (ISS-E001-008 open, System ILA BD 限制)
 
   ### 测试矩阵
   | 参数 | 取值 |

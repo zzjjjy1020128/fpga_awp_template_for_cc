@@ -1,0 +1,105 @@
+task_id: "TASK-E001-027"
+title: "ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化"
+status: "ready"
+agent: "rtl_implementer"
+assigned_to: ""
+created_date: "2026-06-09"
+
+objective: >
+  将当前 BD 中的 System ILA (无 TRIG_IN 支持) 替换为 RTL 例化的 ILA，
+  在加速器 RTL 中定义 dbg_anchor_event，实现 dbg_trigger_hub 分发到多个 ILA。
+  Tcl 脚本确保"先 arm 所有 ILA，再启动 PS"的自动化流程。
+
+target_validation_level: "L0"
+integration_scope: "module"
+target_platform: "HW_BASE_AX7010_v1.2"
+
+validation_status:
+  L0: "pending"
+  L1a: "pending"
+  L1b: "pending"
+  L1c: "pending"
+  L2: "pending"
+  L3: "pending"
+  L4: "pending"
+  L5: "pending"
+  L6: "pending"
+  L7: "skip"
+
+depends_on:
+  - "TASK-E001-021"
+
+scope:
+  allowed_edit_paths:
+    - "rtl/"
+    - "constraints/"
+    - "board/"
+    - ".awp/runs/"
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "docs/"
+
+context:
+  must_read:
+    - ".awp/runs/RUN-E001-BOARD-005.md"
+    - ".awp/issues/ISS-E001-008.yaml"
+    - ".awp/issues/ISS-E001-009.yaml"
+    - "rtl/ctrl_fsm.sv"
+    - "rtl/axis_input.sv"
+    - "rtl/axil_2d_shift.sv"
+    - "rtl/regs_top.sv"
+    - "constraints/debug.xdc"
+
+acceptance:
+  - "RTL 中例化 ILA (ila_v6_2) 替代 BD System ILA，启用 TRIG_IN/TRIG_OUT 端口"
+  - "dbg_anchor_event 在 PL 中定义：FSM S_IDLE→S_START 边沿 或 AXIS 第一拍 handshake"
+  - "dbg_trigger_hub 模块：anchor_event → 多 ILA trig_in，含 trig_sel 选择"
+  - "free_running cycle counter 可被抓取用于时间比对"
+  - "Tcl 脚本：先 arm 所有 ILA（TRIG_IN_ONLY 模式），再启动 PS"
+  - "自动化脚本等待所有 ILA capture 完成后自动 upload/export"
+  - "综合/实现通过，时序满足"
+
+required_outputs:
+  - "rtl/dbg_trigger_hub.sv"
+  - "rtl/axil_2d_shift.sv (修改: ILA 例化 + anchor event)"
+  - "constraints/debug.xdc (更新: RTL ILA 探针连接)"
+  - "board/ila_cross_trigger.tcl"
+  - ".awp/runs/RUN-E001-BOARD-006.md"
+
+handoff:
+  next_task: "TASK-E001-024"
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## ILA Cross-Trigger 调试同步架构
+
+  参考 UG908 §ILA Cross Trigger 和用户提供的完整方案。
+
+  ### 架构
+  ```
+  PL anchor event (FSM 启动边沿/AXIS 第一拍)
+       ↓
+  dbg_trigger_hub (同步/展宽)
+       ├── ila_ctrl.trig_in  (控制 FSM / AXI-Lite)
+       ├── ila_axis.trig_in  (AXIS / DMA 数据通路)
+       └── ila_dma.trig_in   (DMA 状态)
+  ```
+
+  ### 关键设计决策
+  - dbg_anchor_event 选 PL 内部确定事件（非 PS 脚本动作）
+  - 所有 ILA 被动观察者模式 (TRIG_IN_ONLY)
+  - 先 arm ILA，再启动 PS（Tcl 保证顺序）
+  - 辅助信号: cycle_counter, trig_in/ack, fsm_state, first_beat_flag
+
+  ### 与当前 BD ILA 的差异
+  - 当前: System ILA v1.1 BD 例化 (SLOT 探针, 无 TRIG_IN)
+  - 目标: ila_v6_2 RTL 例化 (显式探针端口, TRIG_IN/TRIG_OUT)
+  - RTL ILA 需在综合中连接 MARK_DEBUG 信号
+
+  ### 后续步骤
+  - L0: RTL review → L1a: 仿真验证 anchor event 产生 → L2-L4: 综合/实现/比特流
+  - L5-L6: 上板验证 cross-trigger + 自动化 Tcl

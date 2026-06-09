@@ -2,15 +2,16 @@
 # 硬件基座清单 — HW_BASE_AX7010_v1.0
 #==============================================================================
 platform:
-  id: "HW_BASE_AX7010_v1.1"
-  name: "Zynq-7000 Accelerator Shell (Alinx AX7010) — 独立调试时钟"
+  id: "HW_BASE_AX7010_v1.2"
+  name: "Zynq-7000 Accelerator Shell (Alinx AX7010) — ILA 时钟 FCLK_CLK0"
   status: "frozen"
-  frozen_date: "2026-06-08"
+  frozen_date: "2026-06-09"
   description: >
     Zynq-7000 (xc7z010clg400-1) 加速器承载平台，基于 Alinx AX7010 开发板。
     PS7 + AXI Interconnect (GP) + AXI Interconnect (HP) + AXI DMA + System ILA x2。
     提供 4 个标准 accelerator 插槽。
-    v1.1: System ILA 时钟源改为板载 50 MHz 晶振 (K17)，摆脱 PS 初始化依赖。
+    v1.2: ILA 时钟源改回 PS7 FCLK_CLK0 (v1.1 的板载 U18 晶振标注"未使用"，不可用)。
+    v1.1: System ILA 时钟源尝试板载 50 MHz 晶振 (U18)，摆脱 PS 初始化依赖。
 
   target:
     part: "xc7z010clg400-1"
@@ -108,6 +109,13 @@ platform:
     clock: "50 MHz frozen — 100 MHz 在 xc7z010-1 上时序不收敛（shift_addr_gen DSP 路径 16-20 级逻辑）"
 
   changelog:
+    - version: "v1.2"
+      date: "2026-06-09"
+      changes:
+        - "ILA 时钟源: U18 板载晶振 → PS7 FCLK_CLK0 (U18 晶振标注'未使用',实测不可用)"
+        - "移除 debug.xdc 中无效的 create_generated_clock 约束"
+        - "BD 重新综合/实现/比特流 (0 errors, 0 CW)"
+        - "ILA CLI 自动化链路打通: Vivado MCP(program+ILA) + XSDB(PS init)"
     - version: "v1.1"
       date: "2026-06-08"
       changes:

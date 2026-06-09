@@ -1,0 +1,6 @@
+the_ROM_image:
+{
+    [bootloader] D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/vivado/shift_2d_ax7010_260608/vitis_workspace/ax7010_platform/export/ax7010_platform/sw/ax7010_platform/boot/fsbl.elf
+    D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/vivado/shift_2d_ax7010_260608/shift_2d_ax7010_260608.runs/impl_1/design_1_wrapper.bit
+    D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/vivado/shift_2d_ax7010_260608/vitis_workspace/dma_hello/Debug/dma_test.elf
+}

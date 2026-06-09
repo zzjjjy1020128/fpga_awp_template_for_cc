@@ -1,0 +1,31 @@
+issue_id: "ISS-E001-006"
+title: "XSCT/XSDB dow 'Invalid context' TCF Code 16 — targeting APU instead of CPU core"
+status: "resolved"
+
+detected_at_level: "L6"
+detected_by_task: "TASK-E001-024"
+detected_by_session: "SESS-E001-OR-004"
+
+failure_signature:
+  test_case: "dow ELF → 'Code 16 Invalid context'"
+  timestamp: "2026-06-09"
+  signal: "TCF Download service context invalid"
+  expected: "ELF downloaded successfully"
+  observed: "Code 16 Time ... Format {Invalid context}"
+
+evidence:
+  logs:
+    - "XSCT output: multiple attempts with different connect methods"
+  notes:
+    - "Root cause: targets -set -filter {name =~ \"APU\"} selects DAP, not CPU"
+    - "APU = Debug Access Port (parent), CPU = ARM Cortex-A9 MPCore #0 (child)"
+    - "dow requires CPU core target, not DAP"
+    - "Fix: targets -set -filter {name =~ \"ARM Cortex-A9 MPCore #0\"}"
+    - "This is the OFFICIAL XILINX documented approach (UG1400)"
+    - "Also proved: dow -data (binary) bypasses Download service entirely, uses Memory service"
+
+attempts:
+  - round: 1
+    verifier_session: "SESS-E001-OR-004"
+    action: "Changed target from APU to ARM Cortex-A9 MPCore #0"
+    result: "pass"

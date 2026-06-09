@@ -107,8 +107,59 @@
 2. `connect_debug_port dbg_hub/clk` 修改如何存活过 `opt_design` 的 debug core 重建阶段？
 3. Vivado 2022.2 cs_server "CseXsdb slave type: 0" 是否需要特定 register file？
 
+## 2026-06-09 续：L5/L6 CLI 自动化攻坚
+
+### 核心突破
+
+1. **ILA debug hub 时钟诊断链**：BD 连接→网表 PARENT→BUFG→BSCAN→物理晶振。根因：U18(Y2) 未启振，ILA 时钟改回 FCLK_CLK0。
+2. **`dow` target 选择**：必须 `ARM Cortex-A9 MPCore #0`（CPU 核），非 APU（DAP）。这是 UG1400 官方文档要求。
+3. **hw_server 守护进程模型**：`hw_server -d` + XSCT/Vivado 双客户端。二者同时连接同一 JTAG，无冲突。
+4. **xil_printf 阻塞解决**：编译时用空 stub 替代，不需 UART 终端。
+
+### 验证的技术路线 (UG908 标准流)
+
+```
+hw_server -d -p3121
+  ├── XSCT (主导): fpga -f → ps7_init → dow → con
+  └── Vivado MCP (观察者): connect → arm ILA → upload → save .ila
+```
+
+### L5 闭合
+
+TASK-E001-021 L5→pass (8/8 acceptance met):
+- JTAG ✅ Bitstream ✅ ILA ✅ PS init ✅ AXI-Lite r/w ✅ ILA capture ✅
+- 基座 v1.1→v1.2 (ILA 时钟 U18→FCLK_CLK0)
+
+### L6 状态
+
+TASK-E001-024 L6→pending:
+- C+step 逐步验证通 (step1-7)，BSP 链路完整
+- DMA 引擎启动确认 (DMASR 1→0)，HP0 端口阻塞 (open ISS-E001-009)
+- ILA ALWAYS 捕获成功，BASIC 触发不可用 (ISS-E001-008, System ILA BD 限制)
+- Gate 同步机制验证通过但时序窗口不匹配
+
+### 新 Skills
+
+- `bd-debug-clock` 更新: 诊断链 + 反模式
+- `zynq-debug-toolchain` 新建→重写: hw_server 守护进程 + UG908 标准流
+- `vitis-cli-build` 更新→重写: dow target CPU 核 + C step 验证方法
+
+### 新 Issues (ISS-E001-005~010)
+
+- ISS-E001-005: xil_printf 阻塞 (resolved)
+- ISS-E001-006: dow Invalid context 根因=target APU (resolved)
+- ISS-E001-007: AFI WRCHAN 地址错 0xF8008004→0xF8008014 (resolved, 非根因)
+- ISS-E001-008: System ILA BD 模式无 BASIC 触发 (open)
+- ISS-E001-009: DMA HP0 端口阻塞 (open)
+- ISS-E001-010: PostToolUse hook 工作目录问题 (resolved)
+
+### Hook 修复
+
+- settings.json 全部 hook 改为绝对路径
+- PostToolUse (Edit/Write) hooks 移除 (性能)
+
 ## Handoff
-- Next Task：TASK-E001-021 (L5 冒烟测试 — ILA 部分待 Vitis GUI)
-- Handoff File：`.awp/handoffs/HO-E001-OR-004-001.md`
-- Gate Status 已填写：是
-- 备注：ILA CLI 自动化是当前最关键的未攻克缺口。硬件/bitstream/C 代码全部就绪，仅差 Vivado cs_server 识别 debug core 这一步
+- Next Task：TASK-E001-024 (L6 数据正确性 — DMA HP0 待攻克)
+- Handoff File：`.awp/handoffs/HO-E001-OR-004-001.md`（需更新）
+- Gate Status：L0-L4 pass, L5 pass, L6 pending, L7 pending
+- 备注：ILA CLI 自动化核心链路已闭合（dow+ILA+hw_server），DMA 数据通路阻塞在 HP0 端口配置（需重新 XSA 导出+FSBL 重编译验证）

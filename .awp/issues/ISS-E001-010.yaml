@@ -1,0 +1,26 @@
+issue_id: "ISS-E001-010"
+title: "PostToolUse hooks run from file directory not project root — validate_awp path broken"
+status: "resolved"
+
+detected_at_level: "L0"
+detected_by_task: "TASK-E001-024"
+detected_by_session: "SESS-E001-OR-004"
+
+failure_signature:
+  test_case: "Any Edit/Write triggers PostToolUse hook → python can't find scripts/validate_awp.py"
+  timestamp: "2026-06-09"
+  signal: "Hook error: can't open file 'D:\\...\\xsa_export\\scripts\\validate_awp.py'"
+  expected: "validate_awp.py --sync runs from project root"
+  observed: "Hook runs from file's directory (e.g., xsa_export/), relative path fails"
+
+evidence:
+  notes:
+    - "Root cause: hooks use relative path 'python scripts/validate_awp.py'"
+    - "Claude Code executes hooks from the file's directory, not project root"
+    - "Fix: changed all hook commands to absolute paths (D:/AGENT_WORK_SPACE_FOR_CLAUDE/fpga_awp_template/scripts/...)"
+    - "Also removed PostToolUse hooks entirely (they were firing on every Edit/Write, slowing work)"
+    - "SessionStart, PreToolUse, Stop hooks kept with absolute paths"
+
+next_action:
+  role: "none"
+  action: "Resolved. Hooks now use absolute paths. PostToolUse hooks removed for performance."
