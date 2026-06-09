@@ -432,7 +432,7 @@ module axil_2d_shift #(
         .trig_in      (dbg_trig_pulse),
         .trig_in_ack  (trig_in_ack_ctrl),
         .probe0       (dbg_cycle_cnt),
-        .probe1       ({20'd0, fsm_state, ctrl_start, ctrl_sw_reset, cfg_dir, cfg_step, cfg_wrap_en}),
+        .probe1       ({19'd0, fsm_state, ctrl_start, ctrl_sw_reset, cfg_dir, cfg_step, cfg_wrap_en}),
         .probe2       ({22'd0, img_rows}),
         .probe3       ({22'd0, img_cols}),
         .probe4       ({27'd0, status_idle, status_busy_capture, status_busy_shift, status_done, capture_en}),

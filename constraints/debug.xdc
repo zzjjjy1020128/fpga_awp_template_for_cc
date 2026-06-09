@@ -2,16 +2,16 @@
 # debug.xdc -- AX7010 调试探针配置 (Debug Probe Configuration)
 #
 # 目标器件: xc7z010clg400-1 (Alinx AX7010)
-# 平台: HW_BASE_AX7010_v2.0 (独立调试时钟)
+# 平台: HW_BASE_AX7010_v1.2
 # 工具: Vivado 2022.2
 #
-# 功能:
-#   通过 set_property MARK_DEBUG 将关键内部信号连接到 System ILA 探针。
-#   Vivado 在综合/实现过程中自动将 MARK_DEBUG 信号路由至可用 ILA 核。
+# v3.0 (2026-06-09): RTL ILA cross-trigger 上线
+#   axil_2d_shift 内部已例化 ila_ctrl_cross + ila_data_cross (RTL ILA),
+#   支持 TRIG_IN cross-trigger。以下 MARK_DEBUG 约束服务于 BD 中保留的
+#   System ILA (system_ila_0/1, SLOT 探针, 无 TRIG_IN), 与 RTL ILA 并存。
+#   后续 BD 清理时可移除此文件中的冗余 MARK_DEBUG 条目。
 #
-# v2.0 新增: dbg_hub 时钟强制绑定到外部 K17 50MHz
-#   create_generated_clock 将 dbg_hub/clk 定义为 clk_debug_50m 的衍生时钟,
-#   迫使 Vivado 综合引擎将 dbg_hub 时钟域从 FCLK_CLK0 切换到外部晶振。
+# v2.0: dbg_hub 独立时钟域 (已废弃 —— create_generated_clock 移除)。
 #==============================================================================
 
 #------------------------------------------------------------------------------

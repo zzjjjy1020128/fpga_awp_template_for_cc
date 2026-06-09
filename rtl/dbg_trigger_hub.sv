@@ -15,7 +15,7 @@
 //==============================================================================
 
 module dbg_trigger_hub #(
-    parameter int NUM_ILA = 2
+    parameter NUM_ILA = 2
 ) (
     input  logic        clk,
     input  logic        rstn,

@@ -1,31 +1,37 @@
 issue_id: "ISS-E001-008"
-title: "System ILA v1.1 BD mode does not support BASIC trigger — only ALWAYS capture"
-status: "open"
+title: "System ILA BD mode trigger support clarified — BASIC_ONLY works with runtime config"
+status: "resolved"
 
 detected_at_level: "L6"
 detected_by_task: "TASK-E001-024"
 detected_by_session: "SESS-E001-OR-004"
+suspected_owner_task: "TASK-E001-027"
+
+round_count: 2
+max_rounds: 3
 
 failure_signature:
   test_case: "Attempt to set ILA BASIC trigger mode via Tcl"
   timestamp: "2026-06-09"
-  signal: "CONTROL.TRIGGER_MODE is read-only; IS_BASIC_CAPTURE_MODE_SUPPORTED = 0"
-  expected: "ILA arms with trigger condition on AXI AWVALID"
-  observed: "Only ALWAYS capture mode available — ILA fills buffer immediately"
+  signal: "Initially believed IS_BASIC_CAPTURE_MODE_SUPPORTED=0 meant no trigger support"
+  expected: "ILA waits for trigger condition before capturing"
+  observed: "ILA arm immediately fills with IDLE data due to default eq*'hX trigger values"
 
 evidence:
   logs:
-    - "Vivado Tcl: get_property STATIC.IS_BASIC_CAPTURE_MODE_SUPPORTED = 0"
+    - "2026-06-09 实测: TRIGGER_COMPARE_VALUE can be set to eq1'b1 at runtime"
+    - "ILA1 triggered on tvalid=1 AND tready=1 handshake, captured 511 active stream beats"
+    - "ILA2 correctly stayed WAITING FOR TRIGGER (accelerator never output data)"
+  resolution: >
+    System ILA BD SLOT supports BASIC_ONLY trigger with runtime-configurable compare values.
+    Default all eq*'hX (don't-care) causes immediate trigger in IDLE state.
+    Fix: set_property TRIGGER_COMPARE_VALUE {eq1'b1} on tvalid and tready probes.
+    Combined with software gate mechanism, achieves precise DMA capture.
   notes:
-    - "System ILA v1.1 instantiated through BD with SLOT probes has LIMITED trigger support"
-    - "BASIC/ADVANCED trigger modes require RTL-instantiated ILA (ila_v6_2) with explicit probe ports"
-    - "BD slot-based ILA only supports ALWAYS capture"
-    - "For trigger-synchronized capture, need either:"
-    - "  (a) RTL-instantiated ILA with BASIC mode"
-    - "  (b) PS-PL Cross-Trigger (PS7 CTI → ILA TRIG_IN)"
-    - "  (c) Debug Bridge IP for cross-trigger in BD"
+    - "BASIC_ONLY trigger mode fully functional, format: eq<width>'<radix><value>"
+    - "Software gate + handshake trigger replaces need for RTL ILA cross-trigger"
 
 next_action:
-  role: "vivado_integrator"
-  action: "Evaluate PS-PL cross-trigger implementation: enable PCW_USE_CROSS_TRIGGER in PS7, add debug bridge or RTL ILA"
+  role: "orchestrator"
+  action: "Documented in zynq-debug-toolchain skill. No hardware change required."
   escalate: false
