@@ -3,7 +3,7 @@
     "name": "fpga_awp_template",
     "description": "FPGA Agent Workspace Protocol v0.1 模板仓库",
     "domain": "fpga",
-    "template_version": "0.1.0",
+    "template_version": "0.2.0",
     "status": "template"
   },
   "target_use_cases": [
@@ -41,23 +41,28 @@
     }
   ],
   "directories": {
-    "rtl": "RTL 设计源码（Verilog / SystemVerilog）",
-    "tb": "Testbench 文件",
-    "sim": "仿真脚本和仿真输出",
-    "vivado": "Vivado 工程相关文件（.xpr, .tcl 等）",
-    "constraints": "XDC 约束文件",
-    "board": "上板验证记录和脚本",
-    "scripts": "通用工具脚本",
-    "docs": "项目文档",
-    ".awp": "AWP 协议文件 —— 任务、session、handoff、review、run、schema、template",
-    ".claude": "Claude Code 本地配置 —— agents、skills、hooks、settings"
+    "rtl": "RTL 设计源码（Verilog / SystemVerilog）[L2: FPGA-Method]",
+    "tb": "Testbench 文件 [L2: FPGA-Method]",
+    "sim": "仿真脚本和仿真输出 [L2: FPGA-Method]",
+    "vivado": "Vivado 工程相关文件（.xpr, .tcl 等）[L2: FPGA-Method]",
+    "constraints": "XDC 约束文件 [L2: FPGA-Method]",
+    "board": "上板验证记录和脚本 [L2: FPGA-Method]",
+    "scripts": "通用工具脚本 [L3: Agent-Runtime]",
+    "docs": "项目工程文档 [L2: FPGA-Method]",
+    ".awp": "AWP-Core 工程治理协议数据库 [L1]",
+    ".awp/templates": "AWP-Core 治理模板 [L1]",
+    ".awp/platform": "硬件基座清单 [L2: FPGA-Method, 跨层]",
+    ".claude": "Claude Code 配置 [L3: Agent-Runtime]",
+    ".claude/agents": "Agent 角色定义 [L1/L2/L3 混合, 见 LAYERS.md]",
+    ".claude/skills/": "可复用技能（awp-* = L1 治理, fpga-* = L2 领域）[L1+L2]"
   },
   "protected_paths": [
     ".awp/workspace_manifest.json",
     ".awp/schemas/",
     ".awp/templates/",
     ".git/",
-    "CLAUDE.md"
+    "CLAUDE.md",
+    "LAYERS.md"
   ],
   "default_agent_policy": {
     "language": "zh",

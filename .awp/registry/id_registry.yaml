@@ -417,5 +417,5 @@ ids:
 - id: TASK-E001-027
   type: TASK
   title: ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化
-  status: closed
+  status: active
   created: '2026-06-09'
