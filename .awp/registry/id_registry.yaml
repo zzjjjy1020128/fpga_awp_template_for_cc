@@ -25,6 +25,11 @@ ids:
   title: Handoff HO-E001-OR-006-001
   status: in_progress
   created: '2026-06-09'
+- id: HO-E001-OR-007-001
+  type: HANDOFF
+  title: Handoff HO-E001-OR-007-001
+  status: active
+  created: '2026-06-10'
 - id: ISS-E001-001
   type: ISSUE
   title: L1b WRITE re-run encoding error — 10 RUN files unreadable as UTF-8
@@ -284,6 +289,11 @@ ids:
   title: 'Session: Zynq PS-PL 联合调试方法论建立 + DMA 数据通路诊断'
   status: closed
   created: '2026-06-09'
+- id: SESS-E001-OR-007
+  type: SESSION
+  title: Session 记录 — SESS-E001-OR-007
+  status: closed
+  created: '2026-06-10'
 - id: TASK-E001-001
   type: TASK
   title: AXI-Lite 2D Shift 模块架构规划
@@ -419,3 +429,8 @@ ids:
   title: ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化
   status: closed
   created: '2026-06-09'
+- id: TASK-E001-028
+  type: TASK
+  title: FPGA Domain Pack 技能库生命周期维护
+  status: active
+  created: '2026-06-10'

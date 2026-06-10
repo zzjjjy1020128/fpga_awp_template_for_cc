@@ -1,0 +1,83 @@
+task_id: "TASK-E001-028"
+title: "FPGA Domain Pack 技能库生命周期维护"
+status: "in_progress"
+agent: "process_owner"
+assigned_to: "orchestrator"
+created_date: "2026-06-10"
+target_platform: ""
+
+objective: >
+  维护 FPGA Domain Pack（.claude/skills/fpga-*/）中所有候选技能的生命周期：
+  在项目推进过程中持续验证、增强、升级技能状态，确保技能库随项目经验同步进化。
+  本 task 为 perpetual task — 永不完全 done，伴随其他 task 并行推进。
+
+target_validation_level: "L0"
+integration_scope: "module"
+
+validation_status:
+  L0: "pending"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "skip"
+  L3: "skip"
+  L4: "skip"
+  L5: "skip"
+  L6: "skip"
+  L7: "pending"
+
+depends_on: []
+
+scope:
+  allowed_edit_paths:
+    - ".claude/skills/fpga-*/SKILL.md"
+    - ".claude/skills/SKILL_INDEX.md"
+    - ".awp/domain_pack_sources.yaml"
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "rtl/"
+    - "tb/"
+    - "constraints/"
+    - "vivado/"
+    - "board/"
+
+context:
+  must_read:
+    - ".awp/domain_pack_sources.yaml"
+    - ".claude/skills/SKILL_INDEX.md"
+    - "LAYERS.md"
+
+acceptance:
+  - "每次项目里程碑（L1b pass / L5 pass / 项目复盘）时审查相关技能是否需要升级状态"
+  - "candidate → local_adapted：技能在至少一个 task 中被实际使用并确认有效"
+  - "local_adapted → validated：技能在至少一个完整项目中通过验证"
+  - "validated → stable：技能在 2+ 个项目中复用无修改"
+  - "SKILL_INDEX.md 状态列与实际 SKILL.md frontmatter 一致"
+  - "domain_pack_sources.yaml 的 imported_to_skills 引用与实际技能一致"
+
+required_outputs:
+  - ".claude/skills/SKILL_INDEX.md"
+  - ".awp/domain_pack_sources.yaml"
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "low"
+
+notes: >
+  本 task 为 perpetual task（永久维护任务），status 永不为 done。
+
+  触发审查的事件：
+  - 某模块 L1a pass → 检查 fpga-module-owner-l1a, fpga-rtl-review 是否需要 candidate→local_adapted
+  - L1b 数据通路闭环 pass → 检查 fpga-sim-verification, fpga-l1b-datapath-verify, fpga-axis-review
+  - L2-L4 Vivado 流程 pass → 检查 fpga-vivado-methodology, fpga-vivado-log-analysis
+  - L5/L6 上板 pass → 检查 fpga-board-validation, fpga-zynq-debug-toolchain
+  - ISS issue 触发 CDC/协议类 bug → 检查 fpga-cdc-review, fpga-axi-lite-review, fpga-axis-review
+  - 项目复盘完成 → 全面审查所有 candidate 技能，决定升级/增强/废弃
+  - Session 关闭时 → 快速扫描 last_reviewed > 30 天的技能
+
+  审查由 orchestrator 在对应事件发生时手动触发，不需要自动化。
+  L7=pending 用于标记"技能库全面复盘"这个最终验证项。

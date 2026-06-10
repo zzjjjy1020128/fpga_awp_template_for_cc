@@ -17,7 +17,7 @@
 
 ## In Progress
 
-- [ ] *（暂无）*
+- [ ] [TASK-E001-028](.awp/tasks/TASK-E001-028.yaml) | process_owner | FPGA Domain Pack 技能库生命周期维护
 
 ## Blocked
 

@@ -24,6 +24,9 @@ relations:
 - from: HO-E001-OR-006-001
   to: SESS-E001-OR-006
   type: from_session
+- from: HO-E001-OR-007-001
+  to: EXP001
+  type: belongs_to
 - from: ISS-E001-001
   to: RUN-E001-L1B-WRITE-001, RUN-E001-L1B-READ-001
   type: detected_in
@@ -279,6 +282,9 @@ relations:
 - from: SESS-E001-OR-006
   to: EXP001
   type: belongs_to
+- from: SESS-E001-OR-007
+  to: EXP001
+  type: belongs_to
 - from: TASK-E001-001
   to: EXP001
   type: belongs_to
@@ -510,3 +516,6 @@ relations:
 - from: TASK-E001-027
   to: TASK-E001-021
   type: depends_on
+- from: TASK-E001-028
+  to: EXP001
+  type: belongs_to
