@@ -1,6 +1,6 @@
 task_id: "TASK-E001-027"
 title: "ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化"
-status: "done"
+status: "review"
 agent: "rtl_implementer"
 assigned_to: ""
 created_date: "2026-06-09"
