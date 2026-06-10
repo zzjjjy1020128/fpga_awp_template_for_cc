@@ -3,6 +3,7 @@
 #==============================================================================
 platform:
   id: "HW_BASE_AX7010_v1.2"
+  layer: 2
   name: "Zynq-7000 Accelerator Shell (Alinx AX7010) — ILA 时钟 FCLK_CLK0"
   status: "frozen"
   frozen_date: "2026-06-09"

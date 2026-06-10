@@ -1,6 +1,14 @@
 # Architecture Decision Record (ADR)
 
-本文件记录项目中的架构决策。每条决策按以下格式记录。
+本文件记录项目中的架构决策。每条决策标注所属层（L1=治理, L2=领域, L3=运行时）。
+
+## 已有决策
+
+| ID | 标题 | 层 |
+|----|------|:--:|
+| AWP-0001 | Platform freeze + BD shell/adapter pattern | L1 |
+| AWP-0002 | Hardware base freeze protocol | L1 |
+| AWP-0003 | Project contract self-consistency analysis | L1 |
 
 ## 决策格式
 

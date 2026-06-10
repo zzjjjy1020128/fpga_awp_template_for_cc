@@ -9,6 +9,7 @@
 
 platform:
   id: "HW_BASE_ZCU102_v1.0"
+  layer: 2
   name: "Zynq UltraScale+ Accelerator Shell"
   status: "frozen"
   frozen_date: "2026-06-07"
