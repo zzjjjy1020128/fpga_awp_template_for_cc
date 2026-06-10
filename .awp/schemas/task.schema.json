@@ -26,7 +26,7 @@
     "agent": {
       "type": "string",
       "description": "执行本 task 的子智能体名称（对应 .claude/agents/{name}.md）",
-      "enum": ["planner", "module_owner", "rtl_implementer", "rtl_reviewer", "tb_verifier", "integration_verifier", "vivado_integrator", "hardware_validator", "process_owner"]
+      "enum": ["planner", "rtl_implementer", "rtl_reviewer", "integration_verifier", "vivado_integrator", "hardware_validator", "process_owner"]
     },
     "assigned_to": {
       "type": "string",

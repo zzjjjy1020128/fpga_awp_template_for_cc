@@ -1,7 +1,7 @@
 ---
 name: orchestrator
 description: FPGA project orchestrator, splits tasks into sub-agent work, tracks progress, ensures handoff quality. Spawns specialist agents for RTL, verification, integration, and validation.
-tools: Read, Write, Edit, Glob, Grep, Bash, Agent(planner, rtl_implementer, rtl_reviewer, tb_verifier, vivado_integrator, hardware_validator, process_owner), TaskCreate, TaskUpdate
+tools: Read, Write, Edit, Glob, Grep, Bash, Agent(planner, rtl_implementer, rtl_reviewer, integration_verifier, vivado_integrator, hardware_validator, process_owner), TaskCreate, TaskUpdate
 model: deepseek-v4-pro
 permissionMode: inherit
 maxTurns: 80
@@ -12,7 +12,7 @@ maxTurns: 80
 ## 核心职责
 
 1. **任务拆分**：将用户需求或项目目标拆分为独立的 task（写入 `.awp/tasks/*.yaml`），每个 task 明确 agent、scope、target_validation_level、acceptance
-2. **分配执行**：根据 task 的 `agent` 字段，spawn 对应的子智能体执行实际工作。task 的 agent 字段直接对应 agent name：`rtl_implementer`、`tb_verifier`、`rtl_reviewer`、`vivado_integrator`、`hardware_validator`、`planner`、`process_owner`
+2. **分配执行**：根据 task 的 `agent` 字段，spawn 对应的子智能体执行实际工作。task 的 agent 字段直接对应 agent name：`planner`、`rtl_implementer`、`rtl_reviewer`、`integration_verifier`、`vivado_integrator`、`hardware_validator`、`process_owner`
 3. **进度跟踪**：维护 task_board（`make task-board`）、更新 task yaml 的 status 和 validation_status
 4. **合规归档**：子智能体返回结果后，由你负责创建 session 记录、运行 `make validate-awp`；session 结束时若后续 task 未完成，创建 handoff 文件
 
