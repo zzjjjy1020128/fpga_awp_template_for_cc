@@ -1,0 +1,142 @@
+# FPGA Domain Pack — 技能来源目录
+# 记录每个 skill 的知识来源、许可证、可信等级和验证状态。
+# 生命周期: raw_source → candidate → local_adapted → validated → stable
+
+version: "0.1"
+last_updated: "2026-06-10"
+
+sources:
+  # ---- Tier A: 权威方法论与工具官方文档 ----
+  - id: SRC-FPGA-001
+    name: "AMD UG949 UltraFast Design Methodology Guide"
+    type: "vendor_methodology"
+    url_note: "docs.amd.com — UG949 Vivado Design Methodology"
+    license_note: "Reference only; do not copy large verbatim text from copyrighted docs"
+    trust_level: "A"
+    imported_to_skills:
+      - fpga-vivado-methodology
+      - fpga-vivado-log-analysis
+    status: "candidate"
+    last_reviewed: "2026-06-10"
+
+  - id: SRC-FPGA-002
+    name: "lowRISC Verilog/SystemVerilog Coding Style Guide"
+    type: "open_source_style_guide"
+    url_note: "github.com/lowRISC/style-guides"
+    license_note: "CC-BY / Apache 2.0 — style guidelines, safe to reference"
+    trust_level: "A"
+    imported_to_skills:
+      - fpga-rtl-style
+      - fpga-rtl-review
+    status: "candidate"
+    last_reviewed: "2026-06-10"
+
+  - id: SRC-FPGA-003
+    name: "Verible — SystemVerilog linter/formatter (CHIPS Alliance)"
+    type: "open_source_tool"
+    url_note: "github.com/chipsalliance/verible"
+    license_note: "Apache 2.0"
+    trust_level: "A"
+    imported_to_skills:
+      - fpga-rtl-style
+      - fpga-rtl-review
+    status: "candidate"
+    last_reviewed: "2026-06-10"
+
+  # ---- Tier B: 开源验证框架与方法论 ----
+  - id: SRC-FPGA-004
+    name: "VUnit — VHDL/SystemVerilog unit testing framework"
+    type: "open_source_verification_framework"
+    url_note: "github.com/VUnit/vunit"
+    license_note: "Mozilla Public License 2.0"
+    trust_level: "A"
+    imported_to_skills:
+      - fpga-module-owner-l1a
+      - fpga-sim-verification
+    status: "candidate"
+    last_reviewed: "2026-06-10"
+
+  - id: SRC-FPGA-005
+    name: "cocotbext-axi — AXI/AXI-Lite/AXI-Stream cocotb extensions"
+    type: "open_source_verification_ip"
+    url_note: "github.com/alexforencich/cocotbext-axi"
+    license_note: "MIT"
+    trust_level: "A"
+    imported_to_skills:
+      - fpga-axi-lite-review
+      - fpga-axis-review
+      - fpga-sim-verification
+    status: "candidate"
+    last_reviewed: "2026-06-10"
+
+  - id: SRC-FPGA-006
+    name: "OSVVM — Open Source VHDL Verification Methodology"
+    type: "open_source_verification_methodology"
+    url_note: "osvvm.org"
+    license_note: "Artistic License 2.0"
+    trust_level: "A"
+    imported_to_skills:
+      - fpga-sim-verification
+    status: "candidate"
+    last_reviewed: "2026-06-10"
+
+  - id: SRC-FPGA-007
+    name: "SymbiYosys — Formal verification flow for Verilog"
+    type: "open_source_formal_tool"
+    url_note: "symbiyosys.readthedocs.io"
+    license_note: "ISC"
+    trust_level: "A"
+    imported_to_skills:
+      - fpga-formal-sanity
+    status: "candidate"
+    last_reviewed: "2026-06-10"
+
+  # ---- Tier C: 开源 agent skills / workflows（需筛选） ----
+  - id: SRC-FPGA-008
+    name: "GateFlow Plugin — Claude Code FPGA hardware development plugin"
+    type: "agent_skill_reference"
+    url_note: "github.com/codejunkie99/Gateflow-Plugin"
+    license_note: "Reference architecture only; do not copy verbatim"
+    trust_level: "B"
+    imported_to_skills:
+      - fpga-board-validation
+    status: "candidate"
+    last_reviewed: "2026-06-10"
+
+  - id: SRC-FPGA-009
+    name: "VeriFlow-CC — Claude Code RTL design pipeline"
+    type: "agent_workflow_reference"
+    url_note: "github.com/bjwanneng/veriflow-cc"
+    license_note: "Reference pipeline design only"
+    trust_level: "B"
+    imported_to_skills:
+      - fpga-module-owner-l1a
+    status: "candidate"
+    last_reviewed: "2026-06-10"
+
+  - id: SRC-FPGA-010
+    name: "Quartz (Oxide Computer) — FPGA CLAUDE.md"
+    type: "real_project_reference"
+    url_note: "github.com/oxidecomputer/quartz"
+    license_note: "MPL 2.0"
+    trust_level: "B"
+    imported_to_skills:
+      - fpga-vivado-methodology
+    status: "candidate"
+    last_reviewed: "2026-06-10"
+
+  # ---- Tier D: 项目实战沉淀 ----
+  - id: SRC-FPGA-011
+    name: "FPGA-AWP E001 — axil_2d_shift 项目实战经验"
+    type: "project_experience"
+    url_note: "本仓库 exp/E001 分支"
+    license_note: "自有"
+    trust_level: "A"
+    imported_to_skills:
+      - fpga-axis-review
+      - fpga-axi-lite-review
+      - fpga-cdc-review
+      - fpga-board-validation
+      - fpga-vivado-log-analysis
+    status: "validated"
+    last_reviewed: "2026-06-10"
