@@ -55,6 +55,27 @@ owner: human_owner
 - [ ] 无 TLAST 忘记置位（导致后续模块永远等待帧尾）
 - [ ] 无 TKEEP 全 1 假设（忽略 packet 末尾窄 beat）
 
+## 反模式（禁止事项）
+
+### ❌ "TREADY 永远为 1 就行"
+```
+假设下游永远能接收数据 → 数据丢失、状态机卡死。
+所有 AXI-Stream 模块必须经过 random backpressure 测试。
+```
+
+### ❌ "TLAST 偶尔漏一次应该没关系"
+```
+TLAST 丢失 → 后续模块永远等待帧尾 → 整个数据通路卡死。
+TLAST 必须在每帧最后一个 beat 正确置位，不容任何偏差。
+```
+
+## 相关 Skills
+
+- `fpga-axi-lite-review` — AXI-Lite 控制接口审查
+- `fpga-sim-verification` — AXI-Stream testbench 的 backpressure 测试
+- `fpga-integration-failure-debug` — Stream 数据错位/丢失时的调试
+- `fpga-cdc-review` — Stream 跨时钟域同步
+
 ## 审查输出
 - `.awp/reviews/REV-{exp}-{task_seq}-AXIS-{seq}.md`
 - 含：每个 check item 的 pass/fail、协议违规项数、修复建议

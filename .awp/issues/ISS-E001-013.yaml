@@ -1,0 +1,62 @@
+issue_id: "ISS-E001-013"
+title: "Vivado 全链路产物一致性 —— 3 个系统性问题"
+status: "resolved"
+
+detected_at_level: "L5"
+detected_by_task: "TASK-E001-030"
+detected_by_session: "SESS-E001-OR-008"
+detected_in_run: "RUN-E001-IMPL-030, RUN-E001-BOARD-030"
+
+suspected_owner_task: "TASK-E001-028"
+suspected_module: "skills (fpga-vivado-preflight, fpga-zynq-debug-toolchain, fpga-board-validation)"
+
+round_count: 1
+max_rounds: 3
+
+failure_signature:
+  test_case: "全链路产物一致性验证"
+  timestamp: "2026-06-15"
+  signal: "RTL source / XSCT path / probes file"
+  expected: "各阶段产物自动一致，无需人工干预"
+  observed: >
+    1. Vivado 综合使用 rtl/ 下的 RTL，而 IP 仓库 (vivado/ip/.../src/) 是独立副本，
+       两者需手动保持同步。
+    2. XSCT 在 Vitis 安装目录 (G:/vivado2022.2/Vitis/2022.2/bin/xsct.bat)，
+       不在 Vivado/bin 下，首次搜索时用了错误路径。
+    3. 实现生成的 debug_nets.ltx 不会自动加载到 Vivado Hardware Manager，
+      需要手动 set_property PROBES.FILE 关联，否则 get_hw_ilas 返回 0。
+
+evidence:
+  logs:
+    - ".awp/runs/RUN-E001-SYNTH-030.md"
+    - ".awp/runs/RUN-E001-IMPL-030.md"
+    - ".awp/runs/RUN-E001-BOARD-030.md"
+
+root_cause:
+  confirmed: true
+  hypothesis: >
+    三个问题均源于"环境信息不在 AWP 管理范围内"：
+    1. RTL 副本不同步 → preflight 无 RTL 源一致性检查
+    2. XSCT 路径错误 → 缺少主机环境描述符
+    3. ltx 不自动加载 → skill 中未记录此步骤
+    以上全部已修复：preflight #5 (RTL 一致性), #10 (XSCT 路径),
+    #11 (ltx 存在性), #12 (host_env 有效性),
+    zynq-debug-toolchain §"ILA 探针文件陷阱"。
+
+fix:
+  applied: true
+  applied_date: "2026-06-15"
+  applied_by: "TASK-E001-030"
+  skills_updated:
+    - "fpga-vivado-preflight: +RTL 源一致性 (#5), +XSCT 路径 (#10), +ltx (#11), +host_env (#12)"
+    - "fpga-zynq-debug-toolchain: +ILA 探针文件 (.ltx) 陷阱"
+    - "fpga-board-validation: +Zynq PS 先于 PL, +ltx 关联步骤"
+    - "fpga-host-env-detect: 新建 skill，管理主机环境描述符"
+  mechanism_changes:
+    - "CLAUDE.md §3: MCP-Skill 层级关系 (MCP = skill 后端)"
+    - "CLAUDE.md §4.4: Session 启动 → 主机环境检测"
+    - ".awp/platform/host_env.yaml: 主机环境描述符"
+
+next_action:
+  role: "none"
+  action: "Resolved. 所有发现已固化到 skills 和机制中。新 session 中的项目 bug 修复将使用这些改进。"

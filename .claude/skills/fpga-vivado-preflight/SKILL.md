@@ -1,3 +1,15 @@
+---
+skill_id: SKILL-FPGA-VIVADO-PREFLIGHT
+name: fpga-vivado-preflight
+layer: FPGA-Method
+status: candidate
+source_basis:
+  - SRC-FPGA-011
+validated_in_projects: []
+last_reviewed: "2026-06-15"
+owner: human_owner
+---
+
 # Vivado 环境预检
 
 > 对标 `docs/project_contract.md` 的软件环境合同，在 Vivado 工作前做环境完整性检查。
@@ -19,14 +31,32 @@
 
 | # | 检查项 | 方法 | 预期 |
 |---|--------|------|------|
-| 1 | Vivado 可执行文件存在 | `ls {vivado_path}/bin/vivado.bat` | 存在 |
+| 1 | Vivado 可执行文件存在 | 从 `host_env.yaml#toolchain.vivado.executable` 读取路径 | 存在 |
 | 2 | 目标器件是否在支持列表 | 查 `project_contract.md#2.1` | 已确认 |
 | 3 | 平台清单存在 | `ls .awp/platform/{id}.yaml` | 存在且 YAML 语法有效 |
 | 4 | IP repo 目录存在 | `ls vivado/ip/` | 存在 component.xml |
-| 5 | 约束文件存在 | `ls constraints/{base_timing, base_physical}.xdc` | 存在 |
-| 6 | Vivado 工程存在 | `ls {vivado_project_path}.xpr` | 存在 |
-| 7 | Python + PyYAML 就绪 | `python -c "import yaml"` | exit 0 |
-| 8 | Pre-commit hook 已安装 | `ls .git/hooks/pre-commit` | 存在 |
+| 5 | **RTL 源一致性** ⚠️ | `diff rtl/*.sv vivado/ip/.../src/*.sv` | 全部 identical |
+| 6 | 约束文件存在 | `ls constraints/{base_timing, base_physical}.xdc` | 存在 |
+| 7 | Vivado 工程存在 | `ls {vivado_project_path}.xpr` | 存在 |
+| 8 | Python + PyYAML 就绪 | `python -c "import yaml"` | exit 0 |
+| 9 | Pre-commit hook 已安装 | `ls .git/hooks/pre-commit` | 存在 |
+| 10 | **XSCT 可用（Zynq 平台）** ⚠️ | 读取 `host_env.yaml#toolchain.vitis.xsct` 并验证文件存在 | 存在且可执行 |
+| 11 | **ILA probes 文件存在** | `ls {impl_dir}/debug_nets.ltx` | 存在且与 bitstream 同目录 |
+| 12 | **host_env.yaml 有效** | 读取 `.awp/platform/host_env.yaml` | `status: active` 且 `last_verified` 在 7 天内 |
+
+> **⚠️ #5, #10, #11, #12** 是 TASK-E001-030 实战新增的检查项。
+> - #10：XSCT 路径从 host_env.yaml 读取，不猜测
+> - #11：`debug_nets.ltx` 烧录后须关联到 hw_device
+> - #12：host_env.yaml 是 #1-#10 的基础——没有它，所有路径检查都是猜测
+
+### host_env.yaml 读取方式
+
+所有 Phase 1 的路径检查（#1 Vivado, #4 IP repo, #6 约束, #7 工程, #10 XSCT）
+优先从 `.awp/platform/host_env.yaml` 读取。若 host_env 不存在或 stale → **BLOCK**，
+先触发 `fpga-host-env-detect`。
+> Vivado 工程可能直接引用 `rtl/` 目录下的 RTL 文件进行综合（而非 `vivado/ip/.../src/`）。
+> 如果 rtl/ 和 vivado/ip/.../src/ 中的文件不一致，Vivado 综合使用的是 rtl/ 的版本，
+> 但 IP 重新打包时会使用 vivado/ip/.../src/ 的旧版本。必须保持两者同步。
 
 ### Phase 2: Vivado Live（需启动 MCP session，~30 秒）
 
@@ -83,11 +113,32 @@ Result: READY — 18/18 checks passed
 
 | 失败阶段 | 动作 |
 |---------|------|
-| Phase 1 任意项 FAIL | **阻断**。修复环境后再试。输出具体修复命令。 |
+| Phase 1 #5 FAIL | **阻断**。`rtl/` 与 `vivado/ip/.../src/` 不同步。立即同步两个副本，记录同步时间。 |
+| Phase 1 其他任意项 FAIL | **阻断**。修复环境后再试。输出具体修复命令。 |
 | Phase 2 #9 FAIL | MCP 服务未启动。检查 vivado-mcp 安装。 |
 | Phase 2 #11 FAIL | License 问题。检查 license 文件或切换器件。 |
 | Phase 2 #13 FAIL | 器件不匹配。确认正确的 xpr 文件。停止，不继续。 |
 | Phase 3 任意项 FAIL | **阻断**（若状态为 candidate 且有 unknown 项）。提示用户确认后冻结合同。 |
+
+## 反模式（禁止事项）
+
+### ❌ "跳过 preflight，直接开 Vivado"
+```
+preflight 6 秒检查 vs 跑一半发现 license 过期/IP 缺失/器件不匹配
+→ 白费 30 分钟。每次 Vivado 操作前必须跑 preflight。
+```
+
+### ❌ "昨天跑过了，今天不用跑"
+```
+环境可能已变化（license 过期、工程被他人修改、XSA 被覆盖）。
+preflight 是易失检查——每次 session 恢复后首次 Vivado 操作前必须重跑。
+```
+
+## 相关 Skills
+
+- `fpga-vivado-methodology` — 综合/实现流程（preflight 的前置条件）
+- `fpga-iteration-economics` — 理解跳过 preflight 的成本
+- `fpga-platform-freeze` — 平台冻结时的 contract 检查
 
 ## 与 AWP 资产的引用关系
 

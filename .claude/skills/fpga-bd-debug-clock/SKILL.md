@@ -1,3 +1,15 @@
+---
+skill_id: SKILL-FPGA-BD-DEBUG-CLOCK
+name: fpga-bd-debug-clock
+layer: FPGA-Method
+status: local_adapted
+source_basis:
+  - SRC-FPGA-011
+validated_in_projects: ["E001"]
+last_reviewed: "2026-06-15"
+owner: human_owner
+---
+
 # Skill: bd-debug-clock
 
 ## When to use
@@ -145,6 +157,14 @@ create_clock -period 20.000 -name clk_debug_50m [get_ports clk_debug_50m]
 - Platform ID 升版（如 v1.0 → v1.1 → v1.2）
 - `freeze_rules` 中记录时钟方案变更理由
 - `changelog` 添加独立调试时钟项
+
+## 相关 Skills
+
+- `fpga-zynq-debug-toolchain` — ILA 触发配置和 hw_server 调度
+- `fpga-board-validation` — L5 冒烟测试中的 ILA 时钟验证
+- `fpga-hw-pin-verify` — 时钟引脚交叉验证（U18 vs K17 案例）
+- `fpga-vivado-methodology` — 综合/实现中的 ILA 探针和 debug 约束
+- `fpga-iteration-economics` — BD 修改后重新综合的成本
 
 ## Language policy
 

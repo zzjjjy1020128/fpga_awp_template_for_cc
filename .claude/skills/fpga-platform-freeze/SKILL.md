@@ -1,3 +1,15 @@
+---
+skill_id: SKILL-FPGA-PLATFORM-FREEZE
+name: fpga-platform-freeze
+layer: FPGA-Method
+status: candidate
+source_basis:
+  - SRC-FPGA-011
+validated_in_projects: []
+last_reviewed: "2026-06-15"
+owner: human_owner
+---
+
 # 平台基座冻结
 
 > 将已通过综合+实现+比特流的 Vivado BD 工程冻结为 AWP 硬件基座。
@@ -91,6 +103,35 @@ python scripts/validate_awp.py
 ```
 
 确认 `workspace_manifest.json` 的 `platforms[]` 引用指向实际存在的 `.awp/platform/*.yaml` 文件。
+
+## 反模式
+
+### ❌ "BD 改了一小点，不用重新冻结"
+```
+任何 BD 修改（ILA 探针增减、IP 参数调整、接口连接变更）
+都意味着"平台已变化"。旧的平台清单描述的是过期硬件，
+下游基于旧平台做决策 = 全错。
+```
+
+### ❌ "冻结太麻烦，先不冻结直接上板"
+```
+未冻结的平台没有版本标识和配置快照。上板出问题时无法回溯
+"当时用的是什么 BD/什么约束/什么 IP 版本"。
+```
+
+### ❌ "导出 XSA 但忘记更新平台清单"
+```
+XSA 时间戳与平台清单不一致 → BSP 生成基于旧配置 → 地址映射偏移 →
+C 代码写错误的寄存器。这是最隐蔽的 bug 来源。
+```
+
+## 相关 Skills
+
+- `fpga-vivado-preflight` — 平台冻结前必须通过的合同检查
+- `fpga-vivado-methodology` — 综合/实现（冻结的验证前提）
+- `fpga-validation-levels` — L4 门禁（比特流生成 = 可冻结条件）
+- `fpga-project-acceptance` — 验收合同中的基座要求
+- `fpga-official-doc-first` — IP 文档引用（PGxxx 确认 IP 配置）
 
 ## 平台命名规范
 

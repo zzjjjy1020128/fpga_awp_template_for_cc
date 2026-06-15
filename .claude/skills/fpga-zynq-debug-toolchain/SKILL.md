@@ -1,4 +1,24 @@
+---
+skill_id: SKILL-FPGA-ZYNQ-DEBUG-TOOLCHAIN
+name: fpga-zynq-debug-toolchain
+layer: FPGA-Method
+status: local_adapted
+source_basis:
+  - SRC-FPGA-011
+validated_in_projects: ["E001"]
+last_reviewed: "2026-06-15"
+owner: human_owner
+mcp_tools_gated:
+  - mcp__vivado__run_hw_ila
+  - mcp__vivado__get_hw_probes
+  - mcp__vivado__program_device (Zynq 平台禁止，必须走 XSCT)
+---
+
 # Skill: zynq-debug-toolchain
+
+> ⚠️ **MCP Gate**：本 skill 是所有 ILA 操作和 Zynq 烧录的唯一入口。
+> 模型不得直接调用 `run_hw_ila` / `get_hw_probes` / `program_device`（Zynq），
+> 必须先经过本 skill 的硬规则检查。
 
 ## When to use
 
@@ -72,6 +92,10 @@ hw_server -d -p3121          ← 单一 JTAG 主控
 
 ## 标准 XSCT 下载流程
 
+> ⚠️ **XSCT 路径**：从 `.awp/platform/host_env.yaml#toolchain.vitis.xsct` 读取。
+> 典型位置：`<vivado_base>/Vitis/<version>/bin/xsct.bat`（不在 Vivado/bin！）
+> 当前主机 XSCT：`G:/vivado2022.2/Vitis/2022.2/bin/xsct.bat`
+
 ```tcl
 # 1. 连接 + PS 初始化
 connect -url tcp:localhost:3121
@@ -93,19 +117,65 @@ con
 ## 硬规则
 
 ### 1. 永远不用 Vivado Hardware Manager 烧录 FPGA
-`program_hw_devices` 只烧 PL，会覆盖 PS 状态（DDR 内容、外设初始化）。Zynq PS-PL 联调必须 XSCT 同时管理 PS 和 PL。
 
-### 2. ILA 触发条件：手握手，不平铺
-System ILA 在 BD SLOT 模式下**支持 BASIC_ONLY 触发**，可以在运行时改 compare value：
+`program_hw_devices` 只烧 PL，不初始化 PS。后果：
+- **ILA 不可见**：ILA 时钟来自 PS FCLK_CLK0，PS 未初始化 → FCLK 未运行 → ILA 不工作 → Vivado 报告 "ILAs found: 0"
+- **DDR 不可用**：DDR 控制器需要 PS 初始化
+- **覆盖 PS 状态**：如果 PS 已被 XSCT 初始化，Vivado 烧录会覆盖
+
+**必须的流程**（Zynq PS-PL 联调）：
 ```tcl
-# 设置触发: tvalid==1 AND tready==1 (AXI Stream handshake)
-set probes [get_hw_probes -of_objects $ila -filter {IS_TRIGGER == 1}]
-# 格式: <operator><width>'<radix><value>
-set_property TRIGGER_COMPARE_VALUE {eq1'b1} [lindex $probes <tvalid_idx>]
-set_property TRIGGER_COMPARE_VALUE {eq1'b1} [lindex $probes <tready_idx>]
+# XSCT 端（全程管理 PS 和 PL）
+connect -url tcp:localhost:3121
+targets -set -filter {name =~ "APU"}
+source ps7_init.tcl
+ps7_init; ps7_post_config         # 先初始化 PS（启动 FCLK）
+targets -set -filter {name =~ "FPGA"}
+fpga -f design_1_wrapper.bit     # 再烧录 PL（Vivado 端 refresh_hw_device 即可看到 ILA）
 ```
 
-**为什么必须 handshake**：如果触发条件设为 don't-care (`eq*'hX`，默认值)，ILA arm 后立即在 IDLE 状态下触发满，抓到全是无效数据。
+> ⚠️ **TASK-E001-030 实战陷阱**：先用 Vivado `program_hw_devices` 烧录 PL，结果 ILA 完全看不到。
+> 尝试 `refresh_hw_device` / `disconnect_hw_server` 都无效——根因是 PS 未初始化，FCLK 没有时钟输出。
+> Vivado 端 `program_hw_devices` 只对纯 PL 设计有效。Zynq 必须 XSCT 先初始化 PS。
+
+### 2. ILA 触发条件配置
+
+**标准 MCP Tcl 流程**（System ILA BASIC_ONLY）:
+```tcl
+# 设置触发: tvalid==1 AND tready==1 (AXI Stream handshake)
+set_property TRIGGER_COMPARE_VALUE {eq1'b1} [lsearch -inline [get_hw_probes -of $ila] {*tvalid*}]
+set_property TRIGGER_COMPARE_VALUE {eq1'b1} [lsearch -inline [get_hw_probes -of $ila] {*tready*}]
+# 设置触发窗口位置（捕获更多 post-trigger 数据）
+set_property CONTROL.TRIGGER_POSITION 16 $ila
+# Arm ILA — 注意：不能加 -trigger 标志（被解释为 -trigger_now！）
+run_hw_ila $ila
+```
+
+**关键陷阱 — `-trigger` = `-trigger_now`**：
+Vivado Tcl 支持部分标志匹配。`run_hw_ila` 的唯一以 `trigger` 开头的标志是 `-trigger_now`（立即触发，忽略所有触发条件）。`run_hw_ila $ila -trigger` 实际执行的是 `run_hw_ila $ila -trigger_now`，导致 ILA 在 arm 瞬间立即触发。
+
+```tcl
+# ✗ 错误：-trigger 被部分匹配为 -trigger_now
+run_hw_ila $ila -trigger
+
+# ✓ 正确：不加标志，等待触发条件满足
+run_hw_ila $ila
+```
+
+**don't_care 格式**：
+```tcl
+# ✗ 无效：don't_care 静默失败
+# ✓ 正确：
+set_property TRIGGER_COMPARE_VALUE {eq1'bX} $probe          # 单bit
+set_property TRIGGER_COMPARE_VALUE {eq32'hXXXX_XXXX} $probe  # 32bit
+```
+
+**TRIG_IN_ONLY 模式**（RTL ILA，参考 `board/ila_cross_trigger.tcl`）：
+```tcl
+set_property CONTROL.TRIGGER_MODE TRIG_IN_ONLY $ila
+run_hw_ila $ila
+# PL anchor event → dbg_trigger_hub → ILA TRIG_IN
+```
 
 ### 3. 软件 Gate 实现 CPU-ILA 同步
 ```c
@@ -120,10 +190,23 @@ while (*GATE == 0) {
 
 ```tcl
 # Tcl 侧: arm ILA → 释放 gate → DMA 精准捕获
-# 1. XSCT: dow gate_test.elf; con → CPU 跑到 gate 停下
-# 2. Vivado MCP: run_hw_ila → WAITING FOR TRIGGER
-# 3. XSCT: mwr -force 0x300100 1; con → ILA 精准捕获
+# 1. XSCT: dow gate_test.elf; con → CPU 跑到 gate 停下, stop CPU
+# 2. Vivado MCP: 配置 ILA → run_hw_ila → WAITING FOR TRIGGER
+# 3. XSCT: mwr GATE=1; con  ← 必须先 con 恢复 CPU! CPU 在 step 1 末尾处于 debug halt
 ```
+
+**Gate 释放 Tcl 脚本的正确写法**：
+```tcl
+connect -url tcp:localhost:3121
+targets -set -filter {name =~ "ARM Cortex-A9 MPCore #0"}
+mwr -force 0x00300100 1           # 写 GATE=1 到 DDR
+con                                # 恢复 CPU（Phase 1 末尾 stop 导致 CPU 处于 debug halt）
+after 35000                        # 等待 DMA 测试完成
+catch {stop}                       # CPU 可能已自行停止（测试结束），用 catch 避免脚本中断
+# 读结果寄存器...
+```
+
+**为什么 `con` 必不可少**：Phase 1 末尾 `stop` 使 CPU 进入 debug halt 状态。`mwr` 只写 DDR 内存，CPU 不执行指令，无法看到 GATE 变化。必须先 `con` 恢复执行，CPU 才能跳出 while 循环。
 
 Gate 机制弥补了 ILA 深度不足（1024 @ 50MHz = 20μs）的问题。CPU 可以等任意长时间，ILA 只在 DMA 活跃的瞬间触发。
 
@@ -197,6 +280,59 @@ XAxiDma_IntrAckIrq(&dma, s, XAXIDMA_DEVICE_TO_DMA); // 不是 IntrClear
 - 触发点 (TRIGGER=1): 握手发生的精确时刻
 - 触发后样本: 有效数据流，关注 tdata 值、tlast 位置、tkeep 完整性
 - ILA 深度有限 (1024 @ 50MHz = 20μs)，长传输用 gate 截取关键窗口
+
+## Vivado HW Manager ↔ XSDB JTAG 调度
+
+hw_server 同时接受 Vivado 和 XSDB 连接，但以下操作需要显式刷新：
+
+```
+# Vivado 侧——每次 XSDB fpga -f 之后必须：
+close_hw_target
+open_hw_target
+refresh_hw_device [get_hw_devices]
+# 此时 ILA 才会重新出现
+
+# 如果 ILA 消失（Xicom 50-38 错误）：
+disconnect_hw_server
+connect_hw_server -url localhost:3121
+open_hw_target
+refresh_hw_device [get_hw_devices]
+```
+
+### ILA 探针文件 (.ltx) 陷阱 ⚠️
+
+**TASK-E001-030 实战发现**：实现生成 `debug_nets.ltx`（ILA probe 定义文件）后，
+Vivado Hardware Manager **不会自动加载**。即使 bitstream 已烧录且 ILA 核存在于硬件中，
+没有 probes file 关联 → `get_hw_ilas` 返回 0。
+
+```tcl
+# ✗ 错误：烧录后不关联 ltx → ILA 不可见
+program_hw_devices $fpga_dev
+get_hw_ilas  # 返回 0 或 4（不匹配）
+
+# ✓ 正确：烧录后关联 ltx 并刷新
+set_property PROBES.FILE {<impl_dir>/debug_nets.ltx} $fpga_dev
+refresh_hw_device $fpga_dev
+get_hw_ilas  # 返回 4，probes 完整
+```
+
+**根本原因**：`debug_nets.ltx` 在综合/实现时生成，包含 ILA probe 的名称、宽度和
+与硬件信号的映射。没有它，Vivado 只能看到 ILA 核的存在（"4 ILA core(s)"），
+但不知道探针名称和信号对应关系，因此无法交互。
+
+**检查清单**：
+- [ ] 确认 `debug_nets.ltx` 与 bitstream 来自同一次实现（`impl_1/` 目录）
+- [ ] XSCT 烧录 FPGA 后，Vivado 端执行 `refresh_hw_device` + 关联 `PROBES.FILE`
+- [ ] `get_hw_ilas` 返回非零且 `get_hw_probes` 包含预期信号名
+
+## 相关 Skills
+
+- `fpga-vitis-cli-build` — Vitis CLI 编译和 XSCT 下载
+- `fpga-bd-debug-clock` — ILA 时钟域和 debug hub 诊断
+- `fpga-board-validation` — L5/L6 上板验证流程
+- `fpga-iteration-economics` — 理解"先看 ILA vs 改代码"的成本差异
+- `fpga-official-doc-first` — BSP API 和 IP 文档查阅规则
+- `fpga-hw-pin-verify` — 引脚交叉验证
 
 ## 语言策略
 

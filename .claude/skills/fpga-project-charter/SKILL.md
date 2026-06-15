@@ -1,7 +1,13 @@
 ---
-description: 项目章程模板——定义项目范围、目标、干系人、约束
-when_to_use: 启动新 FPGA 项目时创建项目章程；planner agent 第一个产出
-allowed-tools: Read, Write, Edit
+skill_id: SKILL-FPGA-PROJECT-CHARTER
+name: fpga-project-charter
+layer: FPGA-Method
+status: candidate
+source_basis:
+  - SRC-FPGA-011
+validated_in_projects: []
+last_reviewed: "2026-06-15"
+owner: human_owner
 ---
 
 # 项目章程
@@ -14,3 +20,17 @@ allowed-tools: Read, Write, Edit
 - 技术和非技术约束
 - 高层级时间线和里程碑
 - 验收标准概要
+
+## 反模式
+
+### ❌ "小项目不需要章程"
+```
+即使单人/单模块项目，章程明确 scope 边界和验收标准。
+没有章程的默认行为 = scope creep + 永无止境的"再完善一下"。
+```
+
+## 相关 Skills
+
+- `fpga-project-acceptance` — 验收标准定义
+- `fpga-validation-levels` — 验证级别参考
+- `fpga-software-env-profile` — 工具链环境配置

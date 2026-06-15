@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# FPGA-AWP pre-commit hook —— 提交前自动运行 validate-awp
+# FPGA-AWP pre-commit hook —— 提交前自动 sync + validate
 # 由 scripts/install_pre_commit.py 安装到 .git/hooks/pre-commit
 
 set -e
@@ -7,6 +7,10 @@ set -e
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 VALIDATOR="$ROOT/scripts/validate_awp.py"
 
+echo "[pre-commit] Auto-syncing registry and state..."
+python "$VALIDATOR" --sync
+
+echo ""
 echo "[pre-commit] Running FPGA-AWP validation..."
 
 if python "$VALIDATOR"; then

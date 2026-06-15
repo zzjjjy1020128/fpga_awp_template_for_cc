@@ -57,6 +57,26 @@ owner: human_owner
 - [ ] 无 RVALID 忘记发出（master 永远等待读数据）
 - [ ] 无寄存器 side-effect 在仿真中未被发现（读即触发动作）
 
+## 反模式（禁止事项）
+
+### ❌ "BVALID 等几拍也没关系"
+```
+AXI-Lite 从机无限延迟 BVALID/RVALID → master 永远等待 → 系统死锁。
+每个读写事务必须有最坏情况响应延迟上限。
+```
+
+### ❌ "WSTRB 全 1 就行，不需要验证窄位宽"
+```
+WSTRB 支持任意字节组合。假设 WSTRB 永远全 1 → 窄位宽写入时写入错误的字节。
+必须测试 WSTRB 非全 1 场景。
+```
+
+## 相关 Skills
+
+- `fpga-axis-review` — AXI-Stream 协议审查（数据通路侧）
+- `fpga-rtl-review` — L0 审查中的 AXI-Lite 初步检查
+- `fpga-integration-failure-debug` — 寄存器读写异常时（CAT-AX）的调试
+
 ## 审查输出
 - `.awp/reviews/REV-{exp}-{task_seq}-AXIL-{seq}.md`
 - 含：寄存器地址空间校验表、协议违规项数、修复建议

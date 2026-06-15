@@ -14,7 +14,7 @@ try:
     if hasattr(HOOK_DST, "chmod"):
         HOOK_DST.chmod(0o755)
     print(f"[OK] Pre-commit hook installed: {HOOK_DST}")
-    print("     Commit 前将自动运行 make validate-awp")
+    print("     Commit 前将自动运行 --sync + validate-awp")
 except Exception as e:
     print(f"[ERROR] Failed to install pre-commit hook: {e}", file=sys.stderr)
     sys.exit(1)

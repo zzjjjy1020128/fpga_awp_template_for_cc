@@ -7,11 +7,19 @@ source_basis:
   - SRC-FPGA-008
   - SRC-FPGA-011
 validated_in_projects: ["E001"]
-last_reviewed: "2026-06-10"
+last_reviewed: "2026-06-15"
 owner: human_owner
+mcp_tools_gated:
+  - mcp__vivado__program_device
+  - mcp__vivado__get_io_report
+  - mcp__vivado__verify_io_placement_tool
 ---
 
 # 上板验证 (L5-L6)
+
+> ⚠️ **MCP Gate**：本 skill 是以下 MCP 操作的唯一入口。
+> 模型不得直接调用 `program_device` / `get_io_report` / `verify_io_placement_tool`，
+> 必须先经过本 skill 的前置检查和平台判断。
 
 ## 适用场景
 - hardware_validator 执行 L5（冒烟测试）和 L6（数据正确性）
@@ -32,13 +40,18 @@ owner: human_owner
 - [ ] 时钟频率确认（ILA 捕获时钟周期测量，对比平台清单中的期望频率）
 
 ### PS 启动（Zynq 平台）
+
+> ⚠️ **先 PS 后 PL**：Zynq 必须先通过 XSCT 初始化 PS（`ps7_init`）再烧录 PL。
+> 用 Vivado HW Manager 直接烧 PL → PS 未初始化 → FCLK 不运行 → ILA 不可见。
+
 - [ ] PS 启动完成（UART 终端有输出或 XSCT 可连接）
-- [ ] 使用 XSCT 初始化 PS（`ps7_init.tcl`），不用 Vivado HW Manager
+- [ ] 使用 XSCT 初始化 PS（`source ps7_init.tcl; ps7_init; ps7_post_config`），不用 Vivado HW Manager
 - [ ] DDR 可读写（XSCT `mrd`/`mwr` 验证）
 
 ### Bitstream 下载
-- [ ] Bitstream 下载成功（无 DONE 错误）
+- [ ] Bitstream 下载成功（无 DONE 错误）：Zynq 必须通过 XSCT `fpga -f`，纯 PL 可用 Vivado
 - [ ] 下载后 PL 时钟工作（ILA 采样有时钟边沿）
+- [ ] Zynq 检查：PS 初始化后 Vivado 端 `refresh_hw_device`，确认 ILA 可见
 
 ### 基本 I/O
 - [ ] 基本 I/O 功能正常（LED/按键，如适用）
@@ -87,6 +100,46 @@ owner: human_owner
 
 缺少任意一项 → 不得关闭 session。
 
+## 反模式（禁止事项）
+
+### ❌ "上板失败了，加几个 printf 看看"
+```
+printf 调试需要：改 C 代码 → 重新编译 → 下载 ELF → 运行 → 看 UART。
+这个过程 3-5 分钟每次迭代。而 ILA 已经在硬件上连着，
+直接配置触发条件看波形只需 30 秒。
+更糟的是：在 DMA 关键路径上加 printf 会改变时序、破坏 DMA 窗口。
+```
+**正解**：ILA 波形 > AXI-Lite 寄存器 dump > DMA DMASR 寄存器 > C 代码改。
+
+### ❌ "换个 bitstream 试试"（不记录版本）
+```
+不记录 bitstream 版本的情况下反复重烧 → 不知道哪个版本对应什么行为。
+出现"刚才还好好的现在不行了"时无法追溯到具体变更。
+```
+**正解**：每次上板记录 bitstream 生成日期/commit SHA。失败时采集完整证据包。
+
+### ❌ "这个 ILA 触发条件看起来差不多"
+```
+ILA 触发条件配置不精确（如将所有 probe 设 don't-care）→ ILA 被噪声触发
+→ 捕获窗口不在目标事件上 → 误判为"硬件没数据"。
+```
+**正解**：精确配置触发条件（如 tvalid==1 && tready==1 && tlast==1）。参考 `fpga-zynq-debug-toolchain` §"硬规则 2"。
+
+### ❌ "仿真过了，上板肯定没问题"
+```
+仿真无法覆盖：实际时钟抖动、信号完整性、DDR 时序、PS-PL 接口延迟。
+L1c 全 PASS 只是上板的必要条件，不是充分条件。
+```
+**正解**：L5 冒烟测试 → L6 数据正确性 → 逐级递进，不可跳过。
+
+### ❌ "板卡 JTAG 检测不到？重启 Vivado 试试"
+```
+反复重启 Vivado 是无效的试错。JTAG 检测不到的原因通常是：
+1) 板卡没上电 2) 下载器驱动未装 3) hw_server 端口被占用。
+重启 Vivado 不解决任何上述问题。
+```
+**正解**：按 CAT-HW 分诊：电源 → 线缆 → 驱动 → hw_server 端口。参考 `fpga-validation-levels` §"上板失败分诊表"。
+
 ## 常用 XSCT 命令速查
 
 ```tcl
@@ -107,6 +160,15 @@ fpga -file design_1_wrapper.bit
 # 运行 FSBL + 加载 ELF
 source fsbl_dma_test.tcl
 ```
+
+## 相关 Skills
+
+- `fpga-zynq-debug-toolchain` — ILA 触发配置、软件 gate、XSCT 下载流程
+- `fpga-bd-debug-clock` — ILA 时钟域、debug hub 诊断
+- `fpga-hw-pin-verify` — 上板前引脚交叉验证
+- `fpga-vitis-cli-build` — PS 软件编译和 CLI 下载
+- `fpga-iteration-economics` — 理解每次上板迭代的真实时间成本
+- `fpga-validation-levels` — L5/L6 门禁规则和 CAT-* 分诊表
 
 ## 输出格式
 - `.awp/runs/RUN-{exp}-BOARD-{seq}.md`（格式见板卡验证模板 `TEMPLATE.md`）

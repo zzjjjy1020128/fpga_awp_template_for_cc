@@ -1,0 +1,56 @@
+# HOST_ENV — 开发主机环境描述符
+# ==========================================
+# 权威记录本机 FPGA 开发工具链的位置、版本和状态。
+# 由 fpga-host-env-detect skill 生成和更新。
+# Session 启动时自动校验，preflight 读取此文件做静态检查。
+# ==========================================
+
+host:
+  id: "HOST-ZJY-WIN11"
+  os: "Windows 11 Home China"
+  kernel: "MSYS_NT-10.0-26200 / MINGW64_NT"
+  hostname: "laptop_zjy"
+
+toolchain:
+  vivado:
+    path: "G:/vivado2022.2/Vivado/2022.2"
+    version: "2022.2"
+    executable: "G:/vivado2022.2/Vivado/2022.2/bin/vivado.bat"
+    hw_server: "G:/vivado2022.2/Vivado/2022.2/bin/hw_server.bat"
+
+  vitis:
+    path: "G:/vivado2022.2/Vitis/2022.2"
+    version: "2022.2"
+    xsct: "G:/vivado2022.2/Vitis/2022.2/bin/xsct.bat"
+    # Note: XSCT 在 Vitis 目录，不在 Vivado/bin 下
+
+  simulation:
+    iverilog:
+      path: "/g/iverilog/iverilog/bin/iverilog"
+      version: "11.0 (devel)"
+    # verilator: not installed
+
+  python:
+    path: "python"  # in PATH
+    version: "3.11.9"
+
+  shell:
+    type: "bash"  # MSYS2/MinGW, not cmd.exe
+    # Tcl scripts must use Unix-style paths in bash context
+
+board:
+  jtag_id: "Digilent/210512180081"
+  hw_server_url: "TCP:localhost:3121"
+  target_device: "xc7z010"
+  platform: "HW_BASE_AX7010_v1.2"
+
+project:
+  vivado_project: "vivado/shift_2d_ax7010_260608/shift_2d_ax7010_260608.xpr"
+  bd_name: "design_1"
+  top: "design_1_wrapper"
+
+# === Metadata ===
+generated_by: "fpga-host-env-detect"
+generated_date: "2026-06-15"
+last_verified: "2026-06-15"
+status: "active"  # active | stale | invalid

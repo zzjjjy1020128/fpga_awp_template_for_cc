@@ -1,0 +1,121 @@
+task_id: "TASK-E001-030"
+title: "打通 Vivado 全链路 + 产物一致性验证 —— IP→BD→比特流→XSA→上板"
+status: "done"
+agent: "vivado_integrator"
+assigned_to: ""
+created_date: "2026-06-15"
+
+objective: >
+  在现有 Vivado 工程 (shift_2d_ax7010_260608) 上，跑通 Custom IP (axil_2d_shift_v1_0)
+  → BD (design_1) → Wrapper → 综合 → 实现 → 比特流 → XSA 导出 → 上板烧录的完整链路。
+  重点关注各阶段产物的一致性（IP 源文件 vs BD 引用 vs 综合使用的文件 vs XSA vs 实际硬件），
+  建立可复现的一致性检查机制，将踩坑经验反哺到相关 skills。
+
+target_validation_level: "L5"
+integration_scope: "system"
+target_platform: "HW_BASE_AX7010_v1.0"
+
+validation_status:
+  L0: "skip"
+  L1a: "skip"
+  L1b: "skip"
+  L1c: "skip"
+  L2: "pass"
+  L3: "pass"
+  L4: "pass"
+  L5: "pass"
+  L6: "skip"
+  L7: "skip"
+
+depends_on: []
+
+scope:
+  allowed_edit_paths:
+    - "vivado/shift_2d_ax7010_260608/"
+    - "vivado/ip/axil_2d_shift_v1_0/"
+    - "constraints/"
+    - "board/"
+    - ".awp/runs/"
+    - ".awp/issues/"
+    - ".awp/platform/"
+    - ".claude/skills/fpga-vivado-preflight/"
+    - ".claude/skills/fpga-vivado-methodology/"
+    - ".claude/skills/fpga-platform-freeze/"
+    - ".claude/skills/fpga-board-validation/"
+    - ".claude/skills/fpga-bd-debug-clock/"
+    - ".claude/skills/fpga-zynq-debug-toolchain/"
+    - ".claude/skills/fpga-vivado-log-analysis/"
+    - ".claude/skills/fpga-vitis-cli-build/"
+    - "rtl/axis_output.sv"     # ISS-E001-011 修复：IP 源与项目 RTL 需同步
+    - "rtl/axis_input.sv"      # 如有连带修改
+    - "tb/tb_axis_output.sv"   # L1a 回验所需 TB
+  forbidden_edit_paths:
+    - ".awp/workspace_manifest.json"
+    - ".awp/schemas/"
+    - ".awp/registry/"
+    - "rtl/axil_2d_shift.sv"       # 顶层，不在此 scope
+    - "rtl/axil_slave_if.sv"
+    - "rtl/ctrl_fsm.sv"
+    - "rtl/shift_addr_gen.sv"
+    - "rtl/frame_buf_mgr.sv"
+    - "rtl/dbg_trigger_hub.sv"
+    - "rtl/regs_top.sv"
+    - "tb/tb_axis_input.sv"
+
+context:
+  must_read:
+    - ".awp/platform/hw_base_ax7010_v1.0.yaml"
+    - ".awp/platform/host_env.yaml"
+    - "vivado/ip/axil_2d_shift_v1_0/component.xml"
+    - "vivado/shift_2d_ax7010_260608/shift_2d_ax7010_260608.xpr"
+
+acceptance:
+  - "IP 源文件与 BD 引用的版本一致（RTL diff 全 identical）"
+  - "IP 重新打包/升级后 BD 正确识别并生成 wrapper"
+  - "综合通过：0 CRITICAL WARNING，资源利用率在合理范围"
+  - "实现通过：WNS/WHS ≥ 0 ns（时序收敛）"
+  - "比特流生成成功：bit 文件非零大小"
+  - "XSA 导出成功：与比特流同一次 hardware export 产出，时间戳匹配"
+  - "上板 L5 冒烟测试通过：JTAG 可检测、ILA 可触发、AXI-Lite 寄存器可读写"
+  - "全部过程中每个阶段的一致性检查点通过"
+
+required_outputs:
+  - ".awp/runs/RUN-E001-SYNTH-030.md"
+  - ".awp/runs/RUN-E001-IMPL-030.md"
+  - ".awp/runs/RUN-E001-BOARD-030.md"
+  - ".awp/issues/ISS-E001-013.yaml"  # 全链路一致性问题汇总
+  - ".claude/skills/fpga-vivado-preflight/SKILL.md"  # 更新：加 IP 一致性检查
+  - ".claude/skills/fpga-platform-freeze/SKILL.md"   # 更新：加产物一致性校验
+
+handoff:
+  next_task: ""
+  handoff_file: ""
+
+risk_level: "medium"
+
+notes: >
+  ## 背景
+
+  之前多次遇到以下一致性问题：
+  1. 修改了 IP RTL 但 BD 仍使用旧版本（需要 IP Upgrade）
+  2. BD 中手动连接 ILA probe 后未重新 export XSA → Vitis 用的 XSA 不含新 probe
+  3. IP 的 RTL 与项目 rtl/ 目录中的同名文件可能分叉（两个副本）
+  4. XSA 导出后未验证时间戳 → 不确定 BSP 和 bitstream 是否配套
+  5. XCI 文件被删除 → BD 丢失 IP 实例配置
+
+  ## Phase 计划
+
+  Phase 1 (vivado_integrator):
+  - preflight 检查 IP/BD/XSA 一致性
+  - 修复 IP/BD 不一致（如有）
+  - 综合 → 实现 → 比特流
+  - XSA 导出 + 一致性验证
+
+  Phase 2 (hardware_validator):
+  - 上板 L5 冒烟测试
+  - JTAG / ILA / AXI-Lite 功能确认
+
+  Phase 3 (orchestrator):
+  - 汇总产物一致性问题到 ISS
+  - 更新相关 skills（preflight / methodology / platform-freeze）
+  - 将验证过的检查点固化到 skill 中

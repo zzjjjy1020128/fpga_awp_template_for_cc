@@ -1,3 +1,15 @@
+---
+skill_id: SKILL-FPGA-INTEGRATION-FAILURE-DEBUG
+name: fpga-integration-failure-debug
+layer: FPGA-Method
+status: local_adapted
+source_basis:
+  - SRC-FPGA-011
+validated_in_projects: ["E001"]
+last_reviewed: "2026-06-15"
+owner: human_owner
+---
+
 # 集成验证失败系统化调试
 
 > 触发：L1b 或 L1c 仿真失败，需要定位根因并修复。
@@ -65,3 +77,11 @@
 - ❌ 通过 TB workaround 绕过疑似 DUT bug（如跳过某些 case、修改预期值匹配错误输出）
 - ❌ 跳过 L1a 回验直接跑 L1b（修改 RTL 后必须先自证模块级正确性）
 - ❌ 同一 issue 超过 3 轮不升级
+
+## 相关 Skills
+
+- `fpga-l1b-datapath-verify` — 数据通路切片验证方法
+- `fpga-sim-verification` — 仿真架构（scoreboard、golden model）
+- `fpga-validation-levels` — L1b/L1c 门禁和失败升级规则
+- `fpga-axi-lite-review` / `fpga-axis-review` — 接口协议级调试
+- `fpga-rtl-style` — 常见跨模块 bug 模式（自清除脉冲等）

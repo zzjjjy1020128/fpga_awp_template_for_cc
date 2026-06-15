@@ -200,13 +200,17 @@ def validate_task_files():
 
 
 def validate_review_files():
-    """校验 .awp/reviews/*.md 的 YAML frontmatter"""
+    """校验 .awp/reviews/*.md 的 YAML frontmatter（schema 驱动）"""
     errors = []
     reviews_dir = ROOT / ".awp" / "reviews"
     if not reviews_dir.exists():
         return errors
 
-    VALID_RESULTS = {"pass", "pass_with_notes", "fail"}
+    schema = load_json_schema(".awp/schemas/review.schema.json")
+    if schema is None:
+        errors.append("Cannot load review.schema.json")
+        return errors
+
     for md_file in sorted(reviews_dir.glob("*.md")):
         if md_file.name == ".gitkeep":
             continue
@@ -224,21 +228,12 @@ def validate_review_files():
             errors.append(f"{rel}: missing or malformed YAML frontmatter")
             continue
 
-        if "task_id" not in fm:
-            errors.append(f"{rel}: frontmatter missing 'task_id'")
-        elif not check_id_format(str(fm["task_id"])):
+        # Schema 驱动校验（与 validate_task_files 一致）
+        errors.extend(validate_schema_required(fm, schema, rel))
+
+        # 补充校验：task_id 格式（schema 只检查 string 类型，不检查命名规范）
+        if fm.get("task_id") and not check_id_format(str(fm["task_id"])):
             errors.append(f"{rel}: frontmatter task_id '{fm['task_id']}' has invalid format")
-
-        if "reviewer" not in fm:
-            errors.append(f"{rel}: frontmatter missing 'reviewer'")
-
-        if "result" not in fm:
-            errors.append(f"{rel}: frontmatter missing 'result'")
-        elif fm["result"] not in VALID_RESULTS:
-            errors.append(f"{rel}: frontmatter result '{fm['result']}' not in {VALID_RESULTS}")
-
-        if "date" not in fm:
-            errors.append(f"{rel}: frontmatter missing 'date'")
 
     return errors
 

@@ -71,6 +71,34 @@ owner: human_owner
 - `.awp/reviews/REV-{exp}-{task_seq}-CDC-{seq}.md`
 - 含：跨域路径清单（每条路径的源/目的/同步方式）、违规项、修复建议
 
+## 反模式（禁止事项）
+
+### ❌ "单 bit 信号跨域，直接连就行"
+```
+单 bit 不经同步器直接跨域 → 亚稳态传播 → 目的域采样到无效电平。
+产生间歇性 bug（最难复现的类型）。必须 2+ 级同步器或 xpm_cdc_single。
+```
+
+### ❌ "多 bit 总线用双 FF 同步"
+```
+多 bit 总线（如计数器值、状态编码）双 FF 无法保证所有 bit 在同一周期到达。
+不同 bit 走不同路径 → 目的域采样到中间态。必须用异步 FIFO 或 Gray 编码。
+```
+
+### ❌ "set_false_path 覆盖所有跨域路径"
+```
+false path 告诉 STA 不分析这条路径——但不等于同步正确。
+false path 只应标注物理上不可发生的路径，不应替代正确的同步器。
+```
+
+## 相关 Skills
+
+- `fpga-rtl-review` — L0 审查中的 CDC 初步检查
+- `fpga-vivado-methodology` — 综合/实现中的跨域约束
+- `fpga-official-doc-first` — Xilinx xpm_cdc_* 原语用法参考 PGxxx
+
+## 审查输出
+
 ## 语言规范
 - 审查报告：zh
 - 信号名：en

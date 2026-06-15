@@ -14,9 +14,57 @@
 6. **文件编辑纪律**。优先编辑已有文件，不加无关重构，不引入未要求的抽象，不写冗余注释。
 7. **保持简洁**。模板和文档应实用、简短。
 
-## 3. 三层架构
+## 3. MCP-Skill 层级关系（强制）
 
-本工作区分三层，详见 `LAYERS.md`：
+MCP Vivado 工具 (`mcp__vivado__*`) 是**技能的执行后端**，不是模型的直接选项。模型不得绕过 skill 直接调用 MCP 工具。
+
+### 层级模型
+
+```
+模型决策层
+  → 识别意图（"我要上板/综合/实现/看 ILA"）
+  → 调用对应的 fpga-* skill（必需的 gate）
+    → skill 审查前置条件、检查反模式
+    → skill 内部通过 MCP 执行具体操作
+    → skill 验证结果、记录证据
+```
+
+### MCP 工具 → Skill 映射（强制）
+
+| 你要做的事 | 必须先调用的 Skill | Skill 允许的 MCP 工具 |
+|-----------|-------------------|---------------------|
+| 打开 Vivado 工程 | `fpga-vivado-preflight` | `start_session`, `open_project` |
+| 综合 | `fpga-vivado-methodology` | `run_synthesis`, `get_critical_warnings` |
+| 实现 | `fpga-vivado-methodology` | `run_implementation`, `get_timing_report` |
+| 生成比特流 | `fpga-vivado-methodology` | `check_bitstream_readiness`, `generate_bitstream` |
+| 导出 XSA | `fpga-platform-freeze` | `run_tcl` (write_hw_platform) |
+| 上板烧录/验证 | `fpga-board-validation` | `program_device` (仅纯 PL), `get_io_report` |
+| ILA 操作 | `fpga-zynq-debug-toolchain` | `run_hw_ila`, `get_hw_probes` |
+| 约束检查 | `fpga-vivado-preflight` | `xdc_lint`, `verify_io_placement_tool` |
+| 看日志/诊断 | `fpga-vivado-log-analysis` | `get_critical_warnings`, `get_run_progress` |
+
+### 硬规则
+
+1. **禁止裸调 MCP**：任何 `mcp__vivado__*` 工具调用前，必须在同一次决策中先调用（或引用）对应的 skill
+2. **Skill 先于工具**：先读 skill 的反模式和前置条件，再执行操作
+3. **不明操作 → 查导航器**：不确定该用哪个 skill 时，先调 `fpga-skill-navigator`
+4. **例外**：`get_project_info`、`list_sessions`、`get_next_suggestion` 等纯查询工具可在 skill 外使用
+
+### 反模式
+
+```
+❌ 模型: "我要烧板" → 直接调 mcp__vivado__program_device
+   → Zynq 平台 PS 未初始化 → ILA 不可见 → 踩已知的坑
+
+✓ 模型: "我要烧板" → 调 fpga-board-validation
+   → skill: "Zynq 平台 → 引用 fpga-zynq-debug-toolchain"
+   → skill: "不用 Vivado HW Manager，用 XSCT"
+   → 正确执行
+```
+
+## 4. 三层架构
+
+本工作区分三层，详见 `LAYERS.md`（原 §3）：
 
 | 层 | 目录 | 职责 |
 |---|------|------|
@@ -34,7 +82,8 @@
 1. SessionStart hook 自动运行 gate-check + 生成 session 骨架（`SKELETON-*.md`）
 2. 检查 `.awp/handoffs/` 最新 handoff → 恢复上下文；检查 `.awp/platform/` 加载已冻结平台
 3. **读 YAML，不信叙事**：handoff 恢复后必须以 task YAML 的 `validation_status` 为准做 gate re-validation
-4. 向用户汇报恢复结果
+4. **主机环境检测**：读取 `.awp/platform/host_env.yaml`。若不存在或 `status != active` → 触发 `fpga-host-env-detect` skill 生成/更新。这是后续所有 Vivado/Vitis 操作的前置条件
+5. 向用户汇报恢复结果 + 主机环境状态
 
 ### 工作
 1. spawn 子智能体前：task yaml 必须存在、gate gap 无阻断（`validate_awp.py --gate-check` exit 0）
@@ -86,7 +135,8 @@ L0 → L1a → L1b → L1c → L2 → L3 → L4 → L5 → L6 → L7
 | FPGA 技能 | `.claude/skills/fpga-*/` | L2 |
 | 架构文档 | `docs/architecture*.md` | L2 |
 | 验证计划 | `docs/verification_plan.md` | L2 |
-| 平台清单 | `.awp/platform/hw_base_*.yaml` | L2 |
+| 平台清单（硬件） | `.awp/platform/hw_base_*.yaml` | L2 |
+| 平台清单（主机） | `.awp/platform/host_env.yaml` | L2 |
 | 编排指南 | `.claude/orchestration_guide.md` | L3 |
 | 执行模式 | `.claude/execution_modes.md` | L3 |
 | Agent 定义 | `.claude/agents/*.md` | L3 |

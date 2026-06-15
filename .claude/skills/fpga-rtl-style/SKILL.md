@@ -46,6 +46,29 @@ owner: human_owner
 - [ ] 模块端口按功能分组（clk/rst → config → data in → data out → status）
 - [ ] 避免深度嵌套（> 3 级 if-else）
 
+### 跨模块握手：禁止自清除脉冲
+
+模块间 1 周期脉冲握手（如 `capture_done` → FSM 状态转移）中，生产者在同一 `always_ff` 内 self-clear + set 会导致消费者因 NBA 时序错过脉冲。
+
+**违反案例（E001）**：`axis_input` 的 `capture_done` 自清除 → `ctrl_fsm` 永远卡在 CAPTURE。
+
+```verilog
+// 错误：自清除脉冲。消费者在同一 posedge 采样到旧值 0
+always_ff @(posedge clk) begin
+    done <= 1'b0;          // 自清除
+    if (condition) done <= 1'b1;  // 脉冲——消费者可能看不到
+end
+
+// 正确：保持高电平直到消费者确认
+always_ff @(posedge clk) begin
+    if (!enable)     done <= 1'b0;  // 消费者拉低 enable 时清除
+    else if (condition) done <= 1'b1;
+end
+```
+
+- [ ] 跨模块握手脉冲不由生产者自清除，由消费者清除
+- [ ] 需要 1 周期脉冲时，消费者用两级寄存器同步后再做边沿检测
+
 ### 工具检查
 - [ ] 条件允许时运行 Verible linter：`verible-verilog-lint <file>.sv`
 - [ ] 条件允许时运行 iverilog 编译检查：`iverilog -t null -g2012 <file>.sv`
@@ -53,6 +76,13 @@ owner: human_owner
 ## 输出格式
 - `.awp/reviews/REV-{exp}-{task_seq}-STYLE-{seq}.md`
 - 包含：违规项数、严重等级（BLOCK/WARN/INFO）、修复建议
+
+## 相关 Skills
+
+- `fpga-rtl-review` — L0 审查（风格检查是审查的一部分）
+- `fpga-module-owner-l1a` — 模块设计流程（风格应用于设计阶段）
+- `fpga-sim-verification` — TB 编写规范
+- `fpga-cdc-review` — CDC 编码规范（同步器、复位桥）
 
 ## 语言规范
 - 审查报告：zh

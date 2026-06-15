@@ -1,3 +1,15 @@
+---
+skill_id: SKILL-FPGA-L1B-DATAPATH-VERIFY
+name: fpga-l1b-datapath-verify
+layer: FPGA-Method
+status: candidate
+source_basis:
+  - SRC-FPGA-011
+validated_in_projects: []
+last_reviewed: "2026-06-15"
+owner: human_owner
+---
+
 # L1b 数据通路闭环验证
 
 > 触发：用户要求创建或执行 L1b 验证、数据通路闭环仿真、跨模块集成测试。
@@ -52,6 +64,32 @@ BRAM/FIFO → 地址生成器 → 输出模块 → 外部接口
 - 记录关键信号的周期级时序（如 shift_en 有效后第 N 拍出现首个有效输出）
 - 必须包含 ≥3 帧的连续测试
 - 输出到 `.awp/runs/RUN-{exp}-L1B-{path}-{seq}.md`
+
+## 反模式（禁止事项）
+
+### ❌ "所有模块写完了再一次性跑 L1b"
+```
+等所有模块 ready 才做 L1b = 把 bug 堆积到最后。越早发现集成问题，
+修复成本越低。3-4 个数据通路模块 ready 后立即启动 L1b。
+```
+
+### ❌ "L1b 跑通了就不用管 L1c"
+```
+L1b 验证的是切片（2-3 模块），L1c 验证全系统（所有接口同时工作）。
+L1b pass 只是 L1c 的必要条件，不是充分条件。
+```
+
+### ❌ "L1b TB 可以复刻 L1c TB"
+```
+L1b 的优势正是精简——只实例化 2-3 个模块，信号空间小，调试快。
+把整个系统塞进 L1b = 失去切片的诊断价值。
+```
+
+## 相关 Skills
+
+- `fpga-sim-verification` — TB 架构、scoreboard、golden model
+- `fpga-integration-failure-debug` — L1b 失败时的系统化调试
+- `fpga-l1b-datapath-verify` — 数据通路切片方法
 
 ## 与 L1c 的关系
 

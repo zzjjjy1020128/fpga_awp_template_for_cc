@@ -1,0 +1,53 @@
+issue_id: "ISS-E001-012"
+title: "axis_input capture_en 控制流缺陷 —— TC05/TC10 失败（6/146 断言）"
+status: "open"
+
+detected_at_level: "L1a"
+detected_by_task: "TASK-E001-029"
+detected_by_session: "SESS-E001-OR-008"
+detected_in_run: "RUN-E001-L1A-029"
+
+suspected_owner_task: "TASK-E001-006"
+suspected_module: "axis_input (capture_en gating logic)"
+
+round_count: 1
+max_rounds: 3
+
+failure_signature:
+  test_case: "TC05, TC10"
+  timestamp: "2026-06-10"
+  signal: "s_axis_tready, col_cnt, row_cnt, write_addr"
+  expected: >
+    TC05: capture_en=0 时 tready=0，col_cnt/row_cnt/write_addr 不变化。
+    TC10: capture_en 在中途拉低再恢复后，计数器能正确从断点继续。
+  observed: >
+    140/146 断言通过，6 个断言失败。TC05 中 capture_en=0 时 tready 或计数器
+    行为不符合预期。TC10 中 capture_en 中途取消再恢复后计数器状态异常。
+  note: >
+    此问题在 TASK-E001-029 修复前已存在（非 Simple DMA 修复引入）。
+    TC12 (Simple DMA 模式) 20/20 全通过，TASK-E001-029 核心目标达成。
+    6 个失败均集中在 capture_en 开关控制流路径。
+
+evidence:
+  logs:
+    - ".awp/runs/RUN-E001-L1A-029.md"
+  notes:
+    - "axis_input 在 capture_en=0 时对 tready 和计数器的控制逻辑有缺陷"
+    - "可能与 capture_en 异步撤销时的状态机同步有关"
+    - "TC10 的中途取消/恢复路径可能需要额外的状态保存"
+
+root_cause:
+  confirmed: false
+  hypothesis: >
+    axis_input 的 capture_en 信号可能缺少与内部状态机的正确同步，
+    导致 capture_en 拉低后 tready 未立即响应、或拉高后计数器未从
+    正确位置恢复。需检查 always_ff 中 capture_en 对 tready/计数器
+    的 gating 逻辑是否完整覆盖所有状态转移路径。
+
+next_action:
+  role: "rtl_implementer"
+  action: >
+    修复 axis_input.sv 中 capture_en 对 tready 和计数器的控制逻辑，
+    确保 capture_en=0 时 tready=0 且计数器冻结，capture_en 恢复时
+    状态正确续传。修复后重新运行 L1a (RUN-E001-L1A-029 的 TC05/TC10)。
+  escalate: false

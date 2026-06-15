@@ -64,6 +64,32 @@ owner: human_owner
 - [ ] 条件允许时运行 `verible-verilog-lint <file>.sv`
 - [ ] 条件允许时运行 `iverilog -t null -g2012 <file>.sv` 快速语法检查
 
+## 反模式（禁止事项）
+
+### ❌ "代码简单，扫一眼就行"
+```
+审查必须逐项检查 checklist，不能凭印象。"看起来没问题"是 bug 的最大来源。
+```
+
+### ❌ "这个 warning 不严重，先过"
+```
+每个 WARN 项都可能代表一个未来 bug。L0 审查是质量闸——过松的审查
+等于没有审查。BLOK 项必须修复才能 pass。
+```
+
+### ❌ "模块小，不需要 CDC 审查"
+```
+即使单时钟域模块，如果有外部输入信号（如来自 PS 的配置），
+也需要检查同步。详情 CDC 委托 fpga-cdc-review。
+```
+
+## 相关 Skills
+
+- `fpga-rtl-style` — 编码风格检查清单
+- `fpga-cdc-review` — CDC 和多时钟域审查
+- `fpga-axi-lite-review` / `fpga-axis-review` — 协议级审查
+- `fpga-module-owner-l1a` — L1a 设计流程（审查的前置环节）
+
 ## 审查输出
 - `.awp/reviews/REV-{exp}-{task_seq}-RTL-{seq}.md`
 - 含：每个 check item 的 pass/fail、违规等级（BLOCK/WARN/INFO）、修复建议、重审要求
