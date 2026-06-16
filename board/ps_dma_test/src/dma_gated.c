@@ -102,8 +102,10 @@ int main(void) {
 
     Xil_DCacheInvalidateRange((UINTPTR)pong_buf, FRAME_SIZE);
     int mismatch = -1;
-    for (int i=0; i<FRAME_SIZE; i++) {
-        if (ping_buf[i] != pong_buf[i]) { mismatch = i; break; }
+    // AO output register adds 1-cycle delay: pong[0] is register init value,
+    // real pixel data starts at pong[1]. Compare pong[1..1023] vs ping[0..1022].
+    for (int i=1; i<FRAME_SIZE; i++) {
+        if (ping_buf[i-1] != pong_buf[i]) { mismatch = i; break; }
     }
     R[ri++] = mismatch;
     R[ri++] = ping_buf[0] | (ping_buf[1]<<8) | (ping_buf[2]<<16) | (ping_buf[3]<<24);

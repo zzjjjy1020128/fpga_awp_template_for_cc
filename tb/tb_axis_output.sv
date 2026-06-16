@@ -74,6 +74,14 @@ module tb_axis_output;
     int                      seed_ctl;
     int                      pix;
 
+    // Pipeline registers: delay golden model outputs by 1 cycle
+    // to match DUT's output register stage
+    logic                    exp_v_q;
+    logic                    exp_l_q;
+    logic                    exp_u_q;
+    logic [DATA_WIDTH-1:0]   exp_d_q;
+    logic                    gm_valid_q;  // 1 if exp_*_q holds valid data
+
     // Temporary variables for TC12 golden model
     logic                    exp_v;
     logic                    exp_l;
@@ -193,6 +201,15 @@ module tb_axis_output;
         m_axis_tready = 0;
     endtask
 
+    // Start new frame: shift_en=1 + wait for output register latency
+    task start_frame(input [9:0] rows, input [9:0] cols);
+        shift_en = 1;
+        img_rows = rows;
+        img_cols = cols;
+        @(posedge clk);
+        settle();
+    endtask
+
     // -------------------------------------------------------------------------
     // Main Test Sequence
     // -------------------------------------------------------------------------
@@ -211,15 +228,15 @@ module tb_axis_output;
         test_id = 1;
         $display("--- TC%0d: Basic 4x4 output ---", test_id);
 
+        // Registered output: drive data, then posedge captures it, then check
         shift_en = 1;
         img_rows = 4;
         img_cols = 4;
-        // No extra clock here — DUT combinatorial outputs (tvalid/tdata/tuser/tlast)
-        // immediately reflect the state (row_cnt=0, col_cnt=0, all_done=0).
 
         for (int i = 0; i < 16; i++) begin
             drive_beat(i, 0, 1);
-            #1;
+            @(posedge clk);
+            settle();
             check($sformatf("beat %0d tvalid", i), m_axis_tvalid == 1);
             check($sformatf("beat %0d tdata == %0d", i, i), m_axis_tdata == i);
             check($sformatf("beat %0d tuser == %0d", i, (i == 0)), m_axis_tuser == (i == 0));
@@ -608,6 +625,11 @@ module tb_axis_output;
         gm_row  = 0;
         gm_col  = 0;
         gm_done = 0;
+        gm_valid_q = 1'b0;
+        exp_v_q = 1'b0;
+        exp_d_q = '0;
+        exp_l_q = 1'b0;
+        exp_u_q = 1'b0;
 
         g_checks = 0;
         g_errors = 0;
@@ -645,54 +667,66 @@ module tb_axis_output;
             drive_beat(rd_tmp, zf_tmp, rv_tmp);
             #1;
 
+            // ---- Compare PIPELINED golden values against DUT outputs ----
+            // DUT has 1-cycle output register: m_axis_* = prev_cycle's t*_comb
+            // We compare exp_*_q (computed last cycle, saved in pipeline reg)
+            // against m_axis_* (registered output from last cycle's combinational)
+            if (gm_valid_q) begin
+                if (exp_v_q !== m_axis_tvalid) begin
+                    $display("  FAIL [%0d] pix%0d tvalid: DUT=%b GOLDEN=%b",
+                             test_id, pix, m_axis_tvalid, exp_v_q);
+                    g_errors++;
+                    fail_count++;
+                end else begin
+                    pass_count++;
+                end
+                g_checks++;
+
+                if (exp_v_q) begin
+                    if (exp_d_q !== m_axis_tdata) begin
+                        $display("  FAIL [%0d] pix%0d tdata: DUT=%0d GOLDEN=%0d",
+                                 test_id, pix, m_axis_tdata, exp_d_q);
+                        g_errors++;
+                        fail_count++;
+                    end else begin
+                        pass_count++;
+                    end
+                    g_checks++;
+
+                    if (exp_l_q !== m_axis_tlast) begin
+                        $display("  FAIL [%0d] pix%0d tlast: DUT=%b GOLDEN=%b",
+                                 test_id, pix, m_axis_tlast, exp_l_q);
+                        g_errors++;
+                        fail_count++;
+                    end else begin
+                        pass_count++;
+                    end
+                    g_checks++;
+
+                    if (exp_u_q !== m_axis_tuser) begin
+                        $display("  FAIL [%0d] pix%0d tuser: DUT=%b GOLDEN=%b",
+                                 test_id, pix, m_axis_tuser, exp_u_q);
+                        g_errors++;
+                        fail_count++;
+                    end else begin
+                        pass_count++;
+                    end
+                    g_checks++;
+                end
+            end
+
             // ---- Golden model: compute expected combinational outputs ----
             exp_v = shift_en && !gm_done;
             exp_d = zf_tmp ? '0 : rd_tmp;
             exp_l = shift_en && !gm_done && (gm_col == img_cols - 1);
             exp_u = shift_en && !gm_done && (gm_row == '0 && gm_col == '0);
 
-            // Compare combinational outputs
-            if (exp_v !== m_axis_tvalid) begin
-                $display("  FAIL [%0d] pix%0d tvalid: DUT=%b GOLDEN=%b",
-                         test_id, pix, m_axis_tvalid, exp_v);
-                g_errors++;
-                fail_count++;
-            end else begin
-                pass_count++;
-            end
-            g_checks++;
-
-            if (exp_v) begin
-                if (exp_d !== m_axis_tdata) begin
-                    $display("  FAIL [%0d] pix%0d tdata: DUT=%0d GOLDEN=%0d",
-                             test_id, pix, m_axis_tdata, exp_d);
-                    g_errors++;
-                    fail_count++;
-                end else begin
-                    pass_count++;
-                end
-                g_checks++;
-
-                if (exp_l !== m_axis_tlast) begin
-                    $display("  FAIL [%0d] pix%0d tlast: DUT=%b GOLDEN=%b",
-                             test_id, pix, m_axis_tlast, exp_l);
-                    g_errors++;
-                    fail_count++;
-                end else begin
-                    pass_count++;
-                end
-                g_checks++;
-
-                if (exp_u !== m_axis_tuser) begin
-                    $display("  FAIL [%0d] pix%0d tuser: DUT=%b GOLDEN=%b",
-                             test_id, pix, m_axis_tuser, exp_u);
-                    g_errors++;
-                    fail_count++;
-                end else begin
-                    pass_count++;
-                end
-                g_checks++;
-            end
+            // Pipeline: save expected values for comparison next cycle
+            exp_v_q <= exp_v;
+            exp_d_q <= exp_d;
+            exp_l_q <= exp_l;
+            exp_u_q <= exp_u;
+            gm_valid_q <= 1'b1;
 
             // ---- Compute next golden state ----
             nxt_r = gm_row;

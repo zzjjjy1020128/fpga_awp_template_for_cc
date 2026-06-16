@@ -65,7 +65,12 @@ module axis_output #(
     output logic                   m_axis_tuser,
 
     // 完成
-    output logic                   shift_done
+    output logic                   shift_done,
+
+    output logic [9:0]             dbg_row_cnt,
+    output logic [9:0]             dbg_col_cnt,
+    output logic                   dbg_all_done,
+    output logic                   dbg_data_valid
 );
 
     // ============================================================
@@ -147,9 +152,9 @@ module axis_output #(
     logic                  tuser_comb;
 
     assign tdata_comb  = zero_fill ? {DATA_WIDTH{1'b0}} : read_data;
-    assign tvalid_comb = shift_en && data_valid_i && !all_done_q;
-    assign tlast_comb  = shift_en && !all_done_q && (col_cnt_q == img_cols - 1);
-    assign tuser_comb  = shift_en && !all_done_q && (row_cnt_q == '0 && col_cnt_q == '0);
+    assign tvalid_comb = shift_en && data_valid_i && !all_done;
+    assign tlast_comb  = shift_en && data_valid_i && (col_cnt == img_cols - 1);
+    assign tuser_comb  = shift_en && data_valid_i && (row_cnt == '0 && col_cnt == '0);
 
     always_ff @(posedge clk or negedge rstn) begin
         if (!rstn) begin
@@ -164,5 +169,10 @@ module axis_output #(
             m_axis_tuser  <= tuser_comb;
         end
     end
+
+    assign dbg_row_cnt    = row_cnt;
+    assign dbg_col_cnt    = col_cnt;
+    assign dbg_all_done   = all_done;
+    assign dbg_data_valid = data_valid_i;
 
 endmodule

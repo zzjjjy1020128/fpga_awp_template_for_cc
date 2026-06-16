@@ -225,13 +225,16 @@ module tb_axis_input;
         // write_addr should be 0 after frame-end reset
         check("write_addr == 0 after frame end", write_addr == 0);
 
-        // One more cycle: self-clear verified
+        // capture_done stays high until capture_en drops (not self-clearing)
         @(posedge clk);
         settle();
-        check("capture_done self-cleared", sample_capture_done == 0);
+        check("capture_done held high", sample_capture_done == 1);
 
         capture_en = 0;
-        wait_cycles(2);
+        repeat(2) @(posedge clk);
+        settle();
+        check("capture_done cleared after capture_en=0", sample_capture_done == 0);
+        wait_cycles(1);
 
         // =====================================================================
         // TC02: tuser resets counters mid-frame
@@ -345,7 +348,11 @@ module tb_axis_input;
         // Self-clear
         @(posedge clk);
         settle();
-        check("capture_done cleared after 1 cycle", sample_capture_done == 0);
+        check("capture_done held high", sample_capture_done == 1);
+        capture_en = 0;
+        repeat(2) @(posedge clk);
+        settle();
+        check("capture_done cleared after capture_en=0", sample_capture_done == 0);
 
         capture_en = 0;
         wait_cycles(2);
@@ -415,10 +422,13 @@ module tb_axis_input;
 
         @(posedge clk);
         settle();
-        check("capture_done self-cleared", sample_capture_done == 0);
+        check("capture_done held high", sample_capture_done == 1);
 
         capture_en = 0;
-        wait_cycles(2);
+        repeat(2) @(posedge clk);
+        settle();
+        check("capture_done cleared after capture_en=0", sample_capture_done == 0);
+        wait_cycles(1);
 
         // =====================================================================
         // TC07: Single column (img_cols=1) — tuser+tlast handling
@@ -461,10 +471,13 @@ module tb_axis_input;
 
         @(posedge clk);
         settle();
-        check("capture_done self-cleared", sample_capture_done == 0);
+        check("capture_done held high", sample_capture_done == 1);
 
         capture_en = 0;
-        wait_cycles(2);
+        repeat(2) @(posedge clk);
+        settle();
+        check("capture_done cleared after capture_en=0", sample_capture_done == 0);
+        wait_cycles(1);
 
         // =====================================================================
         // TC08: Single pixel (1x1) — tuser+tlast, one element, capture_done
@@ -494,10 +507,13 @@ module tb_axis_input;
 
         @(posedge clk);
         settle();
-        check("capture_done self-cleared", sample_capture_done == 0);
+        check("capture_done held high", sample_capture_done == 1);
 
         capture_en = 0;
-        wait_cycles(2);
+        repeat(2) @(posedge clk);
+        settle();
+        check("capture_done cleared after capture_en=0", sample_capture_done == 0);
+        wait_cycles(1);
 
         // =====================================================================
         // TC09: Dynamic img_rows/img_cols switching
@@ -542,10 +558,13 @@ module tb_axis_input;
         check("capture_done after 3x2", sample_capture_done == 1);
         @(posedge clk);
         settle();
-        check("capture_done self-cleared", sample_capture_done == 0);
+        check("capture_done held high", sample_capture_done == 1);
 
         capture_en = 0;
-        wait_cycles(2);
+        repeat(2) @(posedge clk);
+        settle();
+        check("capture_done cleared after capture_en=0", sample_capture_done == 0);
+        wait_cycles(1);
 
         // =====================================================================
         // TC10: capture_en mid-cancel and resume — data not lost

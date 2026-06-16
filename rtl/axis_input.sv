@@ -105,14 +105,16 @@ module axis_input #(
             col_cnt      <= '0;
             capture_done <= 1'b0;
         end else begin
-            capture_done <= 1'b0;  // 自清除脉冲
+            // capture_done 在 capture_en 拉低时清零，而非每拍自清除。
+            // 这确保 ctrl_fsm 有足够时间看到高电平并在下一拍跳转到 SHIFT。
 
             if (!capture_en) begin
                 // capture_en=0 时复位计数器，确保下次 capture_en=1 时
                 // 从 (row=0, col=0) 开始写入，与 axis_output 的 !shift_en
                 // 复位行为保持一致。
-                row_cnt <= '0;
-                col_cnt <= '0;
+                row_cnt      <= '0;
+                col_cnt      <= '0;
+                capture_done <= 1'b0;
             end else if (xfer_valid) begin
                 if (s_axis_tuser) begin
                     // ----------------------------------------------------------
@@ -136,7 +138,7 @@ module axis_input #(
                         col_cnt <= 1'b1;
                     end
 
-                end else if (s_axis_tlast) begin
+                end else if (s_axis_tlast || (col_cnt == img_cols - 1)) begin
                     // ----------------------------------------------------------
                     // 行结束：col 归零，row 递增
                     // ----------------------------------------------------------
