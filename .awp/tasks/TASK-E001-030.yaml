@@ -66,8 +66,7 @@ context:
   must_read:
     - ".awp/platform/hw_base_ax7010_v1.0.yaml"
     - ".awp/platform/host_env.yaml"
-    - "vivado/ip/axil_2d_shift_v1_0/component.xml"
-    - "vivado/shift_2d_ax7010_260608/shift_2d_ax7010_260608.xpr"
+    - "vivado/shift_2d_ax7010_260608_new/shift_2d_ax7010_260608.xpr"
 
 acceptance:
   - "IP 源文件与 BD 引用的版本一致（RTL diff 全 identical）"

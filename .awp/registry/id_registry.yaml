@@ -30,6 +30,16 @@ ids:
   title: Handoff HO-E001-OR-007-001
   status: active
   created: '2026-06-10'
+- id: HO-E001-OR-008-001
+  type: HANDOFF
+  title: Handoff HO-E001-OR-008-001
+  status: active
+  created: '2026-06-15'
+- id: HO-E001-OR-009-001
+  type: HANDOFF
+  title: Handoff HO-E001-OR-009-001
+  status: resolved
+  created: '2026-06-16'
 - id: ISS-E001-001
   type: ISSUE
   title: L1b WRITE re-run encoding error — 10 RUN files unreadable as UTF-8
@@ -82,6 +92,21 @@ ids:
   type: ISSUE
   title: PostToolUse hooks run from file directory not project root — validate_awp
     path broken
+  status: resolved
+  created: SESS-E001-
+- id: ISS-E001-011
+  type: ISSUE
+  title: axis_output tlast/tuser 流水线对齐 —— col_cnt_q 导致边带信号晚 1 拍
+  status: closed
+  created: SESS-E001-
+- id: ISS-E001-012
+  type: ISSUE
+  title: axis_input capture_en 控制流缺陷 —— TC05/TC10 失败（6/146 断言）
+  status: open
+  created: SESS-E001-
+- id: ISS-E001-013
+  type: ISSUE
+  title: Vivado 全链路产物一致性 —— 3 个系统性问题
   status: resolved
   created: SESS-E001-
 - id: REV-E001-001-ARCH-001
@@ -139,6 +164,11 @@ ids:
   title: Review of TASK-E001-027 (RTL)
   status: closed
   created: '2026-06-09'
+- id: REV-E001-029-RTL-001
+  type: REVIEW
+  title: Review of TASK-E001-029 (RTL)
+  status: closed
+  created: '2026-06-10'
 - id: RUN-E001-BOARD-001
   type: RUN
   title: 上板验证记录
@@ -159,6 +189,11 @@ ids:
   title: ILA Cross-Trigger 上板验证
   status: active
   created: ''
+- id: RUN-E001-BOARD-030
+  type: RUN
+  title: 'RUN-E001-BOARD-030: 上板验证 — axis_output tlast 修复'
+  status: active
+  created: '2026-06-15'
 - id: RUN-E001-IMPL-001
   type: RUN
   title: RUN-E001-IMPL-001.md - axil_2d_shift L3 实现报告
@@ -179,11 +214,21 @@ ids:
   title: RUN-E001-IMPL-004.md — axil_2d_shift L3 实现报告（第四次，最终重跑）
   status: active
   created: ''
+- id: RUN-E001-IMPL-030
+  type: RUN
+  title: 'RUN-E001-IMPL-030: Vivado 实现+比特流+XSA — axis_output tlast 修复'
+  status: active
+  created: '2026-06-15'
 - id: RUN-E001-IP-PACK-001
   type: RUN
   title: IP 打包运行报告
   status: active
   created: ''
+- id: RUN-E001-L1A-029
+  type: RUN
+  title: 'RUN-E001-SIM-003: axis_input AXI4-Stream Input Interface Simulation'
+  status: active
+  created: 2026/06/10 周三
 - id: RUN-E001-L1B-CONTROL-001
   type: RUN
   title: 'RUN-E001-L1B-CONTROL-001: L1b 控制通路集成仿真'
@@ -259,6 +304,11 @@ ids:
   title: RUN-E001-SYNTH-004.md — axil_2d_shift L2 综合报告（第四次，最终重跑）
   status: active
   created: ''
+- id: RUN-E001-SYNTH-030
+  type: RUN
+  title: 'RUN-E001-SYNTH-030: Vivado 综合 — axis_output tlast 修复'
+  status: active
+  created: '2026-06-15'
 - id: SESS-E001-OR-001
   type: SESSION
   title: Session 记录
@@ -294,6 +344,16 @@ ids:
   title: Session 记录 — SESS-E001-OR-007
   status: closed
   created: '2026-06-10'
+- id: SESS-E001-OR-008
+  type: SESSION
+  title: Session 记录 — SESS-E001-OR-008
+  status: closed
+  created: '2026-06-15'
+- id: SESS-E001-OR-009
+  type: SESSION
+  title: Session 记录
+  status: closed
+  created: '2026-06-16'
 - id: TASK-E001-001
   type: TASK
   title: AXI-Lite 2D Shift 模块架构规划
@@ -427,10 +487,20 @@ ids:
 - id: TASK-E001-027
   type: TASK
   title: ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化
-  status: closed
+  status: active
   created: '2026-06-09'
 - id: TASK-E001-028
   type: TASK
   title: FPGA Domain Pack 技能库生命周期维护
   status: active
   created: '2026-06-10'
+- id: TASK-E001-029
+  type: TASK
+  title: axis_input 行边界自检测修复 —— Simple DMA 兼容
+  status: active
+  created: '2026-06-10'
+- id: TASK-E001-030
+  type: TASK
+  title: 打通 Vivado 全链路 + 产物一致性验证 —— IP→BD→比特流→XSA→上板
+  status: closed
+  created: '2026-06-15'

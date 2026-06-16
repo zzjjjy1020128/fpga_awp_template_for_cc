@@ -67,7 +67,7 @@ acceptance:
 required_outputs:
   - ".awp/platform/hw_base_ax7010_v1.0.yaml"
   - "vivado/shift_2d_ax7010_260608/shift_2d_ax7010_260608.xpr"
-  - "vivado/shift_2d_ax7010_260608/shift_2d_ax7010_260608.runs/impl_1/design_1_wrapper.bit"
+  - "vivado/shift_2d_ax7010_260608_new/shift_2d_ax7010_260608.runs/impl_1/design_1_wrapper.bit"
   - "constraints/ax7010_base_timing.xdc"
   - "constraints/ax7010_base_physical.xdc"
 

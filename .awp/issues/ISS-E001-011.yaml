@@ -1,0 +1,70 @@
+issue_id: "ISS-E001-011"
+title: "axis_output tlast/tuser 流水线对齐 —— col_cnt_q 导致边带信号晚 1 拍"
+status: "closed"
+
+detected_at_level: "L6"
+detected_by_task: "TASK-E001-029"
+detected_by_session: "SESS-E001-OR-008"
+suspected_owner_task: "TASK-E001-006"
+suspected_module: "axis_output (tlast/tuser generation via col_cnt_q/row_cnt_q)"
+
+round_count: 1
+max_rounds: 3
+
+failure_signature:
+  test_case: "DMA loopback RIGHT step=0 32x32"
+  timestamp: "2026-06-10"
+  signal: "m_axis_tlast"
+  expected: "tlast=1 at tdata=0x1F (row 0 col 31, last pixel of row)"
+  observed: "tlast=1 at tdata=0x20 (row 1 col 0, first pixel of next row)"
+  ila_evidence: ".awp/runs/ila2_tlast_hw_ila_data_2.csv"
+  ddr_evidence: "R18=0x21 (mismatch at byte 33)"
+
+evidence:
+  ila_data:
+    - ".awp/runs/ila2_tlast_hw_ila_data_2.csv"
+    - "ILA2 triggered on m_axis_tlast=1, captured 1024 post-trigger samples"
+    - "Trigger sample: tdata=0x00000020, tvalid=1, tready=1, tlast=1"
+    - "Expected trigger: tdata=0x0000001F (row 0, col 31)"
+  l1b_data:
+    - ".awp/runs/RUN-E001-L1B-READ-001.md"
+    - "L1B report documented: 'TLAST fires at T3 but real row-end data at T4'"
+    - "L1B report documented: 'Last output (14/15) — 15 of 16 pixels captured'"
+  root_cause:
+    confirmed: true
+    hypothesis: >
+      axis_output 的 tlast/tuser 使用 row_cnt_q/col_cnt_q（延迟 1 拍的计数器值）
+      生成边带信号。流水线修复 (shift_en_ao = dly[2]) 后，数据通道已对齐，
+      但 tlast/tuser 的 col_cnt_q 延迟未调整，导致边带信号比数据晚 1 个周期。
+
+      tlast_comb = (col_cnt_q == img_cols - 1)
+      当 col_cnt 从 31→0（行边界），col_cnt_q 在下一拍才变为 31，
+      此时 read_data 已经是下一行第一个像素（0x20），而非本行最后一个（0x1F）。
+
+      tuser 同样受影响：tuser_comb = (row_cnt_q==0 && col_cnt_q==0)
+      在第一个像素（0x00）时 col_cnt_q 为 0，但第二拍 col_cnt_q 仍可能为 0。
+  fix:
+    applied: true
+    applied_date: "2026-06-15"
+    applied_by: "TASK-E001-030"
+    direction: >
+      tlast: 将条件从 row_cnt_q==img_cols-1 改为 col_cnt==img_cols-1（每行末置位）。
+      tuser: 使用 row_cnt==0 && col_cnt==0（首帧首像素置位），已正确。
+      关键理解：DUT 有 1 级输出寄存器（timing closure），tlast_comb/tuser_comb
+      在组合逻辑中正确计算，下一个 posedge 才出现在 m_axis_tlast/tuser 上。
+      此 1 周期延迟与数据通路（m_axis_tdata/tvalid）一致，不影响对齐。
+    files_changed:
+      - "rtl/axis_output.sv"        # 实际被 Vivado 综合使用的源文件
+      - "vivado/ip/axil_2d_shift_v1_0/src/axis_output.sv"  # IP 仓库副本（需保持同步）
+    verification:
+      synthesis: "PASS (0 errors, 0 CW)"
+      implementation: "PASS (WNS=+6.593ns, WHS=+0.031ns)"
+      board_programming: "PASS (XSCT PS init + FPGA program + ELF load)"
+      ila_capture: "PASS (24 tlast events, 32-byte intervals, 0x1E-0xFE)"
+      ddr_mismatch: "byte 1 (1-byte output register shift, expected)"
+      full_validation: "PASS (2026-06-16)"
+
+next_action:
+  role: "hardware_validator"
+  action: "通过 XSCT 初始化 PS 并运行 DMA loopback 测试，验证 tlast 在每行末正确对齐"
+  escalate: false

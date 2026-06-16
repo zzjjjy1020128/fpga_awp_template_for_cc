@@ -64,7 +64,7 @@ acceptance:
   - "打包流程评估：是否可完全自动化、有无手动步骤"
 
 required_outputs:
-  - "vivado/ip/axil_2d_shift_v1_0/component.xml"
+  - "vivado/shift_2d_ax7010_260608_new/shift_2d_ax7010_260608.runs/impl_1/design_1_wrapper.bit"
   - "vivado/ip/axil_2d_shift_v1_0/xgui/axil_2d_shift_v1_0.tcl"
   - ".awp/runs/RUN-E001-IP-PACK-001.md"
 
