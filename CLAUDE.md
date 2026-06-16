@@ -29,37 +29,47 @@ MCP Vivado 工具 (`mcp__vivado__*`) 是**技能的执行后端**，不是模型
     → skill 验证结果、记录证据
 ```
 
-### MCP 工具 → Skill 映射（强制）
+### MCP/Bash → Skill Gate（强制，不可跳过）
 
-| 你要做的事 | 必须先调用的 Skill | Skill 允许的 MCP 工具 |
-|-----------|-------------------|---------------------|
-| 打开 Vivado 工程 | `fpga-vivado-preflight` | `start_session`, `open_project` |
-| 综合 | `fpga-vivado-methodology` | `run_synthesis`, `get_critical_warnings` |
-| 实现 | `fpga-vivado-methodology` | `run_implementation`, `get_timing_report` |
-| 生成比特流 | `fpga-vivado-methodology` | `check_bitstream_readiness`, `generate_bitstream` |
-| 导出 XSA | `fpga-platform-freeze` | `run_tcl` (write_hw_platform) |
-| 上板烧录/验证 | `fpga-board-validation` | `program_device` (仅纯 PL), `get_io_report` |
-| ILA 操作 | `fpga-zynq-debug-toolchain` | `run_hw_ila`, `get_hw_probes` |
-| 约束检查 | `fpga-vivado-preflight` | `xdc_lint`, `verify_io_placement_tool` |
-| 看日志/诊断 | `fpga-vivado-log-analysis` | `get_critical_warnings`, `get_run_progress` |
+**核心原则**：任何会改变 FPGA 状态的操作，都必须先经过 skill 的前置检查。
+Skill 是"飞行员起飞前检查单"，不跳过不是因为"要遵守规则"，而是因为**不检查就会踩坑**。
+
+**简化记忆法**——不需要背表格，记住三类 gate：
+
+| 你要做什么 | 必须调用的 Skill | 为什么不能跳过 |
+|-----------|-----------------|---------------|
+| **上板烧录**（program_device / xsct / xsd / dow） | `fpga-board-validation` | Zynq 必须先 PS 后 PL；probes 每次要重连 |
+| **综合/实现/比特流**（run_synth/impl/bitstream） | `fpga-vivado-methodology` | 需 preflight 检查；需判断 OOC 缓存是否过期 |
+| **ILA 操作**（run_hw_ila / get_hw_probes） | `fpga-zynq-debug-toolchain` | 需确认 trigger 位宽；需判断 arm 时机 |
+
+其他 MCP 操作（`open_project`、`get_critical_warnings`、`get_timing_report`、`xdc_lint` 等纯查询/诊断类）可在 skill 外使用。
 
 ### 硬规则
 
-1. **禁止裸调 MCP**：任何 `mcp__vivado__*` 工具调用前，必须在同一次决策中先调用（或引用）对应的 skill
-2. **Skill 先于工具**：先读 skill 的反模式和前置条件，再执行操作
-3. **不明操作 → 查导航器**：不确定该用哪个 skill 时，先调 `fpga-skill-navigator`
-4. **例外**：`get_project_info`、`list_sessions`、`get_next_suggestion` 等纯查询工具可在 skill 外使用
+1. **烧录/Bitstream/ILA 三类操作必须先过 skill gate**：在调用 `program_device`、`run_synthesis`、`run_implementation`、`generate_bitstream`、`run_hw_ila` 或任何 XSCT 烧录命令之前，必须先调用对应 skill
+2. **Bash 裸调 XSCT/Vivado CLI 等同 MCP**：`xsct.bat`、`vivado -mode batch`、`hw_server` 等通过 Bash 的调用，与 MCP 工具同等待遇
+3. **Skill 先于工具**：先读 skill 的反模式和前置条件，再执行操作
+4. **不明操作 → 查导航器**：不确定该用哪个 skill 时，先调 `fpga-skill-navigator`
+
+### 违规根因与对策
+
+**为什么知道了还会犯？** 认知负荷过载时，调试目标（"看 ILA 波形"）屏蔽了流程目标（"先调 skill"）。成功裸调过的路径会被强化。
+
+**对策**：不是靠"记住规则"，而是靠**决策时的自问**——
+> "我接下来要执行的操作，会改变 FPGA 状态吗？"
+> → 会 → 先调 skill
+> → 不会（纯查询）→ 可以直接做
 
 ### 反模式
 
 ```
 ❌ 模型: "我要烧板" → 直接调 mcp__vivado__program_device
-   → Zynq 平台 PS 未初始化 → ILA 不可见 → 踩已知的坑
+❌ 模型: "我要跑测试" → 直接 Bash 调 xsct.bat
+❌ 模型: "加个 ILA 看看" → 直接调 run_hw_ila
+   以上全部绕过 skill gate → Zynq PS 未初始化 / probes 丢失 / ILA trigger 位宽错误
 
-✓ 模型: "我要烧板" → 调 fpga-board-validation
-   → skill: "Zynq 平台 → 引用 fpga-zynq-debug-toolchain"
-   → skill: "不用 Vivado HW Manager，用 XSCT"
-   → 正确执行
+✓ 模型: "我要做任何改变硬件状态的事" → 自问"会改状态吗？"→ 会 → 调对应 skill
+   → skill 做前置检查 → 确认安全 → 执行 → 记录证据
 ```
 
 ## 4. 三层架构

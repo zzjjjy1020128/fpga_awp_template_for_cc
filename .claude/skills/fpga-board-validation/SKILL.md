@@ -60,11 +60,13 @@ mcp_tools_gated:
 
 ### ILA 验证
 - [ ] ILA 触发条件已配置（非 don't-care 触发值）
+- [ ] **Probes 文件已关联**：每次 `refresh_hw_device` 后执行 `set_property PROBES.FILE {path/to/debug_nets.ltx} [get_hw_devices]`，否则 ILA 不可见
 - [ ] ILA 测试捕获展示有效波形
 - [ ] 对时序敏感的捕获（DMA stream），使用软件 gate 等待机制：
   ```
   CPU 停 gate → arm ILA → 释放 gate → DMA 跑 → ILA 捕获
   ```
+- [ ] **ILA arm 时机**：Zynq 平台 CAPTURE 阶段长达 51k+ cycle。ILA 环形缓冲只有 1024 sample。**必须在 gate 释放后、SHIFT 开始前 arm ILA**，否则捕获窗口被 CAPTURE 空闲填满
 
 ## L6 — Board Data Correctness Checklist
 
@@ -72,6 +74,7 @@ mcp_tools_gated:
 - [ ] PS DMA 软件编译通过并部署到目标板
 - [ ] DMA 描述符链表正确（地址、长度、wrap 标志）
 - [ ] Cache 一致性处理（DDR 区域需 non-cacheable 或 cache flush）
+- [ ] **测试数据禁止 `(u8)i` 截断**：`u8` 类型在 i≥256 时绕回 0，导致 1024 字节帧中每 256 字节数据重复。使用 `(u8)(i & 0xFF)` 或 16-bit 数据区分全帧
 
 ### 数据传输验证
 - [ ] DMA MM2S 传输测试图案到加速器输入
@@ -99,6 +102,14 @@ mcp_tools_gated:
 - [ ] **平台 ID**（HW_BASE_xxx_vX.X）
 
 缺少任意一项 → 不得关闭 session。
+
+### ❌ "直接在 Bash 跑 xsct.bat 烧板"（最常犯）
+```
+Bash 裸调 xsct.bat → 绕过本 skill 的 Zynq PS/PL 检查
+→ probes 文件未关联 → ILA 不可见 → 调试失败
+→ 或者 PS 未初始化就烧 PL → FCLK 不跑 → ILA 时钟没有
+```
+**正解**：烧录/验证操作必须先调本 skill，skill 内部确认平台类型后再执行 XSCT 命令。
 
 ## 反模式（禁止事项）
 
@@ -174,3 +185,38 @@ source fsbl_dma_test.tcl
 - `.awp/runs/RUN-{exp}-BOARD-{seq}.md`（格式见板卡验证模板 `TEMPLATE.md`）
 - ILA/VIO 截图或波形文件路径
 - PS 控制台完整日志
+
+## XSCT 脚本模板 (Zynq 平台)
+
+每次上板使用以下标准脚本（避免每次手写重连逻辑）：
+
+```tcl
+# xsct_full_flow.tcl — 标准 Zynq 上板流程
+connect
+target 1
+rst -system
+after 1000
+target 2
+source ../ps7_init.tcl
+ps7_init
+ps7_post_config
+
+# DDR 测试
+mwr 0x00100000 0xDEADBEEF
+mrd 0x00100000
+
+# 烧录 PL
+target 4
+fpga -f <bitstream_path>.bit
+
+# 下载 ELF
+target 2
+dow <elf_path>.elf
+con
+```
+
+**关键注意事项**：
+- 每次 XSCT 调用是独立会话，必须 `connect`
+- Zynq 先 `ps7_init` 再 `fpga -f`
+- DDR 测试验证 PS 初始化正确
+- `con` 后 CPU 运行，内存写入（`mwr`）直接生效无需 `stop`
