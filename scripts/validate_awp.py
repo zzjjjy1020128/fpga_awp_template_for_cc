@@ -14,6 +14,8 @@ FPGA-AWP Workspace Validator
   python scripts/validate_awp.py --summary        # 任务状态汇总
   python scripts/validate_awp.py --gate-check     # 门禁检查
   python scripts/validate_awp.py --gen-task-board # 生成 task_board.md
+  python scripts/validate_awp.py --sync           # 自动修复可检测的不一致
+  python scripts/validate_awp.py --guard <mode>   # AWP guard (hooks 用)
 """
 
 import argparse
@@ -41,15 +43,18 @@ NAMESPACE_PATTERNS = {
     "SESSION": re.compile(r"^SESS-[A-Z]\d{3}-OR-\d{3}$"),
     "HANDOFF": re.compile(r"^HO-[A-Z]\d{3}-\d{3}-\d{3}$"),
     "REVIEW": re.compile(r"^REV-[A-Z]\d{3}-\d{3}-[A-Z]+-\d{3}$"),
-    "RUN": re.compile(r"^RUN-[A-Z]\d{3}-[A-Z]+-\d{3}$"),
+    "RUN": re.compile(r"^RUN-[A-Z]\d{3}-(?:[A-Z0-9]+-)?[A-Z0-9]+-\d{3}$"),
     "DECISION": re.compile(r"^DEC-[A-Z]+-\d{4}$"),
     "ISSUE": re.compile(r"^ISS-[A-Z]\d{3}-\d{3}$"),
     "ARTIFACT": re.compile(r"^ART-[A-Z]\d{3}-[A-Z]+-\d{3}$"),
 }
 
 VALID_TASK_STATUSES = {"ready", "in_progress", "blocked", "review", "done"}
+
+# v0.2: 即使有 L1b GAP 也允许 spawn 的 agent（修复、建 task、审查、流程修补）
+GAP_SAFE_AGENTS = {"planner", "rtl_implementer", "rtl_reviewer", "process_owner"}
 VALID_VAL_STATUSES = {"pending", "pass", "fail", "skip"}
-VALID_L_LEVELS = ["L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7"]
+VALID_L_LEVELS = ["L0", "L1a", "L1b", "L1c", "L2", "L3", "L4", "L5", "L6", "L7"]
 
 
 def load_json_schema(path):
@@ -114,9 +119,33 @@ def validate_schema_required(data, schema, path=""):
     return errors
 
 
+def load_namespace_patterns():
+    """从 namespaces.yaml 动态加载 pattern 字段，fallback 到硬编码 NAMESPACE_PATTERNS"""
+    ns_data, err = load_yaml_file(".awp/registry/namespaces.yaml")
+    if err or not ns_data:
+        return NAMESPACE_PATTERNS.copy()
+
+    patterns = {}
+    for ns_name, ns_info in ns_data.get("namespaces", {}).items():
+        pattern_str = ns_info.get("pattern")
+        if pattern_str:
+            try:
+                patterns[ns_name] = re.compile(pattern_str)
+            except re.error:
+                pass  # 无效正则，跳过
+
+    # fallback：硬编码中定义但 namespaces.yaml 没有 pattern 的
+    for ns_name, pattern in NAMESPACE_PATTERNS.items():
+        if ns_name not in patterns:
+            patterns[ns_name] = pattern
+
+    return patterns
+
+
 def check_id_format(id_str):
-    """检查 ID 字符串是否符合任一已知 namespace 格式"""
-    for ns, pattern in NAMESPACE_PATTERNS.items():
+    """检查 ID 字符串是否符合任一已知 namespace 格式（动态加载 patterns）"""
+    patterns = load_namespace_patterns()
+    for ns, pattern in patterns.items():
         if pattern.match(id_str):
             return ns
     return None
@@ -164,20 +193,24 @@ def validate_task_files():
                 errors.append(
                     f"{rel}: validation_status {level}=pass but previous level is not pass (gate violation)"
                 )
-            if status != "pass":
+            if status != "pass" and status != "skip":
                 prev_pass = False
 
     return errors
 
 
 def validate_review_files():
-    """校验 .awp/reviews/*.md 的 YAML frontmatter"""
+    """校验 .awp/reviews/*.md 的 YAML frontmatter（schema 驱动）"""
     errors = []
     reviews_dir = ROOT / ".awp" / "reviews"
     if not reviews_dir.exists():
         return errors
 
-    VALID_RESULTS = {"pass", "pass_with_notes", "fail"}
+    schema = load_json_schema(".awp/schemas/review.schema.json")
+    if schema is None:
+        errors.append("Cannot load review.schema.json")
+        return errors
+
     for md_file in sorted(reviews_dir.glob("*.md")):
         if md_file.name == ".gitkeep":
             continue
@@ -195,21 +228,12 @@ def validate_review_files():
             errors.append(f"{rel}: missing or malformed YAML frontmatter")
             continue
 
-        if "task_id" not in fm:
-            errors.append(f"{rel}: frontmatter missing 'task_id'")
-        elif not check_id_format(str(fm["task_id"])):
+        # Schema 驱动校验（与 validate_task_files 一致）
+        errors.extend(validate_schema_required(fm, schema, rel))
+
+        # 补充校验：task_id 格式（schema 只检查 string 类型，不检查命名规范）
+        if fm.get("task_id") and not check_id_format(str(fm["task_id"])):
             errors.append(f"{rel}: frontmatter task_id '{fm['task_id']}' has invalid format")
-
-        if "reviewer" not in fm:
-            errors.append(f"{rel}: frontmatter missing 'reviewer'")
-
-        if "result" not in fm:
-            errors.append(f"{rel}: frontmatter missing 'result'")
-        elif fm["result"] not in VALID_RESULTS:
-            errors.append(f"{rel}: frontmatter result '{fm['result']}' not in {VALID_RESULTS}")
-
-        if "date" not in fm:
-            errors.append(f"{rel}: frontmatter missing 'date'")
 
     return errors
 
@@ -280,6 +304,544 @@ def validate_cross_references():
     return errors
 
 
+def validate_review_coverage():
+    """检查每个 RTL task 是否有对应的通过 review（按 G3 规则）"""
+    errors = []
+    tasks_dir = ROOT / ".awp" / "tasks"
+    reviews_dir = ROOT / ".awp" / "reviews"
+
+    if not tasks_dir.exists():
+        return errors
+
+    # 收集 task_id → review results
+    task_reviews = defaultdict(list)
+    if reviews_dir.exists():
+        for md_file in reviews_dir.glob("*.md"):
+            if md_file.name == ".gitkeep":
+                continue
+            try:
+                with open(md_file, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except Exception:
+                continue
+            fm = extract_frontmatter(content)
+            if fm and fm.get("task_id") and fm.get("result"):
+                task_reviews[fm["task_id"]].append(fm["result"])
+
+    # G3 规则：所有 RTL 文件必须 review
+    for yaml_file in sorted(tasks_dir.glob("*.yaml")):
+        if yaml_file.name == ".gitkeep":
+            continue
+        rel = str(yaml_file.relative_to(ROOT))
+        data, _ = load_yaml_file(rel)
+        if not data:
+            continue
+        tid = data.get("task_id", "")
+        status = data.get("status", "")
+        agent = data.get("agent", "")
+
+        # 只检查 active/done 的 rtl_implementer task
+        if status not in ("in_progress", "review", "done"):
+            continue
+        if agent not in ("rtl_implementer",):
+            continue
+
+        results = task_reviews.get(tid, [])
+        has_pass = any(r in ("pass", "pass_with_notes") for r in results)
+        if not has_pass:
+            if not results:
+                errors.append(f"{rel}: task '{tid}' ({status}) has NO review (G3: all RTL must be reviewed)")
+            else:
+                errors.append(f"{rel}: task '{tid}' ({status}) has no PASSING review (results: {results})")
+
+    return errors
+
+
+def validate_skip_usage():
+    """检查 skip 语义是否被滥用。
+    - skip = 该验证级别对此 task 类型/scope 确实不适用（如 planner 不需要仿真）
+    - rtl_implementer + integration_scope=module 的 task，L1b/L1c 不得为 skip
+      （模块的正确性需要在数据通路闭环 L1b 和全系统 L1c 中确认，不能声称"跳过"）
+    - tb_verifier + integration_scope=module 同理，L1b/L1c 不得为 skip
+    """
+    errors = []
+    tasks_dir = ROOT / ".awp" / "tasks"
+    if not tasks_dir.exists():
+        return errors
+
+    # Agent 类型与 must-not-skip 的 level 映射
+    # 规则：对模块级 RTL/验证 task，L1b(数据通路闭环) 和 L1c(全系统集成) 必须 pending
+    AGENT_MUST_NOT_SKIP = {
+        "rtl_implementer": ["L1b", "L1c"],
+    }
+
+    for yaml_file in sorted(tasks_dir.glob("*.yaml")):
+        if yaml_file.name == ".gitkeep":
+            continue
+        rel = str(yaml_file.relative_to(ROOT))
+        data, _ = load_yaml_file(rel)
+        if not data:
+            continue
+        tid = data.get("task_id", "")
+        agent = data.get("agent", "")
+        scope = data.get("integration_scope", "module")
+        vs = data.get("validation_status", {})
+
+        if agent not in AGENT_MUST_NOT_SKIP:
+            continue
+        if scope not in ("module",):
+            # datapath/system scope tasks may legitimately skip lower levels
+            continue
+
+        for level in AGENT_MUST_NOT_SKIP[agent]:
+            if vs.get(level) == "skip":
+                errors.append(
+                    f"{rel}: {level}=skip is invalid for agent={agent} scope={scope}. "
+                    f"Module-level tasks must have {level}=pending (verified in integration tasks, not skipped)"
+                )
+
+    return errors
+
+
+def validate_fail_status():
+    """检查 validation_status 中的 fail 与 task status 的一致性。
+    - 如果某 level=fail 且 task status=done，该 task 不应是 done（有未解决的验证失败）
+    - 如果 task status=in_progress/review 且有 level=fail，提醒需要修复
+    """
+    errors = []
+    tasks_dir = ROOT / ".awp" / "tasks"
+    if not tasks_dir.exists():
+        return errors
+
+    for yaml_file in sorted(tasks_dir.glob("*.yaml")):
+        if yaml_file.name == ".gitkeep":
+            continue
+        rel = str(yaml_file.relative_to(ROOT))
+        data, _ = load_yaml_file(rel)
+        if not data:
+            continue
+        tid = data.get("task_id", "")
+        status = data.get("status", "")
+        vs = data.get("validation_status", {})
+
+        failed_levels = [lv for lv in VALID_L_LEVELS if vs.get(lv) == "fail"]
+        if not failed_levels:
+            continue
+
+        if status == "done":
+            errors.append(
+                f"{rel}: task '{tid}' is done but has fail in {failed_levels}. "
+                f"Done tasks must have no failing validation levels."
+            )
+        elif status not in ("in_progress", "blocked"):
+            errors.append(
+                f"{rel}: task '{tid}' has fail in {failed_levels} but status={status}. "
+                f"Should be in_progress or blocked."
+            )
+
+    return errors
+
+
+def validate_output_files():
+    """检查 required_outputs 和 must_read 中列出的文件是否存在"""
+    errors = []
+    tasks_dir = ROOT / ".awp" / "tasks"
+    if not tasks_dir.exists():
+        return errors
+
+    for yaml_file in sorted(tasks_dir.glob("*.yaml")):
+        if yaml_file.name == ".gitkeep":
+            continue
+        rel = str(yaml_file.relative_to(ROOT))
+        data, _ = load_yaml_file(rel)
+        if not data:
+            continue
+
+        status = data.get("status", "")
+        if status not in ("in_progress", "review", "done"):
+            continue
+
+        # 检查 required_outputs
+        for fpath in data.get("required_outputs", []) or []:
+            if not (ROOT / fpath).exists():
+                errors.append(f"{rel}: required_output '{fpath}' does not exist (task status={status})")
+
+        # 检查 must_read
+        for fpath in data.get("context", {}).get("must_read", []) or []:
+            if not (ROOT / fpath).exists():
+                errors.append(f"{rel}: must_read '{fpath}' does not exist")
+
+    return errors
+
+
+def validate_issue_files():
+    """校验 .awp/issues/*.yaml 文件"""
+    errors = []
+    issues_dir = ROOT / ".awp" / "issues"
+    if not issues_dir.exists():
+        return errors
+
+    schema = load_json_schema(".awp/schemas/issue.schema.json")
+    if schema is None:
+        return errors  # schema 不存在时不报错（可能是首次初始化）
+
+    for yaml_file in sorted(issues_dir.glob("*.yaml")):
+        if yaml_file.name == ".gitkeep":
+            continue
+        rel = str(yaml_file.relative_to(ROOT))
+        data, err = load_yaml_file(rel)
+        if err:
+            errors.append(err)
+            continue
+        if data is None:
+            continue
+        errors.extend(validate_schema_required(data, schema, rel))
+
+        # 检查 round_count 超限
+        rc = data.get("round_count", 0)
+        mr = data.get("max_rounds", 3)
+        status = data.get("status", "")
+        if rc > mr and status not in ("blocked", "resolved", "closed"):
+            errors.append(
+                f"{rel}: round_count={rc} exceeds max_rounds={mr}, "
+                f"status should be blocked (current: {status})"
+            )
+
+    return errors
+
+
+def validate_integration_scope():
+    """v0.2: 检查 integration_verifier task 的 scope 是否违规修改子模块 RTL"""
+    errors = []
+    tasks_dir = ROOT / ".awp" / "tasks"
+    if not tasks_dir.exists():
+        return errors
+
+    for yaml_file in sorted(tasks_dir.glob("*.yaml")):
+        if yaml_file.name == ".gitkeep":
+            continue
+        rel = str(yaml_file.relative_to(ROOT))
+        data, _ = load_yaml_file(rel)
+        if not data:
+            continue
+
+        agent = data.get("agent", "")
+        if agent != "integration_verifier":
+            continue
+
+        # integration_verifier 的 allowed_edit_paths 不应包含子模块 RTL
+        # 例外：顶层集成模块本身（如 axil_2d_shift.sv）是合法的
+        allowed = data.get("scope", {}).get("allowed_edit_paths", []) or []
+        forbidden = data.get("scope", {}).get("forbidden_edit_paths", []) or []
+        for path in allowed:
+            if path.startswith("rtl/") and path != "rtl/":
+                # 如果路径也在 forbidden 中（矛盾），跳过
+                if path in forbidden:
+                    continue
+                # 检查是否为已知子模块 RTL（非顶层集成模块）
+                fname = path.replace("rtl/", "")
+                if fname in ("axil_slave_if.sv", "regs_top.sv", "ctrl_fsm.sv",
+                             "axis_input.sv", "shift_addr_gen.sv", "axis_output.sv",
+                             "frame_buf_mgr.sv"):
+                    errors.append(
+                        f"{rel}: integration_verifier allows edit of '{path}'. "
+                        f"Per G6, integration_verifier must not modify sub-module RTL."
+                    )
+
+    return errors
+
+
+def validate_dependency_ripple():
+    """检测依赖链上的验证状态不一致。
+    当上游 task 的验证 level 回退（如 L1a pass→pending），下游 task 的对应 level
+    应同步回退。例如 TASK-E001-004 L1a 回退 → TASK-E001-009 的 L1b 也应 pending。
+    """
+    errors = []
+    tasks_dir = ROOT / ".awp" / "tasks"
+    if not tasks_dir.exists():
+        return errors
+
+    # 收集所有 task
+    all_tasks = {}
+    for yaml_file in sorted(tasks_dir.glob("*.yaml")):
+        if yaml_file.name == ".gitkeep":
+            continue
+        rel = str(yaml_file.relative_to(ROOT))
+        data, _ = load_yaml_file(rel)
+        if data:
+            all_tasks[data.get("task_id", "")] = data
+
+    # Level 映射：上游 task 的 target level → 下游 task 应关注的 level
+    # rtl_implementer (target=L1a) → 下游 integration task 应关注 L1b
+    UPSTREAM_TARGET_TO_DOWNSTREAM_LEVEL = {
+        "L1a": "L1b",
+        "L1b": "L1c",
+    }
+
+    for tid, t in all_tasks.items():
+        deps = t.get("depends_on", []) or []
+        upstream_target = t.get("target_validation_level", "")
+        downstream_level = UPSTREAM_TARGET_TO_DOWNSTREAM_LEVEL.get(upstream_target, "")
+
+        if not downstream_level:
+            continue
+
+        for dep_id in deps:
+            if dep_id not in all_tasks:
+                continue
+            dep_task = all_tasks[dep_id]
+            dep_vs = dep_task.get("validation_status", {})
+            # 如果下游 task 的该 level 是 pass，但上游 task 的 target 不是 pass → 涟漪未传播
+            downstream_status = dep_vs.get(downstream_level, "pending")
+            upstream_vs = t.get("validation_status", {})
+            upstream_status = upstream_vs.get(upstream_target, "pending")
+
+            if downstream_status == "pass" and upstream_status not in ("pass", "skip"):
+                errors.append(
+                    f".awp/tasks/{tid}.yaml: depends on {dep_id} but "
+                    f"{dep_id}.{upstream_target}={upstream_status} while "
+                    f"{tid}.{downstream_level}=pass. "
+                    f"Upstream regression should propagate — set {downstream_level}=pending."
+                )
+
+    return errors
+
+
+def validate_issue_coverage():
+    """检查每个 FAIL 的 RUN 是否有对应的 ISS issue，以及 issue 的完整性。
+    这是 G4 规则"每个 L1b/L1c fail 必须创建 ISS issue"的程序化执行。
+    """
+    errors = []
+    runs_dir = ROOT / ".awp" / "runs"
+    issues_dir = ROOT / ".awp" / "issues"
+
+    if not runs_dir.exists():
+        return errors
+
+    # 收集所有 RUN 的状态
+    failed_runs = []
+    for f in sorted(runs_dir.glob("RUN-*.md")):
+        try:
+            content = _read_file_robust(f)
+        except Exception:
+            continue
+        for line in content.split("\n")[:30]:
+            if "Status" in line and ("FAIL" in line or "fail" in line):
+                failed_runs.append(f.stem)
+                break
+
+    if not failed_runs:
+        return errors
+
+    # 收集已存在的 issue 指向的 run（支持逗号分隔的多引用）
+    issue_run_map = {}
+    if issues_dir.exists():
+        for f in sorted(issues_dir.glob("ISS-*.yaml")):
+            data, _ = load_yaml_file(str(f.relative_to(ROOT)))
+            if data:
+                run_ref = data.get("detected_in_run", "")
+                if run_ref:
+                    for rid in run_ref.split(","):
+                        rid = rid.strip()
+                        if rid:
+                            issue_run_map[rid] = f.stem
+
+    # 检查每个 FAIL run 是否有 issue
+    for run_id in failed_runs:
+        if run_id not in issue_run_map:
+            errors.append(
+                f"RUN {run_id} has FAIL status but no corresponding ISS issue. "
+                f"Create issue at .awp/issues/ with detected_in_run: {run_id}"
+            )
+
+    # 检查每个 open issue 是否有 suspected_owner_task
+    if issues_dir.exists():
+        for f in sorted(issues_dir.glob("ISS-*.yaml")):
+            data, _ = load_yaml_file(str(f.relative_to(ROOT)))
+            if not data:
+                continue
+            if data.get("status") in ("open", "in_progress"):
+                if not data.get("suspected_owner_task"):
+                    errors.append(f"{f.stem}: open but no suspected_owner_task assigned")
+                if data.get("round_count", 0) > data.get("max_rounds", 3):
+                    errors.append(f"{f.stem}: round_count exceeds max_rounds, should be blocked")
+
+    return errors
+
+
+def validate_port_connectivity():
+    """检查 SystemVerilog 模块端口在所有实例化点是否完整连接。
+    防止 sub-agent 添加端口后遗漏某些实例化点的连接。
+    """
+    errors = []
+    rtl_dir = ROOT / "rtl"
+    tb_dir = ROOT / "tb"
+    if not rtl_dir.exists():
+        return errors
+
+    # 1. 收集所有模块的端口定义: module_name -> {input_ports, output_ports}
+    module_inputs = {}
+    for sv_file in sorted(rtl_dir.glob("*.sv")):
+        try:
+            content = sv_file.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            try:
+                content = sv_file.read_text(encoding="gbk", errors="replace")
+            except Exception:
+                continue
+        # 提取 module 声明和端口列表
+        m = re.search(r'module\s+(\w+)\s*#?\s*\(.*?\)\s*\(\s*(.*?)\s*\)\s*;', content, re.DOTALL)
+        if not m:
+            continue
+        mod_name = m.group(1)
+        port_block = m.group(2)
+        # 只收集 input 端口（output 可以不连）
+        input_ports = set()
+        for line in port_block.split(","):
+            line = re.sub(r'//.*$', '', line).strip()
+            pm = re.search(r'(\w+)\s*$', line)
+            if pm and re.search(r'\binput\b', line):
+                input_ports.add(pm.group(1))
+        if input_ports:
+            module_inputs[mod_name] = input_ports
+
+    if not module_inputs:
+        return errors
+
+    # 2. 收集所有文件中的模块实例化，检查 input 端口连接
+    all_files = list(rtl_dir.glob("*.sv")) + list(tb_dir.glob("*.sv"))
+    for sv_file in sorted(all_files):
+        try:
+            content = sv_file.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            try:
+                content = sv_file.read_text(encoding="gbk", errors="replace")
+            except Exception:
+                continue
+
+        for mod_name, defined_inputs in module_inputs.items():
+            # 跳过模块自身的定义文件
+            if sv_file.stem == mod_name:
+                continue
+            # 找所有该模块的实例化
+            inst_pattern = re.compile(
+                r'\b' + re.escape(mod_name) + r'\s*(?:#\s*\(.*?\))?\s*(\w+)\s*\(\s*(.*?)\s*\)\s*;',
+                re.DOTALL
+            )
+            for inst_m in inst_pattern.finditer(content):
+                inst_name = inst_m.group(1)
+                conn_block = inst_m.group(2)
+                # 提取连接的端口名: .portname(...) 或 .portname(signal)
+                connected = set(re.findall(r'\.(\w+)\s*\(', conn_block))
+                # 隐式连接: .portname  (无括号)
+                connected.update(re.findall(r'\.(\w+)\s*,', conn_block))
+                # 检查缺失
+                missing = defined_inputs - connected
+                # 排除常见不需要显式连接的端口（如 outputs 未驱动、L1b TB 部分连接等）
+                # regex 解析可能有假阳性（如 .port 出现在字符串或注释中）
+                if missing:
+                    rel = str(sv_file.relative_to(ROOT))
+                    errors.append(
+                        f"{rel}: port-check: {mod_name} instance '{inst_name}' "
+                        f"may be missing connection(s): {', '.join(sorted(missing))}. "
+                        f"Verify manually — regex may have false positives."
+                    )
+
+    return errors
+
+
+def validate_resource_thresholds():
+    """检查 L2/L3 run 报告中的资源利用率是否超过器件阈值。
+    IOB > 70%、BRAM > 90%、DSP > 80% 触发 WARN——可能说明架构方向错误。
+    """
+    warnings = []
+    runs_dir = ROOT / ".awp" / "runs"
+    if not runs_dir.exists():
+        return warnings
+
+    thresholds = {
+        "IOB": 0.70,
+        "Block RAM": 0.90,
+        "DSP": 0.80,
+    }
+
+    for f in sorted(runs_dir.glob("RUN-E001-SYNTH-*.md"), reverse=True)[:1]:
+        try:
+            content = _read_file_robust(f)
+        except Exception:
+            continue
+
+        for line in content.split("\n"):
+            for resource, threshold in thresholds.items():
+                if resource in line and "%" in line:
+                    # 提取百分比数值
+                    import re
+                    m = re.search(r'(\d+\.?\d*)\s*%', line)
+                    if m:
+                        pct = float(m.group(1)) / 100.0
+                        if pct > threshold:
+                            warnings.append(
+                                f"{f.stem}: {resource} = {pct*100:.1f}% exceeds "
+                                f"{threshold*100:.0f}% threshold. "
+                                f"Consider architectural review — may need Block Design, "
+                                f"ILA, or device port reduction instead of external IOB."
+                            )
+    return warnings
+
+
+def validate_handoff_completeness():
+    """检查所有 handoff 文件是否包含必填的 Gate Status 节。
+    Handoff 没有 Gate Status 表 = 下一 session 无法判断验证门禁状态 = 硬错误。
+    同时检查 handoff 的 status 是否与实际 task 状态一致。
+    """
+    errors = []
+    handoff_dir = ROOT / ".awp" / "handoffs"
+    if not handoff_dir.exists():
+        return errors
+
+    # 收集所有 task 的状态
+    all_tasks = {t.get("task_id"): t for t in collect_tasks()}
+
+    for hf in sorted(handoff_dir.glob("HO-*.md")):
+        hid = hf.stem
+        try:
+            content = hf.read_text(encoding="utf-8")
+        except Exception as e:
+            errors.append(f"{hid}: cannot read file: {e}")
+            continue
+
+        fm = extract_frontmatter(content)
+        if fm is None:
+            errors.append(f"{hid}: missing YAML frontmatter")
+            continue
+
+        h_status = fm.get("status", "")
+
+        # 必填检查：Gate Status 节（仅对非 resolved 的活跃 handoff 强制）
+        if h_status != "resolved" and "## Gate Status" not in content:
+            errors.append(
+                f"{hid}: active handoff (status={h_status}) missing required "
+                f"'## Gate Status' section. "
+                f"Handoff without gate status is unreliable — add validation status table."
+            )
+
+        # 僵尸 handoff 检测：handoff 不是 resolved，但其引用的所有 task 已 done
+        if h_status not in ("resolved",):
+            ref_ids = set(re.findall(r'TASK-E\d{3}-\d{3}', content))
+            if ref_ids:
+                all_done = all(
+                    all_tasks.get(tid, {}).get("status") == "done"
+                    for tid in ref_ids
+                )
+                if all_done:
+                    errors.append(
+                        f"{hid}: handoff status='{h_status}' but all {len(ref_ids)} "
+                        f"referenced task(s) are done. Run --sync to auto-resolve."
+                    )
+
+    return errors
+
+
 def validate_manifest():
     """校验 workspace_manifest.json"""
     errors = []
@@ -326,6 +888,22 @@ def cmd_validate():
     all_errors.extend(validate_task_files())
     all_errors.extend(validate_review_files())
     all_errors.extend(validate_cross_references())
+    all_errors.extend(validate_review_coverage())
+    all_errors.extend(validate_output_files())
+    all_errors.extend(validate_skip_usage())
+    all_errors.extend(validate_fail_status())
+    all_errors.extend(validate_issue_files())
+    all_errors.extend(validate_integration_scope())
+    # NOTE: validate_dependency_ripple() temporarily disabled — the logic
+    # produces false positives when only one module in a dependency chain
+    # regresses while other modules remain verified. Needs refinement
+    # to only flag regressions along the specific module's verification path.
+    # all_errors.extend(validate_dependency_ripple())
+    all_errors.extend(validate_registry_consistency())
+    all_errors.extend(validate_issue_coverage())
+    all_errors.extend(validate_port_connectivity())
+    all_errors.extend(validate_resource_thresholds())
+    all_errors.extend(validate_handoff_completeness())
 
     if all_errors:
         print(f"\n[FAIL] {len(all_errors)} validation error(s):\n")
@@ -336,6 +914,458 @@ def cmd_validate():
     else:
         print("[PASS] All validations passed.\n")
         return 0
+
+
+def sync_registry():
+    """从实际文件自动生成 id_registry.yaml 和 relations.yaml"""
+    entities = {}   # id -> {id, type, title, status, created}
+    rels = []       # [{from, to, type}]
+
+    # --- 1. Tasks ---
+    for t in collect_tasks():
+        tid = t.get("task_id", "")
+        if not tid:
+            continue
+        entities[tid] = {
+            "id": tid, "type": "TASK",
+            "title": t.get("title", ""),
+            "status": "active" if t.get("status") != "done" else "closed",
+            "created": t.get("created_date", ""),
+        }
+        for dep in t.get("depends_on", []) or []:
+            rels.append({"from": tid, "to": dep, "type": "depends_on"})
+
+    # --- 2. Reviews ---
+    reviews_dir = ROOT / ".awp" / "reviews"
+    if reviews_dir.exists():
+        for f in sorted(reviews_dir.glob("REV-*.md")):
+            rid = f.stem
+            try:
+                content = _read_file_robust(f)
+            except Exception:
+                continue
+            fm = extract_frontmatter(content)
+            task_ref = fm.get("task_id", "") if fm else ""
+            review_type = rid.split("-")[3] if len(rid.split("-")) >= 4 else ""
+            entities[rid] = {
+                "id": rid, "type": "REVIEW",
+                "title": f"Review of {task_ref} ({review_type})" if task_ref else f"Review {rid}",
+                "status": "closed" if fm and fm.get("result") in ("pass", "pass_with_notes") else "active",
+                "created": fm.get("date", "") if fm else "",
+            }
+            if task_ref:
+                rels.append({"from": rid, "to": task_ref, "type": "reviews"})
+
+    # --- 3. Runs ---
+    runs_dir = ROOT / ".awp" / "runs"
+    if runs_dir.exists():
+        for f in sorted(runs_dir.glob("RUN-*.md")):
+            rid = f.stem
+            try:
+                content = _read_file_robust(f)
+            except Exception:
+                continue
+            task_ref = ""
+            date_str = ""
+            title_str = ""
+            for line in content.split("\n"):
+                if line.startswith("- **Task**:"):
+                    task_ref = line.split(":")[-1].strip().strip("`")
+                elif line.startswith("- **Date**:"):
+                    date_str = line.split(":")[-1].strip()
+                elif line.startswith("# ") and not title_str:
+                    title_str = line[2:].strip()
+            entities[rid] = {
+                "id": rid, "type": "RUN",
+                "title": title_str or rid,
+                "status": "active",
+                "created": date_str,
+            }
+            if task_ref:
+                rels.append({"from": rid, "to": task_ref, "type": "runs_for"})
+
+    # --- 4. Sessions ---
+    sessions_dir = ROOT / ".awp" / "sessions"
+    if sessions_dir.exists():
+        for f in sorted(sessions_dir.glob("SESS-*.md")):
+            sid = f.stem
+            try:
+                content = _read_file_robust(f)
+            except Exception:
+                continue
+            first_line = ""
+            for line in content.split("\n"):
+                if line.startswith("# ") and not first_line:
+                    first_line = line[2:].strip()
+                    break
+            entities[sid] = {
+                "id": sid, "type": "SESSION",
+                "title": first_line or sid,
+                "status": "closed",
+                "created": _extract_file_date(f),
+            }
+
+    # --- 5. Handoffs ---
+    handoff_dir = ROOT / ".awp" / "handoffs"
+    if handoff_dir.exists():
+        for f in sorted(handoff_dir.glob("HO-*.md")):
+            hid = f.stem
+            try:
+                content = _read_file_robust(f)
+            except Exception:
+                continue
+            fm = extract_frontmatter(content)
+            h_id = fm.get("handoff_id", hid) if fm else hid
+            from_sess = fm.get("from_session", "") if fm else ""
+            entities[h_id] = {
+                "id": h_id, "type": "HANDOFF",
+                "title": f"Handoff {h_id}",
+                "status": fm.get("status", "active") if fm else "active",
+                "created": fm.get("date", "") if fm else _extract_file_date(f),
+            }
+            if from_sess:
+                rels.append({"from": h_id, "to": from_sess, "type": "from_session"})
+
+    # --- 6. EXP ---
+    exps_seen = set()
+    for eid, einfo in list(entities.items()):
+        # 从 ID 中提取 EXP 部分：如 TASK-E001-001 → E001
+        parts = eid.split("-")
+        if len(parts) >= 2 and parts[1].startswith(("E", "EXP")):
+            exp_part = parts[1]
+            if exp_part.startswith("EXP"):
+                exp_part = exp_part  # already has prefix
+            exp_id = f"EXP{exp_part.lstrip('E')}" if not exp_part.startswith("EXP") else exp_part
+            if exp_id not in exps_seen:
+                exps_seen.add(exp_id)
+                entities[exp_id] = {
+                    "id": exp_id, "type": "EXP",
+                    "title": f"Experiment {exp_part}",
+                    "status": "active",
+                    "created": "",
+                }
+            rels.append({"from": eid, "to": exp_id, "type": "belongs_to"})
+
+    # --- 7. Issues ---
+    issues_dir = ROOT / ".awp" / "issues"
+    if issues_dir.exists():
+        for f in sorted(issues_dir.glob("ISS-*.yaml")):
+            iid = f.stem
+            data, _ = load_yaml_file(str(f.relative_to(ROOT)))
+            if not data:
+                continue
+            entities[iid] = {
+                "id": iid, "type": "ISSUE",
+                "title": data.get("title", iid),
+                "status": data.get("status", "open"),
+                "created": data.get("detected_by_session", "")[:10] if data.get("detected_by_session") else "",
+            }
+            # issue → run
+            run_ref = data.get("detected_in_run", "")
+            if run_ref:
+                rels.append({"from": iid, "to": run_ref, "type": "detected_in"})
+            # issue → suspected owner task
+            owner_task = data.get("suspected_owner_task", "")
+            if owner_task:
+                rels.append({"from": iid, "to": owner_task, "type": "assigned_to"})
+            # issue → detecting task
+            det_task = data.get("detected_by_task", "")
+            if det_task:
+                rels.append({"from": iid, "to": det_task, "type": "detected_by"})
+
+    # --- 8. Write files ---
+    header = "# AUTO-GENERATED by validate_awp.py --sync. Do not edit manually.\n"
+    id_list = sorted(entities.values(), key=lambda x: (x["type"], x["id"]))
+    reg_content = header + yaml.dump({"ids": id_list}, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    (ROOT / ".awp" / "registry" / "id_registry.yaml").write_text(reg_content, encoding="utf-8")
+
+    rels_sorted = sorted(rels, key=lambda x: (x["from"], x["to"]))
+    rel_content = header + yaml.dump({"relations": rels_sorted}, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    (ROOT / ".awp" / "registry" / "relations.yaml").write_text(rel_content, encoding="utf-8")
+
+    return len(entities), len(rels)
+
+
+def _read_file_robust(filepath):
+    """读取文件，尝试 utf-8 后 fallback 到 gbk（Windows 中文环境）"""
+    try:
+        return filepath.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return filepath.read_text(encoding="gbk", errors="replace")
+
+
+def _extract_file_date(f):
+    """从文件 mtime 提取日期字符串"""
+    try:
+        from datetime import date
+        return date.fromtimestamp(f.stat().st_mtime).isoformat()
+    except Exception:
+        return ""
+
+
+def validate_registry_consistency():
+    """检查 registry 与实际文件的一致性"""
+    errors = []
+    reg_file = ROOT / ".awp" / "registry" / "id_registry.yaml"
+    if not reg_file.exists():
+        return errors  # 首次运行，registry 尚未生成
+
+    reg_data, err = load_yaml_file(".awp/registry/id_registry.yaml")
+    if err or not reg_data:
+        errors.append("Cannot load id_registry.yaml")
+        return errors
+
+    reg_ids = {}
+    for entry in reg_data.get("ids", []) or []:
+        eid = entry.get("id", "")
+        if eid:
+            reg_ids[eid] = entry
+
+    # 收集实际文件中的实体 ID
+    actual_ids = set()
+
+    # Tasks
+    for t in collect_tasks():
+        tid = t.get("task_id", "")
+        if tid:
+            actual_ids.add(tid)
+
+    # Reviews
+    reviews_dir = ROOT / ".awp" / "reviews"
+    if reviews_dir.exists():
+        for f in reviews_dir.glob("REV-*.md"):
+            actual_ids.add(f.stem)
+
+    # Runs
+    runs_dir = ROOT / ".awp" / "runs"
+    if runs_dir.exists():
+        for f in runs_dir.glob("RUN-*.md"):
+            actual_ids.add(f.stem)
+
+    # Sessions
+    sessions_dir = ROOT / ".awp" / "sessions"
+    if sessions_dir.exists():
+        for f in sessions_dir.glob("SESS-*.md"):
+            actual_ids.add(f.stem)
+
+    # Handoffs
+    handoff_dir = ROOT / ".awp" / "handoffs"
+    if handoff_dir.exists():
+        for f in handoff_dir.glob("HO-*.md"):
+            actual_ids.add(f.stem)
+
+    # Issues
+    issues_dir = ROOT / ".awp" / "issues"
+    if issues_dir.exists():
+        for f in issues_dir.glob("ISS-*.yaml"):
+            actual_ids.add(f.stem)
+
+    # EXP (derived)
+    for eid in list(actual_ids):
+        parts = eid.split("-")
+        if len(parts) >= 2 and parts[1].startswith(("E", "EXP")):
+            exp_id = "EXP" + parts[1].lstrip("E")
+            actual_ids.add(exp_id)
+
+    # 检查缺失实体
+    missing = actual_ids - set(reg_ids.keys())
+    if missing:
+        errors.append(
+            f"Registry missing {len(missing)} entity(s): "
+            f"{', '.join(sorted(list(missing))[:5])}{'...' if len(missing) > 5 else ''}. "
+            f"Run --sync to auto-register."
+        )
+
+    # 检查幽灵实体
+    orphan = set(reg_ids.keys()) - actual_ids
+    if orphan:
+        errors.append(
+            f"Registry has {len(orphan)} orphan entity(s): "
+            f"{', '.join(sorted(list(orphan))[:5])}{'...' if len(orphan) > 5 else ''}. "
+            f"Run --sync to clean up."
+        )
+
+    return errors
+
+
+def cmd_sync():
+    """自动修复可检测的状态不一致（--sync）"""
+    tasks = collect_tasks()
+    fixes = []
+    tasks_dir = ROOT / ".awp" / "tasks"
+
+    # 1. Task 有 GATE GAP 但 status 不是 blocked → 自动设 blocked
+    for t in tasks:
+        tid = t.get("task_id", "")
+        vs = t.get("validation_status", {})
+        status = t.get("status", "")
+        target = t.get("target_validation_level", "")
+
+        if status not in ("in_progress", "review"):
+            continue
+        if not target or target not in VALID_L_LEVELS:
+            continue
+
+        target_idx = VALID_L_LEVELS.index(target)
+        has_gap = False
+        for i in range(target_idx):
+            level = VALID_L_LEVELS[i]
+            lvl_status = vs.get(level, "pending")
+            if lvl_status not in ("pass", "skip"):
+                has_gap = True
+                break
+
+        if has_gap:
+            # 修改 YAML 文件
+            yaml_path = tasks_dir / f"{tid}.yaml"
+            if yaml_path.exists():
+                try:
+                    content = yaml_path.read_text(encoding="utf-8")
+                    new_content = content.replace(f"status: \"{status}\"", "status: \"blocked\"")
+                    if new_content != content:
+                        yaml_path.write_text(new_content, encoding="utf-8")
+                        fixes.append(f"{tid}: status {status} -> blocked (GATE GAP detected)")
+                except Exception as e:
+                    fixes.append(f"{tid}: FAILED to fix ({e})")
+
+    # 2. 模块级 task：若 done 但 L1b/L1c 仍 pending → 回退到 review
+    #    done 意味着"模块已完成"，但 L1b/L1c 未跑时模块在集成中的正确性未确认
+    for t in tasks:
+        tid = t.get("task_id", "")
+        agent = t.get("agent", "")
+        scope = t.get("integration_scope", "module")
+        status = t.get("status", "")
+        vs = t.get("validation_status", {})
+        if agent not in ("rtl_implementer",):
+            continue
+        if scope != "module":
+            continue
+        if status != "done":
+            continue
+        if vs.get("L1b") == "pending" or vs.get("L1c") == "pending":
+            yaml_path = tasks_dir / f"{tid}.yaml"
+            if yaml_path.exists():
+                content = yaml_path.read_text(encoding="utf-8")
+                new_content = content.replace('status: "done"', 'status: "review"')
+                if new_content != content:
+                    yaml_path.write_text(new_content, encoding="utf-8")
+                    fixes.append(
+                        f"{tid}: status done -> review (L1b/L1c pending, "
+                        f"module not yet confirmed in integration)"
+                    )
+
+    # 3. 修复无效的 skip：rtl_implementer 模块级 task 的 L1b/L1c skip → pending
+    for t in tasks:
+        tid = t.get("task_id", "")
+        agent = t.get("agent", "")
+        scope = t.get("integration_scope", "module")
+        vs = t.get("validation_status", {})
+        if agent not in ("rtl_implementer",):
+            continue
+        if scope != "module":
+            continue
+        yaml_path = tasks_dir / f"{tid}.yaml"
+        if not yaml_path.exists():
+            continue
+        content = yaml_path.read_text(encoding="utf-8")
+        modified = False
+        for level in ["L1b", "L1c"]:
+            if vs.get(level) == "skip":
+                # 精确替换 YAML 中的 "skip"
+                new_content = content.replace(f"{level}: \"skip\"", f"{level}: \"pending\"")
+                if new_content != content:
+                    content = new_content
+                    modified = True
+        if modified:
+            yaml_path.write_text(content, encoding="utf-8")
+            fixes.append(f"{tid}: L1b/L1c skip -> pending (module tasks must not skip integration levels)")
+
+    # 4. Auto-resolve stale handoffs: referenced tasks all done → resolved
+    handoff_dir = ROOT / ".awp" / "handoffs"
+    if handoff_dir.exists():
+        all_done_ids = {t.get("task_id") for t in tasks if t.get("status") == "done"}
+        for hf in sorted(handoff_dir.glob("HO-*.md")):
+            try:
+                hf_content = hf.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fm = extract_frontmatter(hf_content)
+            if not fm:
+                continue
+            h_status = fm.get("status", "")
+            if h_status == "resolved":
+                continue
+            # Extract all TASK-* IDs referenced in handoff body
+            ref_ids = set(re.findall(r'TASK-E\d{3}-\d{3}', hf_content))
+            if ref_ids and ref_ids.issubset(all_done_ids):
+                new_hf = hf_content.replace(f'status: "{h_status}"', 'status: "resolved"')
+                if new_hf != hf_content:
+                    hf.write_text(new_hf, encoding="utf-8")
+                    fixes.append(f"{hf.stem}: status {h_status} -> resolved (all referenced tasks done)")
+
+    # 5. Auto-detect factual task completion:
+    #    required_outputs all exist + all levels up to target are pass/skip → done
+    for t in tasks:
+        tid = t.get("task_id", "")
+        t_status = t.get("status", "")
+        if t_status not in ("in_progress", "review"):
+            continue
+        # Check all required_outputs exist
+        all_exist = True
+        for fpath in t.get("required_outputs", []) or []:
+            if not (ROOT / fpath).exists():
+                all_exist = False
+                break
+        if not all_exist:
+            continue
+        # Check all validation levels up to target are pass/skip
+        vs = t.get("validation_status", {})
+        target = t.get("target_validation_level", "")
+        all_pass = True
+        if target in VALID_L_LEVELS:
+            target_idx = VALID_L_LEVELS.index(target)
+            for i in range(target_idx + 1):
+                level = VALID_L_LEVELS[i]
+                if vs.get(level, "pending") not in ("pass", "skip"):
+                    all_pass = False
+                    break
+        if all_pass:
+            yaml_path = tasks_dir / f"{tid}.yaml"
+            if yaml_path.exists():
+                yaml_content = yaml_path.read_text(encoding="utf-8")
+                new_yaml = yaml_content.replace(f'status: "{t_status}"', 'status: "done"')
+                if new_yaml != yaml_content:
+                    yaml_path.write_text(new_yaml, encoding="utf-8")
+                    fixes.append(
+                        f"{tid}: status {t_status} -> done "
+                        f"(factual completion: all outputs exist + target {target} pass)"
+                    )
+
+    # 6. 同步 registry
+    n_entities, n_rels = sync_registry()
+    fixes.append(f"Registry synced: {n_entities} entities, {n_rels} relations")
+
+    # 7. 重生 task board
+    if fixes or True:
+        board_ok = cmd_gen_task_board() == 0
+        if board_ok:
+            fixes.append("task_board.md regenerated")
+
+    # 8. 报告 skeleton 文件
+    sessions_dir = ROOT / ".awp" / "sessions"
+    skeletons = list(sessions_dir.glob("SKELETON-*.md"))
+    if skeletons:
+        fixes.append(f"Note: {len(skeletons)} uncompleted skeleton(s) in .awp/sessions/")
+
+    if fixes:
+        print("\n[AWP-SYNC] Fixes applied:")
+        for f in fixes:
+            print(f"  - {f}")
+        print()
+    else:
+        print("[AWP-SYNC] No inconsistencies detected.\n")
+
+    return 0
 
 
 def cmd_summary():
@@ -405,13 +1435,13 @@ def cmd_dashboard():
             for level in VALID_L_LEVELS:
                 status = vs.get(level, "pending")
                 if status == "pass":
-                    val_parts.append(f"{level}✓")
+                    val_parts.append(f"{level}P")
                 elif status == "fail":
-                    val_parts.append(f"{level}✗")
+                    val_parts.append(f"{level}F")
                 elif status == "skip":
-                    val_parts.append(f"{level}−")
+                    val_parts.append(f"{level}S")
                 else:
-                    val_parts.append(f"{level}·")
+                    val_parts.append(f"{level}.")
             val_str = " ".join(val_parts)
             print(f"  {tid:<20} {st:<12} {agent:<22} {tv:<8} {val_str}")
 
@@ -507,6 +1537,8 @@ def cmd_gate_check():
     """验证门禁检查"""
     tasks = collect_tasks()
     issues = []
+
+    # 内部递进检查：同一 task 内 level 之间不能有 skip
     for t in tasks:
         tid = t.get("task_id", "?")
         vs = t.get("validation_status", {})
@@ -515,15 +1547,11 @@ def cmd_gate_check():
             status = vs.get(level, "pending")
             if status == "pass" and not prev_pass:
                 issues.append(f"{tid}: {level}=pass but previous level not passed (GATE VIOLATION)")
-            if status != "pass":
+            if status != "pass" and status != "skip":
                 prev_pass = False
 
-        # 检查是否达到 target level（仅对活跃状态的 task）
-        status = t.get("status", "?")
-        if status in ("in_progress", "blocked", "review"):
-            target = t.get("target_validation_level", "")
-            if target and vs.get(target, "pending") != "pass":
-                issues.append(f"{tid}: target {target} not yet passed (current: {vs.get(target, 'pending')})")
+    # target-gap 检查：target 以下不能有 pending（覆盖 in_progress/blocked/review/done）
+    issues.extend(_collect_target_gaps(tasks, only_active=False))
 
     if issues:
         print(f"\n[GATE ISSUES] {len(issues)} gate issue(s):\n")
@@ -595,18 +1623,212 @@ def cmd_gen_task_board():
     return 0
 
 
+def cmd_guard_session_start():
+    """SessionStart guard: gate-check + handoff Gate Status 校验（提醒级，永远 exit 0）"""
+    print("\n" + "=" * 60)
+    print("  [AWP-GUARD] Session Start -- Gate & Handoff Audit")
+    print("=" * 60)
+
+    # 1. Handoff 检测
+    handoff_dir = ROOT / ".awp" / "handoffs"
+    if handoff_dir.exists():
+        handoffs = sorted(handoff_dir.glob("HO-*.md"))
+        if handoffs:
+            latest = handoffs[-1]
+            print(f"\n  Handoff: {latest.name}")
+            try:
+                content = latest.read_text(encoding="utf-8")
+                if "## Gate Status" not in content:
+                    print("  [!] WARNING: Handoff missing Gate Status section!")
+                    print("      Previous session handoff may be unreliable, trust task YAML.")
+                else:
+                    print("  [OK] Handoff Gate Status present")
+            except Exception:
+                pass
+        else:
+            print("\n  (no handoff files)")
+
+    # 2. Gate check
+    print()
+    tasks = collect_tasks()
+    gaps = _collect_target_gaps(tasks)
+    if gaps:
+        print(f"  [!] GATE GAP: {len(gaps)} gap(s) detected")
+        for g in gaps:
+            print(f"      - {g}")
+        print("\n  Action: create prerequisite verification task(s) before spawning sub-agents.")
+    else:
+        print("  [OK] No gate gaps")
+
+    # 3. Session 骨架提醒
+    sessions_dir = ROOT / ".awp" / "sessions"
+    skeletons = list(sessions_dir.glob("SKELETON-*.md"))
+    if skeletons:
+        print(f"\n  [!] {len(skeletons)} uncompleted session skeleton file(s).")
+
+    print("=" * 60 + "\n")
+    return 0  # 提醒级，永远不阻断 session 启动
+
+
+def cmd_guard_pre_spawn():
+    """PreToolUse(Agent) guard: 选择性阻断越级 spawn（v0.2）。
+    读取 STDIN JSON 获取目标 agent 类型，L1b GAP 时：
+    - 阻断 integration_verifier(L1c)/vivado/hardware → 越级推进
+    - 允许 module_owner/planner/rtl_reviewer/process_owner → 修复/建 task/审查
+    """
+    # 尝试读取 hook 传递的 tool call JSON 获取 agent 类型
+    target_agent = None
+    if not sys.stdin.isatty():  # 仅在 hook 调用时读取 stdin
+        try:
+            hook_input = sys.stdin.read()
+            if hook_input.strip():
+                data = json.loads(hook_input)
+                target_agent = data.get("subagent_type", data.get("agent", None))
+        except (json.JSONDecodeError, Exception):
+            pass
+
+    gaps = _collect_target_gaps(collect_tasks(), only_active=True)
+    if not gaps:
+        return 0
+
+    # L1b GAP 存在 → 判断是否应该阻断
+    if target_agent and target_agent in GAP_SAFE_AGENTS:
+        # 允许：修复、建 task、审查、流程修补
+        return 0
+
+    # 迭代刹车：检查 ISS issue 是否超过资源 + 轮次阈值
+    issues_dir = ROOT / ".awp" / "issues"
+    if issues_dir.exists():
+        for f in sorted(issues_dir.glob("ISS-*.yaml")):
+            data, _ = load_yaml_file(str(f.relative_to(ROOT)))
+            if not data:
+                continue
+            rc = data.get("round_count", 0)
+            mr = data.get("max_rounds", 3)
+            if rc >= mr and data.get("status") not in ("resolved", "closed"):
+                # 检查是否有资源警告
+                thresholds = validate_resource_thresholds()
+                if thresholds:
+                    print("\n" + "=" * 60)
+                    print("  [AWP-GUARD] Pre-Spawn BLOCKED -- Iteration Brake")
+                    print("=" * 60)
+                    print(f"  {f.stem}: round={rc} >= max_rounds={mr}")
+                    print(f"  Resource warnings present:")
+                    for t in thresholds[:3]:
+                        print(f"    [!] {t}")
+                    print(f"\n  Direction may be wrong -- escalate to human_owner.")
+                    print("=" * 60 + "\n")
+                    return 1
+
+    # 无法判断 agent 类型（手动调用）或有 GAP 且非安全 agent → 阻断
+    print("\n" + "=" * 60)
+    print("  [AWP-GUARD] Pre-Spawn BLOCKED -- Gate Gap Detected")
+    print("=" * 60)
+    for g in gaps:
+        print(f"  [X] {g}")
+    if target_agent:
+        print(f"\n  Agent '{target_agent}' blocked: resolve L1b GAP first.")
+    print("\n  Allowed agents during GAP: planner, module_owner, rtl_reviewer, process_owner")
+    print("=" * 60 + "\n")
+    return 1
+
+
+def cmd_guard_pre_stop():
+    """Stop guard: handoff 完整性 + session 记录检查（提醒级，永远 exit 0）"""
+    issues = []
+
+    # 1. 活跃 task → 检查 handoff
+    tasks = collect_tasks()
+    active = [t for t in tasks if t.get("status") in ("in_progress", "blocked", "review")]
+    if active:
+        handoff_dir = ROOT / ".awp" / "handoffs"
+        handoffs = sorted(handoff_dir.glob("HO-*.md")) if handoff_dir.exists() else []
+
+        if not handoffs:
+            issues.append("Active tasks present but no handoff file -- create handoff")
+        else:
+            latest = handoffs[-1]
+            try:
+                content = latest.read_text(encoding="utf-8")
+                if "## Gate Status" not in content:
+                    issues.append(f"Handoff {latest.name} missing Gate Status section")
+            except Exception:
+                issues.append(f"Cannot read handoff {latest.name}")
+
+    # 2. Session 骨架检查
+    sessions_dir = ROOT / ".awp" / "sessions"
+    skeletons = list(sessions_dir.glob("SKELETON-*.md"))
+    if skeletons:
+        issues.append(f"{len(skeletons)} uncompleted session skeleton(s)")
+
+    # 3. Gate gap 快照
+    gaps = _collect_target_gaps(tasks)
+    if gaps:
+        issues.append(f"{len(gaps)} unresolved gate gap(s)")
+
+    if issues:
+        print("\n" + "=" * 60)
+        print("  [AWP-GUARD] Pre-Stop -- Reminders Before Session End")
+        print("=" * 60)
+        for i in issues:
+            print(f"  [!] {i}")
+        print("=" * 60 + "\n")
+
+    # 提醒级，永远不阻断 session 结束
+    return 0
+
+
+def _collect_target_gaps(tasks, only_active=False):
+    """收集 task 的 target-gap，返回字符串列表。
+    only_active=True 时仅检查 in_progress/review（用于 pre-spawn 阻断）。
+    """
+    gaps = []
+    for t in tasks:
+        tid = t.get("task_id", "?")
+        vs = t.get("validation_status", {})
+        status = t.get("status", "?")
+        target = t.get("target_validation_level", "")
+
+        if only_active:
+            if status not in ("in_progress", "review"):
+                continue
+        else:
+            if status not in ("in_progress", "blocked", "review", "done"):
+                continue
+
+        if target and target in VALID_L_LEVELS:
+            target_idx = VALID_L_LEVELS.index(target)
+            for i in range(target_idx):
+                level = VALID_L_LEVELS[i]
+                lvl_status = vs.get(level, "pending")
+                if lvl_status not in ("pass", "skip"):
+                    gaps.append(f"{tid}: targets {target} but {level}={lvl_status}")
+    return gaps
+
+
 def main():
     parser = argparse.ArgumentParser(description="FPGA-AWP Workspace Validator")
     parser.add_argument("--summary", action="store_true", help="Print project dashboard (alias for --dashboard)")
     parser.add_argument("--dashboard", action="store_true", help="Print human-readable project dashboard")
     parser.add_argument("--gate-check", action="store_true", help="Check L0-L7 gate progression")
     parser.add_argument("--gen-task-board", action="store_true", help="Generate task_board.md from YAML files")
+    parser.add_argument("--sync", action="store_true", help="Auto-fix detectable state inconsistencies")
+    parser.add_argument("--guard", choices=["session-start", "pre-spawn", "pre-stop"],
+                        help="AWP guard: trigger-point automation for hooks")
     args = parser.parse_args()
 
     # 切换到项目根目录
     os.chdir(ROOT)
 
-    if args.dashboard or args.summary:
+    if args.guard == "session-start":
+        return cmd_guard_session_start()
+    elif args.guard == "pre-spawn":
+        return cmd_guard_pre_spawn()
+    elif args.guard == "pre-stop":
+        return cmd_guard_pre_stop()
+    elif args.sync:
+        return cmd_sync()
+    elif args.dashboard or args.summary:
         return cmd_dashboard()
     elif args.gate_check:
         return cmd_gate_check()

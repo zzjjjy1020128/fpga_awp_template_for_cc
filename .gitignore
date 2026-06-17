@@ -38,6 +38,11 @@ xsim.dir/
 *.vpd
 *.fsdb
 
+# Icarus Verilog 产物
+a.out
+sim/simv*
+sim/*.vvp
+
 # Python
 __pycache__/
 *.pyc
@@ -49,6 +54,23 @@ Thumbs.db
 
 # Session 临时骨架（正式文件 SESS-* 需要提交）
 SKELETON-*
+
+# MCP/Vivado 临时元数据
+.vmcp/
+vivado/ip_pack_temp/
+
+# Board 测试构建产物
+board/ps_dma_test/build/
+board/ps_dma_test/ps7_init*
+
+# ILA 抓数临时文件
+*.ila
+*.csv
+
+# Build artifacts
+*.o
+*.dmp
+hs_err_*
 
 # 临时文件
 *.tmp

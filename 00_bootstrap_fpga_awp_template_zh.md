@@ -100,7 +100,9 @@ retrospective（复盘）
 ```text
 .
 ├── README.md
+├── METHODOLOGY.md
 ├── CLAUDE.md
+├── LAYERS.md
 ├── Makefile
 ├── rtl/
 ├── tb/
@@ -120,8 +122,6 @@ retrospective（复盘）
 │   ├── workspace_manifest.json
 │   ├── task_board.md
 │   ├── decisions.md
-│   ├── execution_modes.md
-│   ├── orchestration_guide.md
 │   ├── tasks/
 │   ├── sessions/
 │   ├── handoffs/
@@ -132,6 +132,7 @@ retrospective（复盘）
 └── .claude/
     ├── agents/
     ├── skills/
+    ├── orchestration_guide.md
     ├── hooks/
     └── settings.json
 ```
@@ -258,52 +259,35 @@ AWP-0001: Use repository files as the source of truth instead of chat history.
 
 ---
 
-### 6. `.awp/execution_modes.md`
+### 6. `METHODOLOGY.md`
 
-创建执行模式说明文档，覆盖：
+创建方法论宣言——整个工作区的入口文档。这是任何人/agent 读的第一份文档。
 
-```text
-Mode 0: Single agent session
-Mode 1: Manual multi-session
-Mode 2: Orchestrator + subagents
-Mode 3: Worktree-based parallel agents
-Mode 4: Future multi-agent team
-```
+必须包含：
 
-每种模式说明：
+- 方法论概述（叫什么、为谁设计、解决什么问题）；
+- 完整的 6-Phase 生命周期模型（P0 项目启动 → P6 收尾复盘），每个 Phase 有：目标、输入/输出 artifact、entry/exit criteria、负责执行者、关联 skills；
+- 执行模型（全视野优先原则 + 子智能体使用边界）；
+- 角色定义（orchestrator 全视野执行者 + 工具型 agents）；
+- 核心原则（5 条以内）；
+- 文档索引（指向所有详细文档的指针）。
 
-- 何时使用；
-- 何时不要使用；
-- 必须依赖哪些文件；
-- 风险是什么；
-- FPGA 项目中特别要注意什么。
+执行模式（Mode 0-4）的定义合并在 `.claude/orchestration_guide.md` 中，不在 METHODOLOGY.md 中展开。
 
 ---
 
-### 7. `.awp/orchestration_guide.md`
+### 7. `.claude/orchestration_guide.md`
 
-创建编排指南，定义标准角色：
+创建编排指南，合并 Session 协议、工具链边界检查和 G1-G9 调度规则。
 
-```text
-human_owner
-orchestrator
-planner
-rtl_implementer
-rtl_reviewer
-tb_verifier
-vivado_integrator
-hardware_validator
-process_owner
-```
+必须包含：
 
-每个角色必须定义：
+- Session 启动/工作/关闭协议；
+- 环境初始化 (B0)；
+- G1-G9 规则：spawn 决策、handoff 决策、review 范围、验证失败处理、task 粒度、scope、状态转换、项目完成、平台合同；
+- 工具链边界检查（Vivado→Vitis、Vitis→上板、用户声明"已重新生成"）。
 
-- responsibility；
-- allowed actions；
-- forbidden actions；
-- required input files；
-- required output files；
-- default language policy。
+定义角色时引用 `METHODOLOGY.md` §4——不在本文件中重复角色定义。
 
 ---
 
