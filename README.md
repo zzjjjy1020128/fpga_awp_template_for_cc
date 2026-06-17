@@ -1,185 +1,97 @@
-# FPGA-AWP v0.1
+# FPGA-AWP v0.2
 
-**FPGA Agent Workspace Protocol** —— FPGA 项目的 agent 工作空间协议模板。
+**FPGA Agent Workspace Protocol** —— 面向 FPGA 开发的智能体优先（Agent-Native）方法论与工作区模板。
+
+> 入口文档是 `METHODOLOGY.md`。`CLAUDE.md` 是每次 session 加载的运行时规则。
 
 ---
 
-## 环境准备（首次使用必须）
+## 环境准备
 
-本项目的 `make` 命令和 hook 依赖 **Python 3.8+** 和一个第三方库 **PyYAML**。首次使用前请完成以下步骤：
-
-### 1. 确认 Python 可用
-
-```powershell
-# PowerShell / CMD
-python --version
-# 如果显示 "python: command not found"，试试 python3 --version
-```
-
-若未安装，从 https://www.python.org/downloads/ 下载安装（勾选 "Add Python to PATH"）。
-
-### 2. 安装依赖
+依赖 Python 3.8+ 和 PyYAML：
 
 ```bash
 pip install -r requirements.txt
-# 或者
-python -m pip install -r requirements.txt
+make verify-env
 ```
 
-### 3. 验证环境
+Windows 无 `make` 时直接用 Python 替代：
 
-```bash
-make verify-env        # 自动检查 Python / pip / PyYAML
-```
-
-如果系统没有 `make`（Windows 原生 PowerShell），可以直接用 Python 替代所有命令：
-
-| make 命令 | 直接 Python 替代 | 作用 |
-|-----------|-----------------|------|
-| `make verify-env` | `python scripts/validate_awp.py --help` | 如果运行成功说明环境 OK |
+| make 命令 | Python 替代 | 作用 |
+|-----------|------------|------|
 | `make status` | `python scripts/validate_awp.py --dashboard` | 项目全局仪表盘 |
 | `make validate-awp` | `python scripts/validate_awp.py` | 工作空间完整性校验 |
 | `make task-board` | `python scripts/validate_awp.py --gen-task-board` | 生成任务看板 |
-| `make dirs` | 手动创建 `rtl/tb/sim/vivado/constraints/board/scripts` 目录 | 确保目录结构 |
-
-> **对 Windows 用户的建议**：安装 Git for Windows 时会附带 Git Bash，它支持 `make` 命令。或者直接用 `python scripts/validate_awp.py --dashboard` 替代 `make status`。
 
 ---
 
 ## 快速开始
 
-**你只需要做一件事：告诉 orchestrator 你想做什么。**
-
-```
-1. 在 Claude Code 中打开本仓库
-2. 输入：我想开始一个新的 FPGA 项目，做一个 AXI-Lite 控制的 2D shift 模块
-3. orchestrator（CTO agent）会自动：
-   - 创建项目章程（project_charter.md）—— 定义范围、约束、验证目标
-   - 拆分任务（architecture → RTL → review → simulation → board）
-   - 为每个任务创建合同（task yaml）
-   - spawn 对应的工程师子智能体来干活
-   - 运行校验、更新看板、记录 session
-4. 你只需要确认关键决策，其余交给 orchestrator
-5. 结束时输入：/session-close
+```text
+1. 克隆本仓库，在 Claude Code 中打开
+2. 说出你想做的 FPGA 项目
+3. orchestrator 引导你走完 6-Phase 生命周期：
+   P0 项目启动 → P1 架构设计 → P2 RTL+验证 → P3 集成验证
+   → P4 硬件实现 → P5 上板验证 → P6 收尾复盘
 ```
 
-**不想从零开始？** 直接告诉 orchestrator 你的具体需求，它会判断从哪里切入。
+**orchestrator 是拥有完整项目上下文的执行者**——它自己做架构决策、跨模块设计、bug 诊断。子智能体仅在 Vivado 综合/上板烧录等长耗时工具操作时使用，作为"手臂的延伸"而非独立的工程师同事。
 
 ---
 
 ## 核心概念
 
-| 概念 | 你是这么理解的 |
-|------|--------------|
-| **orchestrator（CTO）** | 和你对话的主 agent。它拆分你提出的任务、调度子智能体执行、保障流程合规。**你主要和它交互。** |
-| **子智能体（engineer）** | 被 CTO 派去干活的专业 agent。有 7 种角色：planner（架构）、rtl_implementer（RTL 编码）、rtl_reviewer（审查）、tb_verifier（仿真）、vivado_integrator（Vivado 集成）、hardware_validator（上板验证）、process_owner（复盘）。**你一般不和子智能体直接对话。** |
-| **task（任务合同）** | 每个工作的 YAML 合同，明确：谁做、做什么、改哪些文件、怎么验收、验证到几级。 |
-| **session（会话）** | 一次从打开到关闭的对话。session 结束时 CTO 会归档记录，必要时创建 handoff 供下次继续。 |
-| **handoff（交接记录）** | session 之间的桥梁。下次打开 Claude Code 时 CTO 自动读取。 |
-| **验证级别 L0-L7** | 8 级递进：L0 代码审查 → L1 仿真 → L2 综合 → L3 实现/时序 → L4 bitstream → L5 上板冒烟 → L6 数据正确性 → L7 复盘。低级别通过后才进入高级别。 |
-| **仓库是事实来源** | 所有关键状态（任务、session 记录、审查结果、验证报告）都文件化在仓库中，不依赖聊天历史。 |
+| 概念 | 说明 |
+|------|------|
+| **METHODOLOGY.md** | 体系入口——6-Phase 生命周期、全视野优先原则、角色定义、文档索引 |
+| **CLAUDE.md** | 运行时规则——每次 session 加载的硬规则、MCP-Skill 层级、Git 纪律 |
+| **orchestrator** | 唯一全视野执行者。自己做跨模块决策，仅 spawn 子智能体做工具自动化和无状态探索 |
+| **子智能体** | 工具执行者或浏览器，不是独立工程师。Vivado 综合/上板烧录/代码搜索/复盘汇总 |
+| **task（任务合同）** | YAML 文件，明确 scope、acceptance、required_outputs、validation_status |
+| **session** | 一次对话。结束时 orchestrator 归档记录，必要时创建 handoff |
+| **handoff** | session 间桥梁。下次打开时自动恢复上下文 |
+| **L0-L7 验证** | 8 级递进门禁：L0 审查 → L1a 单元仿真 → L1b 数据通路 → L1c 全系统 → L2 综合 → L3 实现 → L4 比特流 → L5 冒烟 → L6 数据正确 → L7 复盘 |
 
 ---
 
-## 全局视角：一眼看清项目全貌
-
-自动化不代表黑盒。以下入口让你随时掌握全局状态：
+## 全局视角
 
 | 你想知道 | 怎么看 |
 |---------|--------|
-| **项目整体状态** | 运行 `make status` —— 显示所有 task、验证进度、最近 session、待解决问题、下一步行动 |
-| **任务列表** | 查看 `.awp/task_board.md`（`make task-board` 自动生成，每次 task 状态变更后更新） |
-| **某个 task 的细节** | 打开 `.awp/tasks/TASK-xxx.yaml`，包含 scope、验收条件、产出文件、验证状态 |
-| **历史记录** | 浏览 `.awp/sessions/` 目录，每次 session 都有完整记录（做了啥、改了啥、决策了啥） |
-| **交接记录** | 查看 `.awp/handoffs/` 目录，了解 session 之间传递了哪些关键上下文 |
-| **架构决策** | 阅读 `.awp/decisions.md`，记录了所有 ADR 风格的架构决策 |
-| **审查结果** | 打开 `.awp/reviews/` 目录，每次 review 都有独立记录 |
-| **上板验证** | 查看 `.awp/runs/` 目录，每次运行都有板卡、bitstream、ILA/VIO 证据记录 |
-| **项目演进** | 运行 `git log --oneline`，每次提交都有 Task/Session/Validation trailer 可追溯 |
-
-**建议**：每次打开项目先运行 `make status` 了解当前全局状态，再决定下一步做什么。
-
-## 可用命令/技能
-
-**make 命令（终端中运行，也可用直接 Python 命令替代，见上方"环境准备"）：**
-
-| 命令 | 什么时候用 | 会发生什么 |
-|------|-----------|----------|
-| `make verify-env` | 首次使用 | 检查 Python、pip、PyYAML 是否就绪 |
-| `make status` | 每次打开项目 | 显示项目全局仪表盘（任务/验证/session/问题/下一步） |
-| `make validate-awp` | 修改了 task/review 后 | 校验格式、ID 规范、跨引用完整性 |
-| `make task-board` | task 状态变更后 | 根据 YAML 自动重新生成 `task_board.md` |
-
-**对话命令（在 Claude Code 中输入）：**
-
-| 命令 | 什么时候用 | 会发生什么 |
-|------|-----------|----------|
-| `/task-bootstrap` | 你想创建新任务 | CTO 引导你填写任务合同，自动注册 ID，运行校验 |
-| `/session-close` | 你这次工作做完了 | CTO 补全 session 记录、运行校验、判断是否需要 handoff、提交 git |
-| 自然语言 | 任何时候 | 直接告诉 CTO 你的需求，它会自动判断该做什么 |
+| 项目整体状态 | `make status` |
+| 任务看板 | `.awp/task_board.md`（自动生成） |
+| 某个 task 细节 | `.awp/tasks/TASK-*.yaml` |
+| 历史记录 | `.awp/sessions/` |
+| 交接记录 | `.awp/handoffs/` |
+| 架构决策 | `.awp/decisions.md` |
+| 审查结果 | `.awp/reviews/` |
+| 上板验证 | `.awp/runs/` |
 
 ---
 
-## 你的角色：与 CTO 协作
+## 会话命令
 
-当你和 orchestrator 对话时，它会：
-
-1. **主动拆分** —— 把大目标拆成具体任务，列出 task 列表征求你确认
-2. **主动调度** —— 确认后自动 spawn 对应的子智能体执行
-3. **主动审查** —— RTL 完成后自动触发代码审查，无需你提醒
-4. **主动归档** —— 每个 task 完成后自动运行校验，session 结束时归档
-5. **向你汇报** —— 进度更新、遇到阻塞、需要关键决策时
-
-**你的职责**：提供目标、确认 task 拆分、批准关键决策、验收最终产出。
-
-**你不需要做**：记住流程规则、创建模板文件、运行校验命令 —— 这些 CTO 负责。
+| 命令 | 作用 |
+|------|------|
+| `/task-bootstrap` | 创建新任务合同 |
+| `/session-close` | 结束 session：归档记录、校验、判断 handoff、git commit |
+| 自然语言 | 直接告诉 orchestrator 你的需求 |
 
 ---
 
-## 常见问题
+## 分支结构
 
-**Q: validate-awp 出错了怎么办？**
-A: CTO 会看到错误信息并自动修复。如果是严重问题（G4 规则：连败三次），CTO 会停止并请求你的决定。
-
-**Q: Session 被中断（断线/关窗口）怎么办？**
-A: 重新打开 Claude Code。CTO 会自动检查 handoff 文件并恢复上次的上下文。
-
-**Q: CTO 说需要 handoff，我需要做什么？**
-A: 你不需要做任何事。CTO 自动创建 handoff 文件，下次会话自动恢复。
-
-**Q: 子智能体反复失败怎么办？**
-A: CTO 按 G4 规则处理：1 次→重试，2 次→重点修复，3 次→停止并请你决策。
-
-**Q: Review 不通过怎么办？**
-A: CTO 会创建修复 task，重新 spawn 原 agent 修改。不需要你干预。
-
-**Q: 我想跳过某个步骤可以吗？**
-A: 告诉 CTO。CTO 会在合规范围内调整，但如果跳过关键的验证门禁（如 L1 未通过进 L2），会被硬阻断。
-
----
-
-## 预期工作流
-
-```text
-项目启动 → project_charter → architecture → RTL 实现 → 代码审查
-         → testbench + 仿真 → Vivado 集成 → 上板验证 → 复盘
-         
-每个阶段：创建 task → spawn 子智能体 → 产出结果 → validate → 更新看板
-Session 结束时：/session-close → 记录归档 → git commit → handoff（如需要）
+```
+master     ← v0.2 干净模板（0 tasks, 0 entities）
+exp/E001   ← AXI-Lite 2D Shift 项目实例
 ```
 
+新项目：`git checkout -b exp/NewProject master` → 获得完整模板，无任何残留。
+
 ---
 
-## 如何使用这个模板
+## 项目 vs 模板
 
-1. Clone 或复制本仓库
-2. 在 Claude Code 中打开
-3. 说出你的 FPGA 项目目标
-4. orchestrator 自动完成其余工作
+本仓库的 `master` 分支是纯模板。`exp/*` 分支是真实项目实例（含 RTL、Vivado 工程、约束、上板记录）。
 
-## Workspace Protocol 与真实 FPGA 项目的区别
-
-本仓库是 **模板**，不是真实 FPGA 项目：
-- 不包含 RTL 设计
-- 不包含 Vivado 工程
-- 不包含仿真/综合/上板结果
+模板层文件（`awp`/`conf` scope）改进后从 exp 分支 cherry-pick 回 master。
