@@ -166,7 +166,7 @@ ids:
   created: '2026-06-09'
 - id: REV-E001-029-RTL-001
   type: REVIEW
-  title: Review of TASK-E001-029 (RTL)
+  title: Review of TASK-E001-004 (RTL)
   status: closed
   created: '2026-06-10'
 - id: RUN-E001-BOARD-001
@@ -224,11 +224,6 @@ ids:
   title: IP 打包运行报告
   status: active
   created: ''
-- id: RUN-E001-L1A-029
-  type: RUN
-  title: 'RUN-E001-SIM-003: axis_input AXI4-Stream Input Interface Simulation'
-  status: active
-  created: 2026/06/10 周三
 - id: RUN-E001-L1B-CONTROL-001
   type: RUN
   title: 'RUN-E001-L1B-CONTROL-001: L1b 控制通路集成仿真'
@@ -313,47 +308,47 @@ ids:
   type: SESSION
   title: Session 记录
   status: closed
-  created: '2026-06-04'
+  created: '2026-06-17'
 - id: SESS-E001-OR-002
   type: SESSION
   title: Session 记录
   status: closed
-  created: '2026-06-06'
+  created: '2026-06-17'
 - id: SESS-E001-OR-003
   type: SESSION
   title: Session 记录
   status: closed
-  created: '2026-06-08'
+  created: '2026-06-17'
 - id: SESS-E001-OR-004
   type: SESSION
   title: Session 记录 — SESS-E001-OR-004
   status: closed
-  created: '2026-06-09'
+  created: '2026-06-17'
 - id: SESS-E001-OR-005
   type: SESSION
   title: Session 记录 — SESS-E001-OR-005
   status: closed
-  created: '2026-06-09'
+  created: '2026-06-17'
 - id: SESS-E001-OR-006
   type: SESSION
   title: 'Session: Zynq PS-PL 联合调试方法论建立 + DMA 数据通路诊断'
   status: closed
-  created: '2026-06-09'
+  created: '2026-06-17'
 - id: SESS-E001-OR-007
   type: SESSION
   title: Session 记录 — SESS-E001-OR-007
   status: closed
-  created: '2026-06-10'
+  created: '2026-06-17'
 - id: SESS-E001-OR-008
   type: SESSION
   title: Session 记录 — SESS-E001-OR-008
   status: closed
-  created: '2026-06-15'
+  created: '2026-06-17'
 - id: SESS-E001-OR-009
   type: SESSION
   title: Session 记录
   status: closed
-  created: '2026-06-16'
+  created: '2026-06-17'
 - id: TASK-E001-001
   type: TASK
   title: AXI-Lite 2D Shift 模块架构规划
@@ -487,16 +482,11 @@ ids:
 - id: TASK-E001-027
   type: TASK
   title: ILA cross-trigger 调试同步架构 —— PL anchor event + RTL ILA + Tcl 自动化
-  status: active
+  status: closed
   created: '2026-06-09'
 - id: TASK-E001-028
   type: TASK
   title: FPGA Domain Pack 技能库生命周期维护
-  status: active
-  created: '2026-06-10'
-- id: TASK-E001-029
-  type: TASK
-  title: axis_input 行边界自检测修复 —— Simple DMA 兼容
   status: active
   created: '2026-06-10'
 - id: TASK-E001-030

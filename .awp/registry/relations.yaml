@@ -193,7 +193,7 @@ relations:
   to: EXP001
   type: belongs_to
 - from: REV-E001-029-RTL-001
-  to: TASK-E001-029
+  to: TASK-E001-004
   type: reviews
 - from: RUN-E001-BOARD-001
   to: EXP001
@@ -234,12 +234,6 @@ relations:
 - from: RUN-E001-IP-PACK-001
   to: EXP001
   type: belongs_to
-- from: RUN-E001-L1A-029
-  to: EXP001
-  type: belongs_to
-- from: RUN-E001-L1A-029
-  to: TASK-E001-029
-  type: runs_for
 - from: RUN-E001-L1B-CONTROL-001
   to: EXP001
   type: belongs_to
@@ -585,15 +579,6 @@ relations:
 - from: TASK-E001-028
   to: EXP001
   type: belongs_to
-- from: TASK-E001-029
-  to: EXP001
-  type: belongs_to
-- from: TASK-E001-029
-  to: TASK-E001-006
-  type: depends_on
-- from: TASK-E001-029
-  to: TASK-E001-008
-  type: depends_on
 - from: TASK-E001-030
   to: EXP001
   type: belongs_to
