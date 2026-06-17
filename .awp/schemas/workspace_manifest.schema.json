@@ -35,16 +35,33 @@
     },
     "validation_levels": {
       "type": "object",
-      "required": ["L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7"],
+      "required": ["L0", "L1a", "L1b", "L1c", "L2", "L3", "L4", "L5", "L6", "L7"],
       "properties": {
         "L0": { "type": "string" },
-        "L1": { "type": "string" },
+        "L1a": { "type": "string" },
+        "L1b": { "type": "string" },
+        "L1c": { "type": "string" },
         "L2": { "type": "string" },
         "L3": { "type": "string" },
         "L4": { "type": "string" },
         "L5": { "type": "string" },
         "L6": { "type": "string" },
         "L7": { "type": "string" }
+      }
+    },
+    "platforms": {
+      "type": "array",
+      "description": "已冻结的硬件基座清单，每个基座对应一个板卡/器件",
+      "items": {
+        "type": "object",
+        "required": ["id", "manifest", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "基座唯一标识，如 HW_BASE_ZCU102_v1.0" },
+          "manifest": { "type": "string", "description": "平台清单 YAML 路径，如 .awp/platform/hw_base_zcu102_v1.0.yaml" },
+          "status": { "type": "string", "enum": ["frozen", "candidate", "revised"] },
+          "frozen_date": { "type": "string" },
+          "description": { "type": "string" }
+        }
       }
     },
     "default_agent_policy": {

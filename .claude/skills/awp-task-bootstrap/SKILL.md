@@ -43,16 +43,9 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 3. 写入 `.awp/tasks/{task_id}.yaml`
 
-## Step 4: 注册 ID
+## Step 4: 同步 Registry
 
-在 `.awp/registry/id_registry.yaml` 的 `ids` 列表中添加：
-```yaml
-  - id: "{task_id}"
-    type: "TASK"
-    title: "{标题}"
-    status: "active"
-    created: "{YYYY-MM-DD}"
-```
+运行 `python scripts/validate_awp.py --sync` 自动将新 task ID 注册到 registry 并更新 task board。
 
 ## Step 5: 校验
 
@@ -60,12 +53,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 若校验失败：
 - 阅读错误信息
-- 修正 task yaml 或 registry
+- 修正 task yaml
 - 重新运行直到通过
-
-## Step 6: 更新 Task Board
-
-运行 `python scripts/validate_awp.py --gen-task-board` 更新看板。
 
 ## Step 7: 向用户汇报
 

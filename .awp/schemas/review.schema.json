@@ -2,9 +2,9 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": ".awp/schemas/review.schema.json",
   "title": "Review Record Schema",
-  "description": "FPGA-AWP review 记录的基本结构校验",
+  "description": "FPGA-AWP review frontmatter 的结构校验（body 字段不在此 schema 的 required 中，由模板和人工审查保证）",
   "type": "object",
-  "required": ["task_id", "reviewer", "result", "findings", "commands_run", "limitations", "next_actions"],
+  "required": ["task_id", "reviewer", "result", "date"],
   "properties": {
     "task_id": {
       "type": "string",
@@ -16,13 +16,28 @@
     },
     "result": {
       "type": "string",
+      "description": "审查结论",
       "enum": ["pass", "pass_with_notes", "fail"]
+    },
+    "date": {
+      "type": "string",
+      "description": "审查日期",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "review_id": {
+      "type": "string",
+      "description": "审查记录唯一标识"
+    },
+    "review_level": {
+      "type": "string",
+      "description": "审查级别 (L0/L1a/L1b/...)",
+      "enum": ["L0", "L1a", "L1b", "L1c", "L2", "L3", "L4", "L5", "L6", "L7"]
     },
     "findings": {
       "type": "array",
+      "description": "审查发现（body 内容，非必须出现在 frontmatter）",
       "items": {
         "type": "object",
-        "required": ["severity", "description", "suggestion"],
         "properties": {
           "severity": { "type": "string", "enum": ["high", "medium", "low"] },
           "description": { "type": "string" },
@@ -32,6 +47,7 @@
     },
     "commands_run": {
       "type": "array",
+      "description": "执行的命令列表",
       "items": { "type": "string" }
     },
     "limitations": {
@@ -40,6 +56,7 @@
     },
     "next_actions": {
       "type": "array",
+      "description": "后续行动",
       "items": { "type": "string" }
     }
   }

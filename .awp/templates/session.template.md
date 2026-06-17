@@ -34,16 +34,28 @@
 - `<问题描述和影响>`
 
 ## Gate Check
-> 上一级验证级别是否已通过？低级别通过后才进入高级别。
+> 运行 `python scripts/validate_awp.py --gate-check` 并记录结果。
+> 低级别通过后才进入高级别。L1a → L1b → L1c 必须顺序通过。
 
-- [ ] 目标验证级别：`<L0-L7>`
-- [ ] 前一级别已通过确认
+- [ ] `--gate-check` 退出码 0
+- [ ] 当前 task 的 target 以下无 pending level（无 GATE GAP）
 
 ## Validation Status
-- [ ] L0: 静态审查
-- [ ] L1: 仿真
-- [ ] 其他
-- [ ] `make validate-awp` 通过（退出码 0）
+
+| Level | Status | 备注 |
+|-------|--------|------|
+| L0: 静态审查 | `<pass/pending/skip>` | |
+| L1a: 模块级单元仿真 | `<pass/pending/skip>` | |
+| L1b: 数据通路闭环仿真 | `<pass/pending/skip>` | |
+| L1c: 全系统集成仿真 | `<pass/pending/skip>` | |
+| L2: 综合 | `<pass/pending/skip>` | |
+| L3: 实现与时序 | `<pass/pending/skip>` | |
+| L4: 比特流生成 | `<pass/pending/skip>` | |
+| L5: 板上冒烟测试 | `<pass/pending/skip>` | |
+| L6: 板上数据正确性 | `<pass/pending/skip>` | |
+| L7: 性能/资源复盘 | `<pass/pending/skip>` | |
+
+- [ ] `python scripts/validate_awp.py` 通过（退出码 0）
 
 ## Open Questions
 - `<待解决问题>`

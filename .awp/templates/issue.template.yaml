@@ -1,0 +1,44 @@
+# ISS issue 模板
+# 文件命名：.awp/issues/ISS-{exp}-{seq}.yaml
+
+issue_id: "ISS-E001-001"
+title: "<issue 标题>"
+status: "open"           # open | in_progress | blocked | resolved | closed
+
+detected_at_level: "L1b"  # 首次在哪个验证级别发现
+detected_by_task: "<TASK-E001-009>"
+detected_by_session: "<SESS-E001-OR-001>"
+detected_in_run: "<RUN-E001-SIM-007>"  # 关联到具体的运行记录
+
+suspected_owner_task: "<TASK-E001-004>"  # 怀疑根因所在的模块 task
+suspected_module: "<axis_input>"
+
+round_count: 1
+max_rounds: 3
+
+failure_signature:
+  test_case: "<TC name>"
+  timestamp: "<sim time>"
+  signal: "<信号名>"
+  expected: "<期望值>"
+  observed: "<实际值>"
+
+evidence:
+  waveform:
+    - "<sim/xxx.vcd>"
+  logs:
+    - "<.awp/runs/RUN-xxx.md>"
+  notes:
+    - "<文字描述>"
+
+attempts:
+  - round: 1
+    verifier_session: ""
+    owner_session: ""
+    reviewer_session: ""
+    action: ""
+    result: "pending"
+
+next_action:
+  role: "module_owner"
+  action: "<下一步操作描述>"

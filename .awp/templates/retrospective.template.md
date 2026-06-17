@@ -13,12 +13,15 @@
 | 级别 | 描述 | 结果 |
 |------|------|------|
 | L0 | 静态审查 | `<pass/fail/skip>` |
-| L1 | 仿真验证 | `<pass/fail/skip>` |
+| L1a | 模块级单元仿真 | `<pass/fail/skip>` |
+| L1b | 数据通路闭环仿真 | `<pass/fail/skip>` |
+| L1c | 全系统集成仿真 | `<pass/fail/skip>` |
 | L2 | 综合 | `<pass/fail/skip>` |
 | L3 | 实现与时序 | `<pass/fail/skip>` |
 | L4 | 比特流生成 | `<pass/fail/skip>` |
 | L5 | 板上冒烟测试 | `<pass/fail/skip>` |
 | L6 | 板上数据正确性 | `<pass/fail/skip>` |
+| L7 | 性能/资源复盘 | `<pass/fail/skip>` |
 
 ## 数据总结
 
