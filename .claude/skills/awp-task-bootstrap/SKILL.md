@@ -29,7 +29,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 | `task_id` | Step 2 确定的 ID |
 | `title` | 简洁描述任务目标 |
 | `status` | 新任务填 `ready` |
-| `agent` | 必须是 enum 中的值：`planner` `rtl_implementer` `rtl_reviewer` `tb_verifier` `vivado_integrator` `hardware_validator` `process_owner` |
+| `agent` | 必须是 enum 中的值：`planner` `rtl_implementer` `rtl_reviewer` `integration_verifier` `vivado_integrator` `hardware_validator` `process_owner` |
 | `created_date` | 今天日期 YYYY-MM-DD |
 | `target_validation_level` | L0-L7，按 CLAUDE.md 的验证级别定义填写 |
 | `validation_status` | 新任务全部 `pending` |
