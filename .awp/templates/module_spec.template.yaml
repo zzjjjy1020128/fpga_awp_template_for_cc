@@ -1,0 +1,45 @@
+# MODULE_SPEC —— 模块设计规格模板
+# ==========================================
+# 在 Phase 2 开始前填写，作为 RTL 实现的输入契约。
+# 一个模块一个文件。
+
+module_name: ""              # 模块名（与 RTL 文件名一致）
+task_ref: ""                 # 关联的 TASK ID
+purpose: ""                  # 一句话描述模块功能
+
+# 接口定义
+interfaces:
+  - name: ""                 # 接口名（如 s_axis）
+    protocol: ""             # AXI4-Lite / AXI4-Stream / BRAM / GPIO / custom
+    direction: ""            # input / output / bidirectional
+    signals:                 # 核心信号列表
+      - name: ""
+        width: 1             # 位宽
+        description: ""
+  # ... 每个接口一组
+
+# 可配置参数
+parameters:
+  - name: ""
+    default: ""
+    description: ""
+
+# 依赖
+dependencies:
+  modules: []                # 本模块依赖的其他模块
+  external_ip: []            # 外部 IP（如 AXI DMA, PS7）
+  clock: ""                  # 时钟域
+  reset: ""                  # 复位策略
+
+# 功能描述
+functional_description: >
+  描述模块的核心功能和关键行为。
+  不需要长篇——聚焦于接口时序、状态机关键转换、
+  以及与其他模块的交互协议。
+
+# 边界条件
+corner_cases:                # 已知的边界条件
+  - ""
+
+# 追溯
+related_requirements: []     # 追溯到 project charter 或 TASK 的需求 ID

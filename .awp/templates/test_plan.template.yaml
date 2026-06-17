@@ -1,0 +1,32 @@
+# TEST_PLAN —— 测试计划模板
+# ==========================================
+# 在 L1a/L1b/L1c 开始前填写，定义测试场景和预期结果。
+# 完成后状态更新为 pass/fail，与 module_spec 建立追溯。
+
+target_module: ""            # 被测模块名
+test_level: ""               # L1a / L1b / L1c
+task_ref: ""                 # 关联的 TASK ID
+sim_tool: "iverilog"         # iverilog / xsim / verilator
+
+# 测试用例
+test_cases:
+  - id: ""                   # 唯一 ID（如 TC01）
+    description: ""          # 测试什么
+    stimulus: ""             # 如何激励
+    expected_behavior: ""    # 预期行为
+    covers_requirement: ""   # 追溯到 module_spec 或 TASK 的需求
+    status: "pending"        # pending / pass / fail
+    notes: ""                # pass/fail 时的备注
+
+# 跨帧测试（L1b/L1c 必填）
+multi_frame:
+  frame_count: 0             # 连续帧数
+  data_pattern: ""           # 数据模式（递增/随机/固定）
+  backpressure: false        # 是否包含背压测试
+
+# 结果汇总
+summary:
+  total_cases: 0
+  passed: 0
+  failed: 0
+  blocked: 0

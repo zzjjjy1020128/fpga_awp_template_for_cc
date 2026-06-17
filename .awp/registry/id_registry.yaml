@@ -13,27 +13,27 @@ ids:
 - id: HO-E001-OR-004-001
   type: HANDOFF
   title: Handoff HO-E001-OR-004-001
-  status: in_progress
+  status: resolved
   created: '2026-06-08'
 - id: HO-E001-OR-005-001
   type: HANDOFF
   title: Handoff HO-E001-OR-005-001
-  status: in_progress
+  status: resolved
   created: '2026-06-09'
 - id: HO-E001-OR-006-001
   type: HANDOFF
   title: Handoff HO-E001-OR-006-001
-  status: in_progress
+  status: resolved
   created: '2026-06-09'
 - id: HO-E001-OR-007-001
   type: HANDOFF
   title: Handoff HO-E001-OR-007-001
-  status: active
+  status: resolved
   created: '2026-06-10'
 - id: HO-E001-OR-008-001
   type: HANDOFF
   title: Handoff HO-E001-OR-008-001
-  status: active
+  status: resolved
   created: '2026-06-15'
 - id: HO-E001-OR-009-001
   type: HANDOFF

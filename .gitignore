@@ -59,6 +59,19 @@ SKELETON-*
 .vmcp/
 vivado/ip_pack_temp/
 
+# Board 测试构建产物
+board/ps_dma_test/build/
+board/ps_dma_test/ps7_init*
+
+# ILA 抓数临时文件
+*.ila
+*.csv
+
+# Build artifacts
+*.o
+*.dmp
+hs_err_*
+
 # 临时文件
 *.tmp
 *.swp
